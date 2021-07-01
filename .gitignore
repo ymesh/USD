@@ -1,4 +1,13 @@
 .p4*
 .DS_Store
 .AppleDouble
+._.DS_Store
 
+## Python ##
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg
+
+tmp*
+env_*
