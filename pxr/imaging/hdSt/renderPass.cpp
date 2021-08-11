@@ -26,6 +26,7 @@
 #include "pxr/imaging/glf/contextCaps.h"
 
 #include "pxr/imaging/hdSt/debugCodes.h"
+#include "pxr/imaging/hdSt/drawItemsCache.h"
 #include "pxr/imaging/hdSt/glUtils.h"
 #include "pxr/imaging/hdSt/indirectDrawBatch.h"
 #include "pxr/imaging/hdSt/resourceRegistry.h"
@@ -46,6 +47,7 @@
 #include "pxr/imaging/hd/renderDelegate.h"
 #include "pxr/imaging/hd/vtBufferSource.h"
 
+#include "pxr/base/tf/envSetting.h"
 #include "pxr/base/gf/frustum.h"
 
 
@@ -54,6 +56,16 @@
 #include "pxr/imaging/hgiGL/graphicsCmds.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
+
+TF_DEFINE_ENV_SETTING(HDST_ENABLE_DRAW_ITEMS_CACHE, false,
+                "Enable usage of the draw items cache in Storm.");
+
+static bool
+_IsDrawItemsCacheEnabled()
+{
+    static const bool enabled = TfGetEnvSetting(HDST_ENABLE_DRAW_ITEMS_CACHE);
+    return enabled;
+}
 
 void
 _ExecuteDraw(
@@ -104,19 +116,18 @@ HdSt_RenderPass::~HdSt_RenderPass()
 {
 }
 
-size_t
-HdSt_RenderPass::GetDrawItemCount() const
+bool
+HdSt_RenderPass::HasDrawItems() const
 {
-    // Note that returning '_drawItems.size()' is only correct during Prepare.
-    // During Execute _drawItems is cleared in SwapDrawItems().
-    // For that reason we return the cached '_drawItemCount' here.
-    return _drawItemCount;
-}
-
-void
-HdSt_RenderPass::_Prepare(TfTokenVector const &renderTags)
-{
-    _PrepareDrawItems(renderTags);
+    // Note that using the material tag alone isn't a sufficient filter.
+    // The collection paths and task render tags also matter. Factoring them 
+    // requires querying the render index, which is an expensive operation that
+    // we avoid here.
+    const HdStRenderParam * const renderParam =
+        static_cast<HdStRenderParam *>(
+            GetRenderIndex()->GetRenderDelegate()->GetRenderParam());
+    
+    return renderParam->HasMaterialTag(GetRprimCollection().GetMaterialTag());
 }
 
 static
@@ -204,7 +215,7 @@ HdSt_RenderPass::_Execute(HdRenderPassStateSharedPtr const &renderPassState,
     TF_VERIFY(stRenderPassState);
 
     // Validate and update draw batches.
-    _PrepareCommandBuffer(renderTags);
+    _UpdateCommandBuffer(renderTags);
 
     // CPU frustum culling (if chosen)
     _FrustumCullCPU(stRenderPassState);
@@ -270,13 +281,40 @@ HdSt_RenderPass::_MarkCollectionDirty()
     _collectionVersion = 0;
 }
 
+static
+HdStDrawItemsCachePtr
+_GetDrawItemsCache(HdRenderIndex *renderIndex)
+{
+    HdStRenderDelegate* renderDelegate =
+        static_cast<HdStRenderDelegate*>(renderIndex->GetRenderDelegate());
+    return renderDelegate->GetDrawItemsCache();
+}
+
 void
-HdSt_RenderPass::_PrepareDrawItems(TfTokenVector const& renderTags)
+HdSt_RenderPass::_UpdateDrawItems(TfTokenVector const& renderTags)
 {
     HD_TRACE_FUNCTION();
 
-    HdChangeTracker const &tracker = GetRenderIndex()->GetChangeTracker();
     HdRprimCollection const &collection = GetRprimCollection();
+    if (_IsDrawItemsCacheEnabled()) {
+        HdStDrawItemsCachePtr cache = _GetDrawItemsCache(GetRenderIndex());
+
+        HdDrawItemConstPtrVectorSharedPtr cachedEntry =
+            cache->GetDrawItems(
+                collection, renderTags, GetRenderIndex(), _drawItems);
+        
+        if (_drawItems != cachedEntry) {
+            _drawItems = cachedEntry;
+            _drawItemsChanged = true;
+            _drawItemCount = _drawItems->size();
+        }
+        // We don't rely on this state when using the cache. Reset always.
+        _collectionChanged = false;
+
+        return;
+    }
+
+    HdChangeTracker const &tracker = GetRenderIndex()->GetChangeTracker();
 
     const int collectionVersion =
         tracker.GetCollectionVersion(collection.GetName());
@@ -296,8 +334,6 @@ HdSt_RenderPass::_PrepareDrawItems(TfTokenVector const& renderTags)
         _materialTagsVersion != materialTagsVersion;
 
     if (collectionChanged || renderTagsChanged || materialTagsChanged) {
-        HD_PERF_COUNTER_INCR(HdPerfTokens->collectionsRefreshed);
-
         if (TfDebug::IsEnabled(HDST_DRAW_ITEM_GATHER)) {
             if (collectionChanged) {
                 TfDebug::Helper::Msg(
@@ -319,8 +355,19 @@ HdSt_RenderPass::_PrepareDrawItems(TfTokenVector const& renderTags)
             }
         }
 
-        _drawItems = GetRenderIndex()->GetDrawItems(collection, renderTags);
-        _drawItemCount = _drawItems.size();
+        const HdStRenderParam * const renderParam =
+            static_cast<HdStRenderParam *>(
+                GetRenderIndex()->GetRenderDelegate()->GetRenderParam());
+        if (renderParam->HasMaterialTag(collection.GetMaterialTag())) {
+            _drawItems = std::make_shared<HdDrawItemConstPtrVector>(
+                GetRenderIndex()->GetDrawItems(collection, renderTags));
+            HD_PERF_COUNTER_INCR(HdStPerfTokens->drawItemsFetched);
+        } else {
+            // No need to even call GetDrawItems when we know that
+            // there is no prim with the desired material tag.
+            _drawItems = std::make_shared<HdDrawItemConstPtrVector>();
+        }
+        _drawItemCount = _drawItems->size();
         _drawItemsChanged = true;
 
         _collectionVersion = collectionVersion;
@@ -332,7 +379,7 @@ HdSt_RenderPass::_PrepareDrawItems(TfTokenVector const& renderTags)
 }
 
 void
-HdSt_RenderPass::_PrepareCommandBuffer(TfTokenVector const& renderTags)
+HdSt_RenderPass::_UpdateCommandBuffer(TfTokenVector const& renderTags)
 {
     HD_TRACE_FUNCTION();
 
@@ -342,19 +389,14 @@ HdSt_RenderPass::_PrepareCommandBuffer(TfTokenVector const& renderTags)
     // We know what must be drawn and that the stream needs to be updated,
     // so iterate over each prim, cull it and schedule it to be drawn.
 
+    // Ensure that the drawItems are always up-to-date before building the
+    // command buffers.
+    _UpdateDrawItems(renderTags);
+
     const int batchVersion = _GetDrawBatchesVersion(GetRenderIndex());
-
-    // It is optional for a render task to call RenderPass::Prepare() to
-    // update the drawItems during the prepare phase. We ensure our drawItems
-    // are always up-to-date before building the command buffers.
-    _PrepareDrawItems(renderTags);
-
     // Rebuild draw batches based on new draw items
     if (_drawItemsChanged) {
-        _cmdBuffer.SwapDrawItems(
-            // Downcast the HdDrawItem entries to HdStDrawItems:
-            reinterpret_cast<std::vector<HdStDrawItem const*>*>(&_drawItems),
-            batchVersion);
+        _cmdBuffer.SetDrawItems(_drawItems, batchVersion);
 
         _drawItemsChanged = false;
         size_t itemCount = _cmdBuffer.GetTotalSize();

@@ -1044,7 +1044,43 @@ namespace {
             }
         }
     }
-};
+
+    // Wrapper for HdRprimCollection that provides a custom hash and equality
+    // test based on just the repr opinion.
+    // This is used to avoid redundant work in the dirty list merge step in
+    // HdRenderIndex::SyncAll.
+    // Note: The include and exclude paths are skipped from the hash
+    // and equality tests since it isn't used as a filter to determine
+    // which Rprims to sync. See HdRenderIndex::_GetDirtyRprimIds
+    struct _CollectionWrapper
+    {
+        _CollectionWrapper(HdRprimCollection const &col)
+        : collection(col) {}
+
+        bool operator==(_CollectionWrapper const & other) const
+        {
+            // See comment above.
+            HdRprimCollection const &otherCol = other.collection;
+            return collection.GetReprSelector() == otherCol.GetReprSelector()
+                && collection.IsForcedRepr() == otherCol.IsForcedRepr();
+        }
+
+        bool operator!=(_CollectionWrapper const & other) const
+        {
+            return !(*this == other);
+        }
+
+        HdRprimCollection const &collection;
+    };
+
+    template <class HashState>
+    void TfHashAppend(
+        HashState &h, _CollectionWrapper const &val) {
+        HdRprimCollection const &col = val.collection;
+        // See comment above.
+        h.Append(col.GetReprSelector(), col.IsForcedRepr());
+    }
+}
 
 void
 HdRenderIndex::EnqueuePrimsToSync(
@@ -1264,13 +1300,25 @@ HdRenderIndex::SyncAll(HdTaskSharedPtrVector *tasks,
     _ReprList reprs;
     {
         HF_TRACE_FUNCTION_SCOPE("Merge Dirty Lists");
-        // If dirty list prims are all sorted, we could do something more
-        // efficient here.
+
+        using CollectionSet = std::unordered_set<_CollectionWrapper, TfHash>;
+        using CollectionIt = CollectionSet::const_iterator;
+
+        CollectionSet collections;
+
         size_t numSyncQueueEntries = _syncQueue.size();
         for (size_t entryNum = 0; entryNum < numSyncQueueEntries; ++entryNum) {
             _SyncQueueEntry &entry = _syncQueue[entryNum];
             HdDirtyListSharedPtr &hdDirtyList = entry.dirtyList;
             HdRprimCollection const& collection = entry.collection;
+
+            // Skip collections we've already processed since the same list of
+            // dirty Rprim ids is generated.
+            const std::pair<CollectionIt, bool> res =
+                collections.insert(_CollectionWrapper(collection));
+            if (!res.second) {
+                continue;
+            }
 
             _ReprSpec reprSpec(collection.GetReprSelector(),
                                collection.IsForcedRepr());

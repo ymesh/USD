@@ -21,12 +21,13 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#include "pxr/usd/usdRi/risOslPattern.h"
+#include "pxr/usd/usdGeom/purposeVisibilityAPI.h"
 #include "pxr/usd/usd/schemaBase.h"
 
 #include "pxr/usd/sdf/primSpec.h"
 
 #include "pxr/usd/usd/pyConversions.h"
+#include "pxr/base/tf/pyAnnotatedBoolResult.h"
 #include "pxr/base/tf/pyContainerConversions.h"
 #include "pxr/base/tf/pyResultConversions.h"
 #include "pxr/base/tf/pyUtils.h"
@@ -50,36 +51,61 @@ WRAP_CUSTOM;
 
         
 static UsdAttribute
-_CreateFilePathAttr(UsdRiRisOslPattern &self,
+_CreateGuideVisibilityAttr(UsdGeomPurposeVisibilityAPI &self,
                                       object defaultVal, bool writeSparsely) {
-    return self.CreateFilePathAttr(
-        UsdPythonToSdfType(defaultVal, SdfValueTypeNames->Asset), writeSparsely);
+    return self.CreateGuideVisibilityAttr(
+        UsdPythonToSdfType(defaultVal, SdfValueTypeNames->Token), writeSparsely);
 }
         
 static UsdAttribute
-_CreateOslPathAttr(UsdRiRisOslPattern &self,
+_CreateProxyVisibilityAttr(UsdGeomPurposeVisibilityAPI &self,
                                       object defaultVal, bool writeSparsely) {
-    return self.CreateOslPathAttr(
-        UsdPythonToSdfType(defaultVal, SdfValueTypeNames->Asset), writeSparsely);
+    return self.CreateProxyVisibilityAttr(
+        UsdPythonToSdfType(defaultVal, SdfValueTypeNames->Token), writeSparsely);
+}
+        
+static UsdAttribute
+_CreateRenderVisibilityAttr(UsdGeomPurposeVisibilityAPI &self,
+                                      object defaultVal, bool writeSparsely) {
+    return self.CreateRenderVisibilityAttr(
+        UsdPythonToSdfType(defaultVal, SdfValueTypeNames->Token), writeSparsely);
 }
 
 static std::string
-_Repr(const UsdRiRisOslPattern &self)
+_Repr(const UsdGeomPurposeVisibilityAPI &self)
 {
     std::string primRepr = TfPyRepr(self.GetPrim());
     return TfStringPrintf(
-        "UsdRi.RisOslPattern(%s)",
+        "UsdGeom.PurposeVisibilityAPI(%s)",
         primRepr.c_str());
+}
+
+struct UsdGeomPurposeVisibilityAPI_CanApplyResult : 
+    public TfPyAnnotatedBoolResult<std::string>
+{
+    UsdGeomPurposeVisibilityAPI_CanApplyResult(bool val, std::string const &msg) :
+        TfPyAnnotatedBoolResult<std::string>(val, msg) {}
+};
+
+static UsdGeomPurposeVisibilityAPI_CanApplyResult
+_WrapCanApply(const UsdPrim& prim)
+{
+    std::string whyNot;
+    bool result = UsdGeomPurposeVisibilityAPI::CanApply(prim, &whyNot);
+    return UsdGeomPurposeVisibilityAPI_CanApplyResult(result, whyNot);
 }
 
 } // anonymous namespace
 
-void wrapUsdRiRisOslPattern()
+void wrapUsdGeomPurposeVisibilityAPI()
 {
-    typedef UsdRiRisOslPattern This;
+    typedef UsdGeomPurposeVisibilityAPI This;
 
-    class_<This, bases<UsdRiRisPattern> >
-        cls("RisOslPattern");
+    UsdGeomPurposeVisibilityAPI_CanApplyResult::Wrap<UsdGeomPurposeVisibilityAPI_CanApplyResult>(
+        "_CanApplyResult", "whyNot");
+
+    class_<This, bases<UsdAPISchemaBase> >
+        cls("PurposeVisibilityAPI");
 
     cls
         .def(init<UsdPrim>(arg("prim")))
@@ -89,8 +115,11 @@ void wrapUsdRiRisOslPattern()
         .def("Get", &This::Get, (arg("stage"), arg("path")))
         .staticmethod("Get")
 
-        .def("Define", &This::Define, (arg("stage"), arg("path")))
-        .staticmethod("Define")
+        .def("CanApply", &_WrapCanApply, (arg("prim")))
+        .staticmethod("CanApply")
+
+        .def("Apply", &This::Apply, (arg("prim")))
+        .staticmethod("Apply")
 
         .def("GetSchemaAttributeNames",
              &This::GetSchemaAttributeNames,
@@ -105,17 +134,24 @@ void wrapUsdRiRisOslPattern()
         .def(!self)
 
         
-        .def("GetFilePathAttr",
-             &This::GetFilePathAttr)
-        .def("CreateFilePathAttr",
-             &_CreateFilePathAttr,
+        .def("GetGuideVisibilityAttr",
+             &This::GetGuideVisibilityAttr)
+        .def("CreateGuideVisibilityAttr",
+             &_CreateGuideVisibilityAttr,
              (arg("defaultValue")=object(),
               arg("writeSparsely")=false))
         
-        .def("GetOslPathAttr",
-             &This::GetOslPathAttr)
-        .def("CreateOslPathAttr",
-             &_CreateOslPathAttr,
+        .def("GetProxyVisibilityAttr",
+             &This::GetProxyVisibilityAttr)
+        .def("CreateProxyVisibilityAttr",
+             &_CreateProxyVisibilityAttr,
+             (arg("defaultValue")=object(),
+              arg("writeSparsely")=false))
+        
+        .def("GetRenderVisibilityAttr",
+             &This::GetRenderVisibilityAttr)
+        .def("CreateRenderVisibilityAttr",
+             &_CreateRenderVisibilityAttr,
              (arg("defaultValue")=object(),
               arg("writeSparsely")=false))
 
@@ -149,4 +185,4 @@ namespace {
 WRAP_CUSTOM {
 }
 
-} // anonymous namespace
+}

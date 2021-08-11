@@ -256,6 +256,20 @@ protected:
     // time.
     friend void SdrShaderNode::_PostProcessProperties();
 
+    // Set the USD encoding version to something other than the default.
+    // This can be set in SdrShaderNode::_PostProcessProperties for all the
+    // properties on a shader node.
+    void _SetUsdEncodingVersion(int usdEncodingVersion);
+
+    // Convert this property to a VStruct, which has a special type and a
+    // different default value
+    void _ConvertToVStruct();
+
+    // This function is called by SdrShaderNode::_PostProcessProperties once all
+    // information is locked in and won't be changed anymore. This allows each
+    // property to take some extra steps once all information is available.
+    void _FinalizeProperty();
+
     // Some metadata values cannot be returned by reference from the main
     // metadata dictionary because they need additional parsing.
     const NdrTokenMap _hints;
@@ -269,6 +283,10 @@ protected:
     TfToken _vstructMemberOf;
     TfToken _vstructMemberName;
     TfToken _vstructConditionalExpr;
+
+    // Metadatum to control the behavior of GetTypeAsSdfType and indirectly
+    // CanConnectTo
+    int _usdEncodingVersion;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

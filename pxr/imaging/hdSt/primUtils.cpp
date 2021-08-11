@@ -45,7 +45,6 @@
 #include "pxr/imaging/hd/types.h"
 #include "pxr/imaging/hd/vtBufferSource.h"
 
-#include "pxr/imaging/glf/contextCaps.h"
 #include "pxr/imaging/hf/diagnostic.h"
 
 #include "pxr/imaging/hio/glslfx.h"
@@ -91,6 +90,17 @@ HdStMarkGarbageCollectionNeeded(HdRenderParam *renderParam)
             static_cast<HdStRenderParam*>(renderParam);
         stRenderParam->SetGarbageCollectionNeeded();
     }
+}
+
+void 
+HdStFinalizeRprim(HdRprim * const rprim,
+                  HdRenderParam * const renderParam)
+{
+    HdStMarkGarbageCollectionNeeded(renderParam);
+
+    HdStRenderParam * const stRenderParam =
+        static_cast<HdStRenderParam*>(renderParam);
+    stRenderParam->DecreaseMaterialTagCount(rprim->GetMaterialTag());
 }
 
 // -----------------------------------------------------------------------------
@@ -188,39 +198,74 @@ HdStSetMaterialId(HdSceneDelegate *delegate,
 }
 
 void
-HdStSetMaterialTag(HdSceneDelegate *delegate,
-                   HdRenderParam *renderParam,
-                   HdRprim *rprim,
-                   bool hasDisplayOpacityPrimvar,
-                   bool occludedSelectionShowsThrough)
+HdStSetMaterialTag(HdRenderParam * const renderParam,
+                   HdRprim * const rprim,
+                   const TfToken &materialTag)
 {
-    TfToken prevMaterialTag = rprim->GetMaterialTag();
-    TfToken newMaterialTag;
+    HdStRenderParam * const stRenderParam =
+        static_cast<HdStRenderParam*>(renderParam);
 
-    // Opinion precedence:
-    //   Show occluded selection > Material opinion > displayOpacity primvar
-
-    if (occludedSelectionShowsThrough) {
-        newMaterialTag = HdStMaterialTagTokens->translucentToSelection;
-    } else {
-        const HdStMaterial *material =
-            static_cast<const HdStMaterial *>(
-                    delegate->GetRenderIndex().GetSprim(
-                        HdPrimTypeTokens->material, rprim->GetMaterialId()));
-        if (material) {
-            newMaterialTag = material->GetMaterialTag();
-        } else {
-            newMaterialTag = hasDisplayOpacityPrimvar?
-                HdStMaterialTagTokens->masked :
-                HdMaterialTagTokens->defaultMaterialTag;
+    {
+        // prevMaterialTag scoped to express that it is a reference
+        // to a field modified by SetMaterialTag later.
+        const TfToken &prevMaterialTag = rprim->GetMaterialTag();
+        
+        if (materialTag == prevMaterialTag) {
+            return;
         }
+        
+        stRenderParam->DecreaseMaterialTagCount(prevMaterialTag);
+    }
+    {
+        stRenderParam->IncreaseMaterialTagCount(materialTag);
+        rprim->SetMaterialTag(materialTag);
     }
 
-    if (prevMaterialTag != newMaterialTag) {
-        rprim->SetMaterialTag(newMaterialTag);
-        // Trigger invalidation of the draw items cache of the render pass(es).
-        HdStMarkMaterialTagsDirty(renderParam);
+    // Trigger invalidation of the draw items cache of the render pass(es).
+    HdStMarkMaterialTagsDirty(renderParam);
+}
+
+// Opinion precedence:
+// Show occluded selection > Material opinion > displayOpacity primvar
+//
+static
+TfToken
+_ComputeMaterialTag(HdSceneDelegate * const delegate,
+                    HdRprim * const rprim,
+                    const bool hasDisplayOpacityPrimvar,
+                    const bool occludedSelectionShowsThrough)
+{
+    if (occludedSelectionShowsThrough) {
+        return HdStMaterialTagTokens->translucentToSelection;
     }
+
+    const HdStMaterial *material =
+        static_cast<const HdStMaterial *>(
+            delegate->GetRenderIndex().GetSprim(
+                HdPrimTypeTokens->material, rprim->GetMaterialId()));
+    if (material) {
+        return material->GetMaterialTag();
+    }
+
+    if (hasDisplayOpacityPrimvar) {
+        return HdStMaterialTagTokens->masked;
+    }
+
+    return HdMaterialTagTokens->defaultMaterialTag;
+}
+
+void
+HdStSetMaterialTag(HdSceneDelegate * const delegate,
+                   HdRenderParam * const renderParam,
+                   HdRprim *const rprim,
+                   const bool hasDisplayOpacityPrimvar,
+                   const bool occludedSelectionShowsThrough)
+{
+    HdStSetMaterialTag(
+        renderParam, rprim,
+        _ComputeMaterialTag(
+            delegate, rprim,
+            hasDisplayOpacityPrimvar, occludedSelectionShowsThrough));
 }
 
 HdStShaderCodeSharedPtr
@@ -242,7 +287,7 @@ HdStGetMaterialShader(
                 renderIndex.GetFallbackSprim(HdPrimTypeTokens->material));
     }
 
-    return material->GetShaderCode();
+    return material->GetSurfaceShader();
 }
 
 // -----------------------------------------------------------------------------

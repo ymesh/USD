@@ -37,6 +37,8 @@ pxr_library(hd
         compExtCompInputSource
         computation
         coordSys
+        dataSource
+        dataSourceLocator
         debugCodes
         dirtyList
         drawingCoord
@@ -50,6 +52,7 @@ pxr_library(hd
         extComputationContext
         extComputationUtils
         field
+        filteringSceneIndex
         flatNormals
         geomSubset
         instancer
@@ -62,6 +65,7 @@ pxr_library(hd
         perfLog
         pluginRenderDelegateUniqueHandle
         points
+        prefixingSceneIndex
         primGather
         primTypeIndex
         renderBuffer
@@ -76,11 +80,15 @@ pxr_library(hd
         repr
         resource
         resourceRegistry
+        retainedDataSource
+        retainedSceneIndex
         rprim
         rprimCollection
         rprimSharedData
         sceneDelegate
         sceneExtCompInputSource
+        sceneIndex
+        sceneIndexObserver
         selection
         smoothNormals
         sortedIds                   
@@ -96,11 +104,12 @@ pxr_library(hd
         unitTestNullRenderDelegate
         unitTestNullRenderPass
         vertexAdjacency
-	volume
+        volume
         vtBufferSource
 
     PUBLIC_HEADERS
         api.h
+        dataSourceTypeDefs.h
         driver.h
         version.h
 
@@ -125,4 +134,16 @@ pxr_build_test(testHdExtComputationUtils
 
 pxr_register_test(testHdExtComputationUtils
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdExtComputationUtils"
+)
+
+pxr_build_test(testHdTimeSampleArray
+    LIBRARIES
+        hd
+
+    CPPFILES
+        testenv/testHdTimeSampleArray.cpp
+)
+
+pxr_register_test(testHdTimeSampleArray
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdTimeSampleArray"
 )

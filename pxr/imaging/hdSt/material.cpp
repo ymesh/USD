@@ -39,7 +39,6 @@
 #include "pxr/imaging/hd/changeTracker.h"
 #include "pxr/imaging/hd/tokens.h"
 
-#include "pxr/imaging/glf/contextCaps.h"
 #include "pxr/imaging/hio/glslfx.h"
 
 #include "pxr/base/tf/staticTokens.h"
@@ -132,9 +131,6 @@ HdStMaterial::_ProcessTextureDescriptors(
     HdBufferSpecVector * const specs,
     HdBufferSourceSharedPtrVector * const sources)
 {
-    const bool bindlessTextureEnabled
-        = GlfContextCaps::GetInstance().bindlessTextureEnabled;
-
     for (HdStMaterialNetwork::TextureDescriptor const &desc : descs) {
         HdStTextureHandleSharedPtr const textureHandle = 
             resourceRegistry->AllocateTextureHandle(
@@ -142,7 +138,6 @@ HdStMaterial::_ProcessTextureDescriptors(
                 desc.type,
                 desc.samplerParameters,
                 desc.memoryRequest,
-                bindlessTextureEnabled,
                 shaderCode);
         
         // Note about batching hashes:
@@ -176,8 +171,7 @@ HdStMaterial::_ProcessTextureDescriptors(
                   : _GetTextureHandleHash(textureHandle) });
     }
 
-    HdSt_TextureBinder::GetBufferSpecs(
-        *texturesFromStorm, bindlessTextureEnabled, specs);
+    HdSt_TextureBinder::GetBufferSpecs(*texturesFromStorm, specs);
 }
 
 /* virtual */
@@ -205,6 +199,7 @@ HdStMaterial::Sync(HdSceneDelegate *sceneDelegate,
 
     std::string fragmentSource;
     std::string geometrySource;
+    std::string volumeSource;
     VtDictionary materialMetadata;
     TfToken materialTag = _materialTag;
     HdSt_MaterialParamVector params;
@@ -218,14 +213,17 @@ HdStMaterial::Sync(HdSceneDelegate *sceneDelegate,
             _networkProcessor.ProcessMaterialNetwork(GetId(), hdNetworkMap,
                                                     resourceRegistry.get());
             fragmentSource = _networkProcessor.GetFragmentCode();
+            volumeSource = _networkProcessor.GetVolumeCode();
             geometrySource = _networkProcessor.GetGeometryCode();
             materialMetadata = _networkProcessor.GetMetadata();
             materialTag = _networkProcessor.GetMaterialTag();
             params = _networkProcessor.GetMaterialParams();
                 textureDescriptors = _networkProcessor.GetTextureDescriptors();
-            }
         }
+    }
 
+    // Use fallback shader when there is no source for fragment and geometry
+    // shader.
     if (fragmentSource.empty() && geometrySource.empty()) {
         _InitFallbackShader();
         fragmentSource = _fallbackGlslfx->GetSurfaceSource();
@@ -235,8 +233,27 @@ HdStMaterial::Sync(HdSceneDelegate *sceneDelegate,
         materialMetadata = _fallbackGlslfx->GetMetadata();
     }
 
-    // If we're updating the fragment or geometry source, we need to rebatch
-    // anything that uses this material.
+    // Update volume material data.
+    if (_volumeMaterialData.source != volumeSource) {
+        // If we're updating the volume source, we need to rebatch anything that
+        // uses this material.
+        markBatchesDirty = true;
+        _volumeMaterialData.source = std::move(volumeSource);
+
+        if (_volumeMaterialData.source.empty()) {
+            // Material does not provide a volume shader.
+            // In this case, we leave it to _ComputeVolumeMaterialData in
+            // volume.cpp to use the fallback volume data.
+            // The params of this material are also irrelevant for volumes in
+            // this case.
+            _volumeMaterialData.params = {};
+        } else {
+            _volumeMaterialData.params = params;
+        }
+    }
+
+    // If we're updating the fragment or geometry source, we need to
+    // rebatch anything that uses this material.
     std::string const& oldFragmentSource = 
         _surfaceShader->GetSource(HdShaderTokens->fragmentShader);
     std::string const& oldGeometrySource = 
@@ -382,7 +399,7 @@ HdStMaterial::GetInitialDirtyBitsMask() const
 }
 
 HdStShaderCodeSharedPtr
-HdStMaterial::GetShaderCode() const
+HdStMaterial::GetSurfaceShader() const
 {
     return _surfaceShader;
 }
