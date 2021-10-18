@@ -32,6 +32,7 @@ pxr_library(hioOpenVDB
 
     INCLUDE_DIRS
         ${OPENVDB_INCLUDE_DIR}
+        ${OPENEXR_INCLUDE_DIR}
 
     PUBLIC_CLASSES
         utils
@@ -47,3 +48,6 @@ pxr_library(hioOpenVDB
     RESOURCE_FILES
         plugInfo.json
 )
+
+message("**** OPENVDB_INCLUDE_DIR = ${OPENVDB_INCLUDE_DIR}")
+message("**** OPENEXR_INCLUDE_DIR = ${OPENEXR_INCLUDE_DIR}")

@@ -212,6 +212,7 @@ if (PXR_BUILD_IMAGING)
             cmake_policy(SET CMP0072 OLD)
         endif()
         find_package(OpenGL REQUIRED)
+        message("***** OPENGL_gl_LIBRARY = ${OPENGL_gl_LIBRARY}")
     endif()
     # --Metal
     if (PXR_ENABLE_METAL_SUPPORT)
