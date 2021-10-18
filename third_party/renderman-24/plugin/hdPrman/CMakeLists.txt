@@ -25,7 +25,8 @@ if (${PXR_ENABLE_MATERIALX_SUPPORT})
     add_definitions(-DPXR_MATERIALX_STDLIB_DIR="${MATERIALX_STDLIB_DIR}")
     add_definitions(-DPXR_MATERIALX_BASE_DIR="${MATERIALX_BASE_DIR}")
 
-    list(APPEND optionalLibs ${MATERIALX_LIBRARIES} hdMtlx)
+    #list(APPEND optionalLibs ${MATERIALX_LIBRARIES} hdMtlx)
+    list(APPEND optionalLibs hdMtlx)
     list(APPEND optionalIncludeDirs ${MATERIALX_INCLUDE_DIRS})
     list(APPEND optionalPublicClasses matfiltMaterialX)
 
@@ -34,6 +35,8 @@ if (${PXR_ENABLE_MATERIALX_SUPPORT})
         list(APPEND optionalIncludeDirs ${OSL_INCLUDE_DIR})
     endif()
 endif()
+
+message("***** optionalLibs = ${optionalLibs}")
 
 pxr_plugin(${PXR_PACKAGE}
     LIBRARIES
@@ -53,6 +56,8 @@ pxr_plugin(${PXR_PACKAGE}
     INCLUDE_DIRS
         ${RENDERMAN_INCLUDE_DIR}
         ${optionalIncludeDirs}
+        ${OPENEXR_INCLUDE_DIR}
+        ${OIIO_INCLUDE_DIR}
 
     PUBLIC_CLASSES
         basisCurves
