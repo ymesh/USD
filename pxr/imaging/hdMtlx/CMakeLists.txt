@@ -21,3 +21,5 @@ pxr_library(hdMtlx
     PUBLIC_HEADERS
         api.h
 )
+
+message("***** MATERIALX_LIBRARIES = ${MATERIALX_LIBRARIES}")
