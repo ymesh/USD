@@ -52,7 +52,7 @@ public:
     HdSt_IndexSubsetComputation(
         HdBufferSourceSharedPtr indexBuilderSource,
         HdBufferSourceSharedPtr faceIndicesSource,
-        HdSt_MeshTopology *topology);
+        HdBufferSourceSharedPtr baseFaceToRefinedFacesMapSource = nullptr);
     void GetBufferSpecs(HdBufferSpecVector *specs) const override;
     bool Resolve() override;
 
@@ -67,6 +67,7 @@ protected:
     HdBufferSourceSharedPtrVector _chainedBuffers;
     HdBufferSourceSharedPtr _indexBuilderSource;
     HdBufferSourceSharedPtr _faceIndicesSource;
+    HdBufferSourceSharedPtr _baseFaceToRefinedFacesMapSource;
     HdSt_MeshTopology *_topology;
 };
 
@@ -140,7 +141,10 @@ HdSt_MeshTopology::HdSt_MeshTopology(
  , _refineMode(refineMode)
  , _subdivision(nullptr)
  , _osdTopologyBuilder()
+ , _osdBaseFaceToRefinedFacesMap()
+ , _nonSubsetFaces(nullptr)
 {
+    SanitizeGeomSubsets();
 }
 
 HdSt_MeshTopology::~HdSt_MeshTopology() = default;
@@ -315,6 +319,91 @@ HdSt_MeshTopology::GetOsdTopologyComputation(SdfPath const &id)
     return builder;
 }
 
+void
+HdSt_MeshTopology::SanitizeGeomSubsets()
+{
+    const HdGeomSubsets &geomSubsets = GetGeomSubsets();
+    if (geomSubsets.empty()) {
+        return;
+    }
+    const size_t numFaces = GetNumFaces();
+
+    // Keep track of faces that are used within the geom subsets
+    std::vector<bool> unusedFaces(numFaces, true);
+    size_t numUnusedFaces = numFaces;
+
+    HdGeomSubsets sanitizedGeomSubsets;
+    for (const HdGeomSubset &geomSubset : geomSubsets) {
+        HdGeomSubset sanitizedGeomSubset = geomSubset;
+
+        // We only care about subsets that will with non-empty indices and
+        // material id
+        const VtIntArray faceIndices = geomSubset.indices;
+        if (!faceIndices.empty() && !geomSubset.materialId.IsEmpty()) {                    
+            VtIntArray sanitizedFaceIndices;
+            for (size_t i = 0; i < faceIndices.size(); ++i) {
+                const int index = faceIndices[i];
+                // Skip out-of-bound face indices.
+                if (index >= (int)numFaces) {
+                    TF_WARN("Geom subset index %d is larger than number of "
+                        "faces (%d), removing.", index, (int)numFaces);
+                    continue;
+                }
+                sanitizedFaceIndices.push_back(index);
+                if (unusedFaces[index]) {
+                    unusedFaces[index] = false;
+                    numUnusedFaces--;
+                } else {
+                    // Warn about duplicated face indices.
+                    TF_WARN("Face index %d is repeated between geom subsets", 
+                        index);;
+                }
+            }
+            sanitizedGeomSubset.indices = sanitizedFaceIndices;
+            sanitizedGeomSubsets.push_back(sanitizedGeomSubset);
+        }
+    }
+
+    _nonSubsetFaces = std::make_unique<std::vector<int>>();
+    _nonSubsetFaces->resize(numUnusedFaces);
+
+    if (numUnusedFaces) {
+        size_t count = 0;
+        for (size_t i = 0; i < unusedFaces.size() && count < numUnusedFaces; 
+             ++i) {
+            if (unusedFaces[i]) {
+                (*_nonSubsetFaces)[count] = i;
+                count++;
+            }
+        }
+    }
+    
+    SetGeomSubsets(sanitizedGeomSubsets);
+}
+
+HdBufferSourceSharedPtr
+HdSt_MeshTopology::GetOsdBaseFaceToRefinedFacesMapComputation(
+    HdStResourceRegistry *resourceRegistry)
+{   
+    if (HdBufferSourceSharedPtr map = _osdBaseFaceToRefinedFacesMap.lock()) {
+        return map;
+    }
+
+    if (!TF_VERIFY(_subdivision)) {
+        return HdBufferSourceSharedPtr();
+    }
+
+    HdBufferSourceSharedPtr topologyBuilder = _osdTopologyBuilder.lock();
+    HdBufferSourceSharedPtr map =
+        _subdivision->CreateBaseFaceToRefinedFacesMapComputation(
+            topologyBuilder);
+    // Add to resource registry when created
+    resourceRegistry->AddSource(map);
+
+    _osdBaseFaceToRefinedFacesMap = map; // retain weak ptr
+    return map;
+}
+
 HdBufferSourceSharedPtr
 HdSt_MeshTopology::GetIndexSubsetComputation(
     HdBufferSourceSharedPtr indexBuilderSource,
@@ -329,8 +418,11 @@ HdSt_MeshTopology::GetRefinedIndexSubsetComputation(
     HdBufferSourceSharedPtr indexBuilderSource, 
     HdBufferSourceSharedPtr faceIndicesSource)
 {
+    HdBufferSourceSharedPtr baseFaceToRefinedFacesMapSource = 
+        _osdBaseFaceToRefinedFacesMap.lock();
+
     return std::make_shared<HdSt_IndexSubsetComputation>(
-        indexBuilderSource, faceIndicesSource, this);
+        indexBuilderSource, faceIndicesSource, baseFaceToRefinedFacesMapSource);
 }
 
 HdBufferSourceSharedPtr
@@ -425,10 +517,10 @@ HdSt_MeshTopology::GetOsdRefineComputationGPU(
 HdSt_IndexSubsetComputation::HdSt_IndexSubsetComputation(
     HdBufferSourceSharedPtr indexBuilderSource,
     HdBufferSourceSharedPtr faceIndicesSource,
-    HdSt_MeshTopology *topology = nullptr) : 
+    HdBufferSourceSharedPtr baseFaceToRefinedFacesMapSource) : 
     _indexBuilderSource(indexBuilderSource),
     _faceIndicesSource(faceIndicesSource),
-    _topology(topology)
+    _baseFaceToRefinedFacesMapSource(baseFaceToRefinedFacesMapSource)
 {
 }
     
@@ -443,6 +535,10 @@ HdSt_IndexSubsetComputation::Resolve()
 {
     if (_indexBuilderSource && !_indexBuilderSource->IsResolved()) return false;
     if (_faceIndicesSource && !_faceIndicesSource->IsResolved()) return false;
+    if (_baseFaceToRefinedFacesMapSource && 
+        !_baseFaceToRefinedFacesMapSource->IsResolved()) {
+        return false;
+    }
 
     if (!_TryLock()) return false;
 
@@ -460,25 +556,25 @@ HdSt_IndexSubsetComputation::Resolve()
 
     // Refined indices need extra step to map the quadrangulated/triangulated
     // face indices to the refined face indices.
-    if (_topology) {
-        HdSt_Subdivision *subdivision = _topology->GetSubdivision();
-        if (!TF_VERIFY(subdivision)) {
-            _SetResolved();
-            return true;
-        }
-
-        const std::vector<std::vector<int>> &baseFaceToRefinedFaceMap = 
-            subdivision->GetBaseFaceToRefinedFacesMap();
+    if (_baseFaceToRefinedFacesMapSource) {
+        const int32_t * const baseFaceToRefinedFacesMap = 
+            reinterpret_cast<const int32_t*>(
+                _baseFaceToRefinedFacesMapSource->GetData());
+        const int32_t * const refinedFaceCounts = 
+            reinterpret_cast<const int32_t*>(
+                _baseFaceToRefinedFacesMapSource->GetChainedBuffers().front()
+                    ->GetData());
 
         VtIntArray refinedFaceIndices;
         for (size_t i = 0; i < faceIndices.size(); ++i) {
-            const std::vector<int> &refinedFaces = 
-                baseFaceToRefinedFaceMap[faceIndices[i]];
-            for (size_t j = 0; j < refinedFaces.size(); ++j) {
-                refinedFaceIndices.push_back(refinedFaces[j]);
+            const size_t start = faceIndices[i] == 0 ? 
+                0 : refinedFaceCounts[faceIndices[i] - 1];
+            const size_t end = refinedFaceCounts[faceIndices[i]];
+
+            for (size_t j = start; j < end; ++j) {
+                refinedFaceIndices.push_back(baseFaceToRefinedFacesMap[j]);
             }
         }
-
         faceIndices = refinedFaceIndices;
     }
 

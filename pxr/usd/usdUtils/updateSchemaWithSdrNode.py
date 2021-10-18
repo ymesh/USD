@@ -26,8 +26,6 @@
 from pxr import Tf, Sdf, Sdr, Usd, UsdShade, Vt
 from pxr.UsdUtils.constantsGroup import ConstantsGroup
 
-import distutils.util
-
 class SchemaDefiningKeys(ConstantsGroup):
     API_SCHEMA_AUTO_APPLY_TO = "apiSchemaAutoApplyTo"
     API_SCHEMA_CAN_ONLY_APPLY_TO = "apiSchemaCanOnlyApplyTo"
@@ -39,7 +37,7 @@ class SchemaDefiningKeys(ConstantsGroup):
     SCHEMA_BASE = "schemaBase"
     SCHEMA_KIND = "schemaKind"
     USD_SCHEMA_CLASS = "usdSchemaClass"
-    TF_TYPENAME_SUFFIX = "tfTypeNameSuffix" 
+    TF_TYPENAME_SUFFIX = "tfTypeNameSuffix"
 
 class SchemaDefiningMiscConstants(ConstantsGroup):
     API_SCHEMA_BASE = "APISchemaBase"
@@ -54,6 +52,10 @@ class PropertyDefiningKeys(ConstantsGroup):
     USD_SUPPRESS_PROPERTY = "usdSuppressProperty"
     SDF_VARIABILITY_UNIFORM_STRING = "Uniform"
     CONNECTABILITY = "connectability"
+    SHADER_ID = "shaderId"
+    WIDGET = "widget"
+    NULL_VALUE = "null"
+    INTERNAL_DISPLAY_GROUP = "Internal"
 
 def _CreateAttrSpecFromNodeAttribute(primSpec, prop, usdSchemaNode, 
         isInput=True):
@@ -108,6 +110,11 @@ def _CreateAttrSpecFromNodeAttribute(primSpec, prop, usdSchemaNode,
     attrSpec = Sdf.AttributeSpec(primSpec, propName, attrType,
             attrVariability)
 
+    if PropertyDefiningKeys.WIDGET in prop.GetMetadata().keys():
+        if (prop.GetMetadata()[PropertyDefiningKeys.WIDGET] == \
+                PropertyDefiningKeys.NULL_VALUE):
+            attrSpec.hidden = True
+
     if prop.GetHelp():
         attrSpec.documentation = prop.GetHelp()
     elif prop.GetLabel(): # fallback documentation can be label
@@ -118,7 +125,7 @@ def _CreateAttrSpecFromNodeAttribute(primSpec, prop, usdSchemaNode,
         attrSpec.displayName = prop.GetLabel()
     if options and attrType == Sdf.ValueTypeNames.Token:
         attrSpec.allowedTokens = [ x[0] for x in options ]
-    attrSpec.default = prop.GetDefaultValue()
+    attrSpec.default = prop.GetDefaultValueAsSdfType()
 
     # The core UsdLux inputs should remain connectable (interfaceOnly)
     # even if sdrProperty marks the input as not connectable
@@ -127,10 +134,27 @@ def _CreateAttrSpecFromNodeAttribute(primSpec, prop, usdSchemaNode,
                 UsdShade.Tokens.interfaceOnly)
 
 
-def UpdateSchemaWithSdrNode(schemaLayer, sdrNode):
+def UpdateSchemaWithSdrNode(schemaLayer, sdrNode, renderContext="",
+        overrideIdentifier=""):
     """
     Updates the given schemaLayer with primSpec and propertySpecs from sdrNode
-    metadata. It consumes the following attributes (that manifest as Sdr 
+    metadata. 
+
+    A renderContext can be provided which is used in determining the
+    shaderId namespace, which follows the pattern: 
+    "<renderContext>:<SdrShaderNodeContext>:shaderId". Note that we are using a
+    node's context (SDR_NODE_CONTEXT_TOKENS) here to construct the shaderId
+    namespace, so shader parsers should make sure to use appropriate
+    SDR_NODE_CONTEXT_TOKENS in the node definitions.
+
+    overrideIdentifier parameter is the identifier which should be used when 
+    the identifier of the node being processed differs from the one Sdr will 
+    discover at runtime, such as when this function is def a node constructed 
+    from an explicit asset path. This should only be used when clients know the 
+    identifier being passed is the true identifier which sdr Runtime will 
+    provide when querying using GetShaderNodeByNameAndType, etc.
+
+    It consumes the following attributes (that manifest as Sdr 
     metadata) in addition to many of the standard Sdr metadata
     specified and parsed (via its parser plugin).
 
@@ -170,7 +194,27 @@ def UpdateSchemaWithSdrNode(schemaLayer, sdrNode):
         - USD_SUPPRESS_PROPERTY: A property level metadata which determines if 
           the property should be suppressed from translation from args to 
           property spec.
+
+    Sdr Property Metadata to SdfPropertySpec Translations
+        - A "null" value for Widget sdrProperty metadata translates to 
+          SdfPropertySpec Hidden metadata.
+        - SdrProperty's Help metadata (Label metadata if Help metadata not 
+          provided) translates to SdfPropertySpec's Documentation string 
+          metadata.
+        - SdrProperty's Page metadata translates to SdfPropertySpec's
+          DisplayGroup metadata.
+        - SdrProperty's Label metadata translates to SdfPropertySpec's
+          DisplayName metadata.
+        - SdrProperty's Options translates to SdfPropertySpec's AllowedTokens.
+        - SdrProperty's Default value translates to SdfPropertySpec's Default
+          value.
+        - Connectable input properties translates to InterfaceOnly
+          SdfPropertySpec's CONNECTABILITY.
     """
+
+    import distutils.util
+    import os
+
     # Early exit on invalid parameters
     if not schemaLayer:
         Tf.Warn("No Schema Layer provided")
@@ -311,8 +355,34 @@ def UpdateSchemaWithSdrNode(schemaLayer, sdrNode):
     usdSchemaNode = None
     if usdSchemaClass:
         reg = Sdr.Registry()
-        usdSchemaNode = reg.GetNodeByIdentifierAndType(usdSchemaClass, 
-                SchemaDefiningMiscConstants.USD_SOURCE_TYPE)
+        if usdSchemaClass.endswith(SchemaDefiningMiscConstants.API_STRING):
+            # This usd schema is an API schema, we need to extract the shader
+            # identifier from its primDef's shaderId field.
+            primDef = Usd.SchemaRegistry().FindAppliedAPIPrimDefinition(
+                    usdSchemaClass)
+            if primDef:
+                # We are dealing with USD source type here, hence no render
+                # context is required but we can still borrow node context
+                # information from the sdrNode in question, since the usd source
+                # type node should also belong to the same context.
+                shaderIdAttrName = Sdf.Path.JoinIdentifier( \
+                        sdrNode.GetContext(), PropertyDefiningKeys.SHADER_ID)
+                sdrIdentifier = primDef.GetAttributeFallbackValue(
+                        shaderIdAttrName)
+                if sdrIdentifier is not "":
+                    usdSchemaNode = reg.GetNodeByIdentifierAndType(
+                            sdrIdentifier,
+                            SchemaDefiningMiscConstants.USD_SOURCE_TYPE)
+                else:
+                    Tf.Warn("No sourceId authored for '%s'." %(usdSchemaClass))
+            else:
+                Tf.Warn("Illegal API schema provided for the usdSchemaClass "
+                        "metadata. No prim definition registered for '%s'" %(
+                            usdSchemaClass))
+                
+        else:
+            usdSchemaNode = reg.GetNodeByIdentifierAndType(usdSchemaClass, 
+                    SchemaDefiningMiscConstants.USD_SOURCE_TYPE)
 
     # Create attrSpecs from input parameters
     for propName in sdrNode.GetInputNames():
@@ -324,6 +394,22 @@ def UpdateSchemaWithSdrNode(schemaLayer, sdrNode):
         _CreateAttrSpecFromNodeAttribute(primSpec, sdrNode.GetOutput(propName), 
                 usdSchemaNode, False)
 
+    # Create token shaderId attrSpec
+    shaderIdAttrName = Sdf.Path.JoinIdentifier( \
+            [renderContext, sdrNode.GetContext(), PropertyDefiningKeys.SHADER_ID])
+    shaderIdAttrSpec = Sdf.AttributeSpec(primSpec, shaderIdAttrName,
+            Sdf.ValueTypeNames.Token, Sdf.VariabilityUniform)
+
+    # Since users shouldn't need to be aware of shaderId attribute, we put this
+    # in "Internal" displayGroup.
+    shaderIdAttrSpec.displayGroup = PropertyDefiningKeys.INTERNAL_DISPLAY_GROUP
+
+    # Use the identifier if explicitly provided, (it could be a shader node
+    # queried using an explicit path), else use sdrNode's registered identifier.
+    nodeIdentifier = overrideIdentifier if overrideIdentifier else \
+            sdrNode.GetIdentifier()
+    shaderIdAttrSpec.default = nodeIdentifier
+
     # Extra attrSpec
     schemaBasePrimDefinition = \
         Usd.SchemaRegistry().FindConcretePrimDefinition(schemaBase)
@@ -333,6 +419,6 @@ def UpdateSchemaWithSdrNode(schemaLayer, sdrNode):
             infoIdAttrSpec = Sdf.AttributeSpec(primSpec, \
                     UsdShade.Tokens.infoId, Sdf.ValueTypeNames.Token, \
                     Sdf.VariabilityUniform)
-            infoIdAttrSpec.default = sdrNode.GetIdentifier()
+            infoIdAttrSpec.default = nodeIdentifier
 
     schemaLayer.Save()

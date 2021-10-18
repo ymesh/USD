@@ -52,6 +52,12 @@ class TestUsdAppliedAPISchemas(unittest.TestCase):
             Tf.Type(Usd.SchemaBase).FindDerivedByName("TestNestedCycle2API")
         cls.NestedCycle3APIType = \
             Tf.Type(Usd.SchemaBase).FindDerivedByName("TestNestedCycle3API")
+        cls.AutoAppliedToAPIType = \
+            Tf.Type(Usd.SchemaBase).FindDerivedByName("TestAutoAppliedToAPI")
+        cls.NestedAutoAppliedToAPIType = \
+            Tf.Type(Usd.SchemaBase).FindDerivedByName("TestNestedAutoAppliedToAPI")
+        cls.NestedAutoAppliedToAPIAppliedToPrimType = \
+            Tf.Type(Usd.SchemaBase).FindDerivedByName("TestNestedAutoAppliedToAPIAppliedToPrim")
     
     def test_SimpleTypedSchemaPrimDefinition(self):
         """
@@ -531,6 +537,8 @@ class TestUsdAppliedAPISchemas(unittest.TestCase):
         self.assertEqual(typedPrim.GetMetadata("documentation"), 
                          "Test with built-in API schemas")
 
+    @unittest.skipIf(Tf.GetEnvSetting('USD_DISABLE_AUTO_APPLY_API_SCHEMAS'),
+                    "Auto apply API schemas are disabled")
     def test_TypedPrimsOnStageWithAutoAppliedAPIs(self):
         """
         Tests the fallback properties of typed prims on a stage where API
@@ -657,7 +665,59 @@ class TestUsdAppliedAPISchemas(unittest.TestCase):
             Usd.SchemaRegistry.GetAutoApplyAPISchemas()['TestSingleApplyAPI'], 
             ['TestTypedSchemaForAutoApplyConcreteBase',
              'TestTypedSchemaForAutoApplyAbstractBase',
+             'TestAutoAppliedToAPI',
              'TestTypedSchemaForAutoApply'])
+
+    @unittest.skipIf(not Tf.GetEnvSetting('USD_DISABLE_AUTO_APPLY_API_SCHEMAS'),
+                    "Auto apply API schemas are not disabled")
+    def test_TypedPrimsOnStageWithAutoAppliedAPIs_AutoApplyDisabled(self):
+        """
+        Tests the disabling of auto apply schemas through the environment 
+        variable USD_DISABLE_AUTO_APPLY_API_SCHEMAS.
+        """
+        stage = Usd.Stage.CreateInMemory()
+
+        # Add a typed prim that has two types of built-in applied schemas. 
+        # TestMultiApplyAPI:builtin comes from the apiSchemas metadata defined
+        # in TestTypedSchemaForAutoApply's schema definition and is NOT affected
+        # by disabling auto apply API schemas.
+        #
+        # TestSingleApplyAPI and TestMultiApplyAPI:autoFoo would come from 
+        # TestTypedSchemaForAutoApply being listed in the "AutoApplyAPISchemas"
+        # plugInfo metadata for both API schemas, but with auto apply disabled,
+        # they are not applied to this type.
+        typedPrim = stage.DefinePrim("/TypedPrim", "TestTypedSchemaForAutoApply")
+        self.assertEqual(typedPrim.GetTypeName(), 
+                         'TestTypedSchemaForAutoApply')
+        self.assertEqual(typedPrim.GetAppliedSchemas(), 
+                         ["TestMultiApplyAPI:builtin"])
+
+        self.assertTrue(typedPrim.HasAPI(self.MultiApplyAPIType, 'builtin'))
+        self.assertFalse(typedPrim.HasAPI(self.MultiApplyAPIType, 'autoFoo'))
+        self.assertFalse(typedPrim.HasAPI(self.SingleApplyAPIType))
+        self.assertEqual(typedPrim.GetPropertyNames(), [
+            "multi:builtin:bool_attr", 
+            "multi:builtin:relationship",
+            "multi:builtin:token_attr", 
+            "testAttr", 
+            "testRel"])
+
+        # Add a concrete typed prim which receives an auto applied API schema.
+        # TestSingleApplyAPI would be auto applied to this type, but with auto
+        # apply disable, this type has no applied API schemas.
+        typedPrim.SetTypeName("TestTypedSchemaForAutoApplyConcreteBase")
+        self.assertEqual(typedPrim.GetTypeName(), 
+                         'TestTypedSchemaForAutoApplyConcreteBase')
+        self.assertEqual(typedPrim.GetAppliedSchemas(), [])
+
+        self.assertFalse(typedPrim.HasAPI(self.SingleApplyAPIType))
+        self.assertEqual(typedPrim.GetPropertyNames(), [
+            "testAttr", 
+            "testRel"])
+
+        # Verify that the auto apply API schema dictionary is empty when auto
+        # apply is disabled..
+        self.assertEqual(Usd.SchemaRegistry.GetAutoApplyAPISchemas(), {})
 
     def test_ApplyRemoveAPI(self):
         """
@@ -1599,6 +1659,262 @@ class TestUsdAppliedAPISchemas(unittest.TestCase):
                          expectedPropNames)
         self.assertEqual(typedPrimDef.GetDocumentation(),
             "Test with built-in nested API schemas")
+
+    @unittest.skipIf(Tf.GetEnvSetting('USD_DISABLE_AUTO_APPLY_API_SCHEMAS'),
+                    "Auto apply API schemas are disabled")
+    def test_APISchemasAutoAppliedToAPISchemas(self):
+        """
+        Tests the behaviors of API schemas that are auto applied to other API
+        schemas.
+        """
+        stage = Usd.Stage.CreateInMemory()
+
+        # Define a prim with an empty type name and apply TestAutoAppliedToAPI.
+        # TestAutoAppliedToAPI includes other API schemas through a combination 
+        # of built-in APIs and auto applied APIs.
+        prim = stage.DefinePrim("/Prim")
+        prim.ApplyAPI(self.AutoAppliedToAPIType)
+        self.assertEqual(prim.GetTypeName(), '')
+        self.assertEqual(prim.GetAppliedSchemas(), [
+            # Authored applied API
+            "TestAutoAppliedToAPI",
+            # Built-in API of 'TestAutoAppliedToAPI'
+            "TestMultiApplyAPI:builtin",
+            # Defined in plugin metadata that 'TestMultiApplyAPI:autoFoo' auto
+            # applies to 'TestAutoAppliedToAPI'
+            "TestMultiApplyAPI:autoFoo",
+            # 'TestSingleApplyAPI' defines in its schema def that it auto 
+            # applies to 'TestAutoAppliedToAPI'
+            "TestSingleApplyAPI"])
+        self.assertTrue(prim.HasAPI(self.AutoAppliedToAPIType))
+        self.assertTrue(prim.HasAPI(self.MultiApplyAPIType, "builtin"))
+        self.assertTrue(prim.HasAPI(self.MultiApplyAPIType, "autoFoo"))
+        self.assertTrue(prim.HasAPI(self.SingleApplyAPIType))
+
+        # Prim's authored type is empty and its authored API schemas is just the
+        # single authored schema.
+        self.assertEqual(prim.GetPrimTypeInfo().GetTypeName(), '')
+        self.assertEqual(prim.GetPrimTypeInfo().GetAppliedAPISchemas(), 
+                         ["TestAutoAppliedToAPI"])
+
+        # Prim's built-in properties come from all of the applied API schemas.
+        self.assertEqual(prim.GetPropertyNames(), [
+            "multi:autoFoo:bool_attr",
+            "multi:autoFoo:relationship",
+            "multi:autoFoo:token_attr",
+            "multi:builtin:bool_attr",
+            "multi:builtin:relationship",
+            "multi:builtin:token_attr",
+            "single:bool_attr",
+            "single:relationship",
+            "single:token_attr",
+            "testAttr",
+            "testRel"])
+
+        # Define a prim with an empty type name and apply 
+        # TestNestedAutoAppliedToAPI.
+        # TestAutoAppliedToAPI auto applies to TestNestedAutoAppliedToAPI and 
+        # brings with it all of the API schemas that are built-in to it and auto
+        # applied to it.
+        prim = stage.DefinePrim("/Prim2")
+        prim.ApplyAPI(self.NestedAutoAppliedToAPIType)
+        self.assertEqual(prim.GetTypeName(), '')
+        self.assertEqual(prim.GetAppliedSchemas(), [
+            # Authored applied API
+            "TestNestedAutoAppliedToAPI",
+            # Built-in API of 'TestNestedAutoAppliedToAPI'
+            "TestMultiApplyAPI:foo",
+            # 'TestAutoAppliedToAPI' defines in its schema def that it auto 
+            # applies to 'TestNestedAutoAppliedToAPI'
+            "TestAutoAppliedToAPI",
+            # Built-in API of 'TestAutoAppliedToAPI'
+            "TestMultiApplyAPI:builtin",
+            # Defined in plugin metadata that 'TestMultiApplyAPI:autoFoo' auto
+            # applies to 'TestAutoAppliedToAPI'
+            "TestMultiApplyAPI:autoFoo",
+            # 'TestSingleApplyAPI' defines in its schema def that it auto 
+            # applies to 'TestAutoAppliedToAPI'
+            "TestSingleApplyAPI"])
+        self.assertTrue(prim.HasAPI(self.NestedAutoAppliedToAPIType))
+        self.assertTrue(prim.HasAPI(self.AutoAppliedToAPIType))
+        self.assertTrue(prim.HasAPI(self.MultiApplyAPIType, "foo"))
+        self.assertTrue(prim.HasAPI(self.MultiApplyAPIType, "builtin"))
+        self.assertTrue(prim.HasAPI(self.MultiApplyAPIType, "autoFoo"))
+        self.assertTrue(prim.HasAPI(self.SingleApplyAPIType))
+
+        # Prim's authored type is empty and its authored API schemas is just the
+        # single authored schema.
+        self.assertEqual(prim.GetPrimTypeInfo().GetTypeName(), '')
+        self.assertEqual(prim.GetPrimTypeInfo().GetAppliedAPISchemas(), 
+                         ["TestNestedAutoAppliedToAPI"])
+
+        # Prim's built-in properties come from all of the applied API schemas.
+        self.assertEqual(prim.GetPropertyNames(), [
+            "multi:autoFoo:bool_attr",
+            "multi:autoFoo:relationship",
+            "multi:autoFoo:token_attr",
+            "multi:builtin:bool_attr",
+            "multi:builtin:relationship",
+            "multi:builtin:token_attr",
+            "multi:foo:bool_attr",
+            "multi:foo:relationship",
+            "multi:foo:token_attr",
+            "single:bool_attr",
+            "single:relationship",
+            "single:token_attr",
+            "testAttr",
+            "testRel"])
+
+        # Define a prim with type name TestNestedAutoAppliedToAPIAppliedToPrim.
+        # TestNestedAutoAppliedToAPI is defined to auto apply to this prim type
+        # and brings with it all of the API schemas that are built-in to it and
+        # auto applied to it.
+        prim = stage.DefinePrim("/Prim3", 
+                                "TestNestedAutoAppliedToAPIAppliedToPrim")
+        self.assertEqual(prim.GetTypeName(), 
+                         'TestNestedAutoAppliedToAPIAppliedToPrim')
+        self.assertEqual(prim.GetAppliedSchemas(), [
+            # 'TestNestedAutoAppliedToAPI' defines in its schema def that it 
+            # auto applies to 'TestNestedAutoAppliedToAPIAppliedToPrim'
+            "TestNestedAutoAppliedToAPI",
+            # Built-in API of 'TestNestedAutoAppliedToAPI'
+            "TestMultiApplyAPI:foo",
+            # 'TestAutoAppliedToAPI' defines in its schema def that it auto 
+            # applies to 'TestNestedAutoAppliedToAPI'
+            "TestAutoAppliedToAPI",
+            # Built-in API of 'TestAutoAppliedToAPI'
+            "TestMultiApplyAPI:builtin",
+            # Defined in plugin metadata that 'TestMultiApplyAPI:autoFoo' auto
+            # applies to 'TestAutoAppliedToAPI'
+            "TestMultiApplyAPI:autoFoo",
+            # 'TestSingleApplyAPI' defines in its schema def that it auto 
+            # applies to 'TestAutoAppliedToAPI'
+            "TestSingleApplyAPI"])
+
+        # Prim's authored applied API schemas is empty as the API schemas are
+        # part of the type (through auto apply).
+        self.assertEqual(prim.GetPrimTypeInfo().GetTypeName(), 
+                         'TestNestedAutoAppliedToAPIAppliedToPrim')
+        self.assertEqual(prim.GetPrimTypeInfo().GetAppliedAPISchemas(), [])
+
+        # Prim's built-in properties come from all of the applied API schemas.
+        self.assertTrue(prim.HasAPI(self.NestedAutoAppliedToAPIType))
+        self.assertTrue(prim.HasAPI(self.AutoAppliedToAPIType))
+        self.assertTrue(prim.HasAPI(self.MultiApplyAPIType, "foo"))
+        self.assertTrue(prim.HasAPI(self.MultiApplyAPIType, "builtin"))
+        self.assertTrue(prim.HasAPI(self.MultiApplyAPIType, "autoFoo"))
+        self.assertTrue(prim.HasAPI(self.SingleApplyAPIType))
+        self.assertEqual(prim.GetPropertyNames(), [
+            "multi:autoFoo:bool_attr",
+            "multi:autoFoo:relationship",
+            "multi:autoFoo:token_attr",
+            "multi:builtin:bool_attr",
+            "multi:builtin:relationship",
+            "multi:builtin:token_attr",
+            "multi:foo:bool_attr",
+            "multi:foo:relationship",
+            "multi:foo:token_attr",
+            "single:bool_attr",
+            "single:relationship",
+            "single:token_attr",
+            "testAttr",
+            "testRel"])
+
+    @unittest.skipIf(not Tf.GetEnvSetting('USD_DISABLE_AUTO_APPLY_API_SCHEMAS'),
+                    "Auto apply API schemas are NOT disabled")
+    def test_APISchemasAutoAppliedToAPISchemas_AutoApplyDisabled(self):
+        """
+        Tests the behaviors of API schemas that are auto applied to other API
+        schemas.
+        """
+        stage = Usd.Stage.CreateInMemory()
+
+        # Define a prim with an empty type name and apply TestAutoAppliedToAPI.
+        # TestAutoAppliedAPI includes other API schemas through a combination of
+        # built-in APIs and auto applied APIs. The auto applied schemas are
+        # disabled in the this test case.
+        prim = stage.DefinePrim("/Prim")
+        prim.ApplyAPI(self.AutoAppliedToAPIType)
+        self.assertEqual(prim.GetTypeName(), '')
+        self.assertEqual(prim.GetAppliedSchemas(), [
+            # Authored applied API
+            "TestAutoAppliedToAPI",
+            # Built-in API of 'TestAutoAppliedToAPI'
+            "TestMultiApplyAPI:builtin"
+            # 'TestMultiApplyAPI:autoFoo' and 'TestSingleApplyAPI' would be 
+            # auto applied so they do not show up when auto apply is disabled
+            ])
+        self.assertTrue(prim.HasAPI(self.AutoAppliedToAPIType))
+        self.assertTrue(prim.HasAPI(self.MultiApplyAPIType, "builtin"))
+        self.assertFalse(prim.HasAPI(self.MultiApplyAPIType, "autoFoo"))
+        self.assertFalse(prim.HasAPI(self.SingleApplyAPIType))
+
+        # Prim's authored type is empty and its authored API schemas is just the
+        # single authored schema.
+        self.assertEqual(prim.GetPrimTypeInfo().GetTypeName(), '')
+        self.assertEqual(prim.GetPrimTypeInfo().GetAppliedAPISchemas(), 
+                         ["TestAutoAppliedToAPI"])
+
+        # Prim's built-in properties come from all of the applied API schemas.
+        self.assertEqual(prim.GetPropertyNames(), [
+            "multi:builtin:bool_attr",
+            "multi:builtin:relationship",
+            "multi:builtin:token_attr",
+            "testAttr",
+            "testRel"])
+
+        # Define a prim with an empty type name and apply 
+        # TestNestedAutoAppliedToAPI.
+        # TestAutoAppliedAPI auto applies to TestNestedAutoAppliedToAPI but
+        # auto apply is disabled in this test case.
+        prim = stage.DefinePrim("/Prim2")
+        prim.ApplyAPI(self.NestedAutoAppliedToAPIType)
+        self.assertEqual(prim.GetTypeName(), '')
+        self.assertEqual(prim.GetAppliedSchemas(), [
+            # Authored applied API
+            "TestNestedAutoAppliedToAPI",
+            # Built-in API of 'TestNestedAutoAppliedToAPI'
+            "TestMultiApplyAPI:foo",
+            # 'TestAutoAppliedToAPI' would be auto applied it doesn't show up 
+            # when auto apply is disabled, nor do any of the API schemas that
+            # would be included by it.
+            ])
+        self.assertTrue(prim.HasAPI(self.NestedAutoAppliedToAPIType))
+        self.assertFalse(prim.HasAPI(self.AutoAppliedToAPIType))
+        self.assertTrue(prim.HasAPI(self.MultiApplyAPIType, "foo"))
+        self.assertFalse(prim.HasAPI(self.MultiApplyAPIType, "builtin"))
+        self.assertFalse(prim.HasAPI(self.MultiApplyAPIType, "autoFoo"))
+        self.assertFalse(prim.HasAPI(self.SingleApplyAPIType))
+
+        # Prim's authored type is empty and its authored API schemas is just the
+        # single authored schema.
+        self.assertEqual(prim.GetPrimTypeInfo().GetTypeName(), '')
+        self.assertEqual(prim.GetPrimTypeInfo().GetAppliedAPISchemas(), 
+                         ["TestNestedAutoAppliedToAPI"])
+
+        # Prim's built-in properties come from all of the applied API schemas.
+        self.assertEqual(prim.GetPropertyNames(), [
+            "multi:foo:bool_attr",
+            "multi:foo:relationship",
+            "multi:foo:token_attr"])
+
+        # Define a prim with type name TestNestedAutoAppliedToAPIAppliedToPrim.
+        # TestNestedAutoAppliedToAPI is defined to auto apply to this prim type
+        # auto apply is disabled in this test case.
+        prim = stage.DefinePrim("/Prim3", 
+                                "TestNestedAutoAppliedToAPIAppliedToPrim")
+        self.assertEqual(prim.GetTypeName(), 
+                         'TestNestedAutoAppliedToAPIAppliedToPrim')
+        # 'TestNestedAutoAppliedToAPI' would be auto applied so it doesn't show 
+        # up when auto apply is disabled, nor do any of the API schemas that
+        # would be included by it.
+        self.assertEqual(prim.GetAppliedSchemas(), [])
+
+        self.assertEqual(prim.GetPrimTypeInfo().GetTypeName(), 
+                         'TestNestedAutoAppliedToAPIAppliedToPrim')
+        self.assertEqual(prim.GetPrimTypeInfo().GetAppliedAPISchemas(), [])
+        self.assertEqual(prim.GetPropertyNames(), [])
+
 
 if __name__ == "__main__":
     unittest.main()

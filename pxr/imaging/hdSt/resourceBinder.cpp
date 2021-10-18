@@ -31,6 +31,7 @@
 #include "pxr/imaging/hdSt/bufferResource.h"
 #include "pxr/imaging/hdSt/shaderCode.h"
 #include "pxr/imaging/hdSt/drawItem.h"
+#include "pxr/imaging/hdSt/materialNetworkShader.h"
 #include "pxr/imaging/hdSt/materialParam.h"
 #include "pxr/imaging/hdSt/textureBinder.h"
 #include "pxr/imaging/hdSt/tokens.h"
@@ -171,9 +172,10 @@ _GetInstancerFilterNames(HdStDrawItem const * drawItem)
 {
     TfTokenVector filterNames = HdInstancer::GetBuiltinPrimvarNames();;
 
-    HdStShaderCodeSharedPtr materialShader = drawItem->GetMaterialShader();
-    if (materialShader) {
-        TfTokenVector const & names = materialShader->GetPrimvarNames();
+    HdSt_MaterialNetworkShaderSharedPtr materialNetworkShader =
+        drawItem->GetMaterialNetworkShader();
+    if (materialNetworkShader) {
+        TfTokenVector const & names = materialNetworkShader->GetPrimvarNames();
         filterNames.insert(filterNames.end(), names.begin(), names.end());
     }
 
@@ -335,6 +337,10 @@ HdSt_ResourceBinder::ResolveBindings(HdStDrawItem const *drawItem,
             // Special case: VBOs have intrinsic support for packed types,
             // so expand them out to their target type for the shader binding.
             if (valueType.type == HdTypeInt32_2_10_10_10_REV) {
+                valueType.type = HdTypeFloatVec4;
+            } else if (valueType.type == HdTypeHalfFloatVec2) {
+                valueType.type = HdTypeFloatVec2;
+            } else if (valueType.type == HdTypeHalfFloatVec4) {
                 valueType.type = HdTypeFloatVec4;
             }
             TfToken glType = HdStGLConversions::GetGLSLTypename(valueType.type);
@@ -649,7 +655,7 @@ HdSt_ResourceBinder::ResolveBindings(HdStDrawItem const *drawItem,
                 std::make_pair(shaderParamBinding, sblock));
 
             //XXX:hack  we want to generalize materialParams to other shaders.
-            if ((*shader) == drawItem->GetMaterialShader()) {
+            if ((*shader) == drawItem->GetMaterialNetworkShader()) {
                 // shader parameters are interleaved into single struct.
                 _bindingMap[HdTokens->materialParams] = shaderParamBinding;
             }
@@ -659,7 +665,7 @@ HdSt_ResourceBinder::ResolveBindings(HdStDrawItem const *drawItem,
         // for primvar and texture accessors
         for (HdSt_MaterialParam const& param : params) {
             const bool isMaterialShader =
-                ((*shader) == drawItem->GetMaterialShader());
+                ((*shader) == drawItem->GetMaterialNetworkShader());
 
             // renderpass texture should be bindfull (for now)
             const bool bindless = bindlessTextureEnabled && isMaterialShader;
@@ -1746,7 +1752,7 @@ HdSt_ResourceBinder::BindTextureWithLayout(
 
     glActiveTexture(GL_TEXTURE0 + texelSamplerUnit);
     glBindTexture(_GetTextureTarget(texelBinding),
-                  bind ? texelTexture->GetRawResource() : 0);
+              (bind && texelTexture) ? texelTexture->GetRawResource() : 0);
 
     const HgiGLSampler * const glSampler =
         bind ? dynamic_cast<HgiGLSampler*>(texelSampler.Get()) : nullptr;
@@ -1762,7 +1768,7 @@ HdSt_ResourceBinder::BindTextureWithLayout(
 
     glActiveTexture(GL_TEXTURE0 + layoutSamplerUnit);
     glBindTexture(_GetTextureTarget(layoutBinding),
-                  bind ? layoutTexture->GetRawResource() : 0);
+              (bind && layoutTexture) ? layoutTexture->GetRawResource() : 0);
     glActiveTexture(GL_TEXTURE0);
 }
 

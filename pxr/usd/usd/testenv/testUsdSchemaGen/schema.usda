@@ -33,6 +33,15 @@ class "NonAppliedAPI" (
 {
 }
 
+class "DerivedNonAppliedAPI" (
+    inherits = </NonAppliedAPI>
+    customData = {
+        token apiSchemaType = "nonApplied"
+    }
+)
+{
+}
+
 class "SingleApplyAPI" (
     inherits = </APISchemaBase>
     apiSchemas = ["BuiltinAPI"]
@@ -79,17 +88,6 @@ class "MultipleApplyAPI" (
 {
     int testAttrOne
     double testAttrTwo
-}
-
-class "DerivedMultipleApplyAPI" (
-    inherits = </MultipleApplyAPI>
-    customData = {
-        token apiSchemaType = "multipleApply"
-        token propertyNamespacePrefix = "derived"
-    }
-)
-{
-    int testAttrThree
 }
 
 class "PublicMultipleApplyAPI" (

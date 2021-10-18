@@ -22,7 +22,9 @@ pxr_library(hd
     PUBLIC_CLASSES
         aov
         basisCurves
+        basisCurvesSchema
         basisCurvesTopology
+        basisCurvesTopologySchema
         binding
         bprim
         bufferArray
@@ -32,14 +34,21 @@ pxr_library(hd
         bufferSource
         bufferSpec
         camera
+        cameraSchema
+        categoriesSchema
         changeTracker
         command
         compExtCompInputSource
         computation
         coordSys
+        coordSysBindingSchema
         dataSource
+        dataSourceLegacyPrim
         dataSourceLocator
         debugCodes
+        dependenciesSchema
+        dependencySchema
+        dirtyBitsTranslator
         dirtyList
         drawingCoord
         drawItem
@@ -50,32 +59,61 @@ pxr_library(hd
         extCompPrimvarBufferSource
         extComputation
         extComputationContext
+        extComputationInputComputationSchema
+        extComputationOutputSchema
+        extComputationPrimvarSchema
+        extComputationPrimvarsSchema
+        extComputationSchema
         extComputationUtils
+        extentSchema
         field
         filteringSceneIndex
+        flatteningSceneIndex
         flatNormals
         geomSubset
+        geomSubsetSchema
+        geomSubsetsSchema
+        instanceCategoriesSchema
+        instancedBySchema
         instancer
         instanceRegistry
+        instancerTopologySchema
+        instanceSchema
+        legacyDisplayStyleSchema
+        legacyPrimSceneIndex
         light
+        lightSchema
         material
+        materialBindingSchema
+        materialConnectionSchema
+        materialNetworkSchema
+        materialNodeSchema
+        materialSchema
         mesh
+        meshSchema
         meshTopology
+        meshTopologySchema
         meshUtil
+        overlayContainerDataSource
         perfLog
         pluginRenderDelegateUniqueHandle
         points
         prefixingSceneIndex
+        primDataSourceOverlayCache
         primGather
         primTypeIndex
+        primvarSchema
+        primvarsSchema
+        purposeSchema
         renderBuffer
+        renderBufferSchema
         renderDelegate
-        renderIndex
-        renderPass
-        renderPassState
         rendererPlugin
         rendererPluginHandle
         rendererPluginRegistry
+        renderIndex
+        renderPass
+        renderPassState
         renderThread
         repr
         resource
@@ -88,12 +126,15 @@ pxr_library(hd
         sceneDelegate
         sceneExtCompInputSource
         sceneIndex
+        sceneIndexAdapterSceneDelegate
         sceneIndexObserver
+        schema
         selection
         smoothNormals
-        sortedIds                   
+        sortedIds
         sprim
         strategyBase
+        subdivisionTagsSchema
         task
         timeSampleArray
         tokens
@@ -104,8 +145,12 @@ pxr_library(hd
         unitTestNullRenderDelegate
         unitTestNullRenderPass
         vertexAdjacency
+        visibilitySchema
         volume
+        volumeFieldBindingSchema
+        volumeFieldSchema
         vtBufferSource
+        xformSchema
 
     PUBLIC_HEADERS
         api.h
@@ -124,6 +169,19 @@ pxr_library(hd
         overview.dox
 )
 
+pxr_build_test(testHdDirtyList
+    LIBRARIES
+        hd
+
+    CPPFILES
+        testenv/testHdDirtyList.cpp
+)
+
+pxr_register_test(testHdDirtyList
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdDirtyList"
+)
+
+
 pxr_build_test(testHdExtComputationUtils
     LIBRARIES
         hd
@@ -134,6 +192,18 @@ pxr_build_test(testHdExtComputationUtils
 
 pxr_register_test(testHdExtComputationUtils
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdExtComputationUtils"
+)
+
+pxr_build_test(testHdSceneIndex
+    LIBRARIES
+        hd
+
+    CPPFILES
+        testenv/testHdSceneIndex.cpp
+)
+
+pxr_register_test(testHdSceneIndex
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdSceneIndex"
 )
 
 pxr_build_test(testHdTimeSampleArray

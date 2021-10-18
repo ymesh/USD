@@ -41,6 +41,7 @@
 #include "pxr/usd/sdf/relationshipSpec.h"
 #include "pxr/usd/sdf/schema.h"
 
+#include "pxr/base/tf/envSetting.h"
 #include "pxr/base/tf/fileUtils.h"
 #include "pxr/base/tf/instantiateSingleton.h"
 #include "pxr/base/tf/registryManager.h"
@@ -58,6 +59,19 @@ PXR_NAMESPACE_OPEN_SCOPE
 using std::set;
 using std::string;
 using std::vector;
+
+TF_DEFINE_ENV_SETTING(
+    USD_DISABLE_PRIM_DEFINITIONS_FOR_USDGENSCHEMA, false,
+    "Set to true to disable the generation of prim definitions for schema "
+    "types in the schema registry. This is used is to prevent the processing "
+    "of generatedSchema.usda files during schema generation as it's the "
+    "process used to create, update, or fix generatedSchema.usda files. "
+    "This should only be used by usdGenSchema.py as this can cause crashes in "
+    "most contexts which expect prim definitions for schema types.");
+
+TF_DEFINE_ENV_SETTING(
+    USD_DISABLE_AUTO_APPLY_API_SCHEMAS, false,
+    "Set to true to disable the application of all auto-apply API schemas.");
 
 TF_INSTANTIATE_SINGLETON(UsdSchemaRegistry);
 
@@ -481,6 +495,11 @@ UsdSchemaRegistry::CollectAddtionalAutoApplyAPISchemasFromPlugins(
 {
     TRACE_FUNCTION();
 
+    // Skip if auto apply API schemas have been disabled.
+    if (TfGetEnvSetting(USD_DISABLE_AUTO_APPLY_API_SCHEMAS)) {
+        return;
+    }
+
     // Check all registered plugins for metadata that may supply additional
     // auto apply API schem mappings.
     const PlugPluginPtrVector& plugins =
@@ -571,7 +590,7 @@ _GetTypeToAutoAppliedAPISchemaNames()
             // name) for abstract and concrete Typed schemas, so we need to get 
             // the actual TfType of the schema and its derived types.
             const auto it = typeMapCache.nameToType.find(schemaName);
-            if (it != typeMapCache.nameToType.end() && it->second.isTyped) {
+            if (it != typeMapCache.nameToType.end()) {
                 const TfType &schemaType = it->second.type;
                 if (applyToTypes.insert(schemaType).second) {
                     schemaType.GetAllDerivedTypes(&applyToTypes);
@@ -744,7 +763,9 @@ _InitializePrimDefsAndSchematicsForPluginSchemas()
     const _TypeMapCache &typeCache = _GetTypeMapCache();
 
     // Gather the mapping of TfTypes to the schemas that are auto applied to
-    // those types. We need this before initializing our prim definitions.
+    // those types. We need this before initializing our prim definitions. Note
+    // the prim definitions will take the API schema lists from this map in the
+    // following loop.
     _TypeToTokenVecMap typeToAutoAppliedAPISchemaNames =
         _GetTypeToAutoAppliedAPISchemaNames();
 
@@ -796,6 +817,8 @@ _InitializePrimDefsAndSchematicsForPluginSchemas()
                     TfStringJoin(autoAppliedAPIs->begin(), 
                                  autoAppliedAPIs->end(), ", ").c_str());
 
+                // Note that we take the API schema list from the map as the 
+                // map was only created help populate these prim definitions.
                 newPrimDef->_appliedAPISchemas = std::move(*autoAppliedAPIs);
             }
         } else if (_IsAppliedAPISchemaKind(schemaKind)) {
@@ -810,6 +833,26 @@ _InitializePrimDefsAndSchematicsForPluginSchemas()
             } else {
                 _registry->_singleApplyAPIPrimDefinitions.emplace(
                     typeName, newPrimDef);
+
+                // Check if there are any API schemas that have been setup to 
+                // apply to this API schema type. We'll set these in the prim 
+                // definition's applied API schemas list so they can be 
+                // processed when building out this prim definition in 
+                // _PopulateSingleApplyAPIPrimDefinitions.
+                if (TfTokenVector *autoAppliedAPIs = 
+                        TfMapLookupPtr(typeToAutoAppliedAPISchemaNames, type)) {
+                    TF_DEBUG(USD_AUTO_APPLY_API_SCHEMAS).Msg(
+                        "The prim definition for API schema type '%s' has "
+                        "these additional built-in auto applied API "
+                        "schemas: [%s].\n",
+                        typeName.GetText(),
+                        TfStringJoin(autoAppliedAPIs->begin(), 
+                                     autoAppliedAPIs->end(), ", ").c_str());
+
+                    // Note that we take the API schema list from the map as the 
+                    // map was only created help populate these prim definitions.
+                    newPrimDef->_appliedAPISchemas = std::move(*autoAppliedAPIs);
+                }
             }
         } 
     }
@@ -1041,11 +1084,16 @@ _PopulateSingleApplyAPIPrimDefinitions()
             continue;
         }
 
-        // Prepend any builtin applied API schemas authored in the schematics
-        // to the prim definition's applied API schemas which will already 
-        // contain the list of API schemas auto applied to this API schema.
-        _PrependAPISchemasFromSchemaPrim(primDef->_schematicsPrimPath,
-                                   &primDef->_appliedAPISchemas);
+        // During initialization, any auto applied API schema names relevant
+        // to this API schema type were put in prim definition's applied API 
+        // schema list. There may be applied API schemas defined in the metadata
+        // for the type in the schematics. If so, these must be prepended to the
+        // collected auto applied schema names (auto apply API schemas are 
+        // weaker) to get full list of API schemas that need to be composed into
+        // this prim definition.
+        _PrependAPISchemasFromSchemaPrim(
+            primDef->_schematicsPrimPath,
+            &primDef->_appliedAPISchemas);
 
         if (primDef->_appliedAPISchemas.empty()) {
             // If there are no API schemas to apply to this schema, we can just
@@ -1159,8 +1207,10 @@ UsdSchemaRegistry::UsdSchemaRegistry()
 
     // Find and load all the generated schema in plugin libraries and build all
     // the schema prim definitions.
-    _SchemaDefInitHelper schemaDefHelper(this);
-    schemaDefHelper.FindAndBuildAllSchemaDefinitions();
+    if (!TfGetEnvSetting(USD_DISABLE_PRIM_DEFINITIONS_FOR_USDGENSCHEMA)) {
+        _SchemaDefInitHelper schemaDefHelper(this);
+        schemaDefHelper.FindAndBuildAllSchemaDefinitions();
+    }
 
     TfSingleton<UsdSchemaRegistry>::SetInstanceConstructed(*this);
     TfRegistryManager::GetInstance().SubscribeTo<UsdSchemaRegistry>();
@@ -1497,6 +1547,11 @@ Usd_GetAPISchemaPluginApplyToInfoForType(
     }
 
     if (schemaKind == UsdSchemaKind::SingleApplyAPI) {
+        // Skip if auto apply API schemas have been disabled.
+        if (TfGetEnvSetting(USD_DISABLE_AUTO_APPLY_API_SCHEMAS)) {
+            return;
+        }
+
         // For single apply API schemas, we can get the types it should auto
         // apply to.
         TfTokenVector autoApplyToTypeNames =

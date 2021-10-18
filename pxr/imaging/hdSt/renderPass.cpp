@@ -94,6 +94,14 @@ _GetMaterialTagsVersion(HdRenderIndex *renderIndex)
     return stRenderParam->GetMaterialTagsVersion();
 }
 
+unsigned int
+_GetGeomSubsetDrawItemsVersion(HdRenderIndex *renderIndex)
+{
+    HdStRenderParam *stRenderParam = static_cast<HdStRenderParam*>(
+        renderIndex->GetRenderDelegate()->GetRenderParam());
+
+    return stRenderParam->GetGeomSubsetDrawItemsVersion();
+}
 
 HdSt_RenderPass::HdSt_RenderPass(HdRenderIndex *index,
                                  HdRprimCollection const &collection)
@@ -101,7 +109,10 @@ HdSt_RenderPass::HdSt_RenderPass(HdRenderIndex *index,
     , _lastSettingsVersion(0)
     , _useTinyPrimCulling(false)
     , _collectionVersion(0)
+    , _rprimRenderTagVersion(0)
+    , _taskRenderTagsVersion(0)
     , _materialTagsVersion(0)
+    , _geomSubsetDrawItemsVersion(0)
     , _collectionChanged(false)
     , _drawItemCount(0)
     , _drawItemsChanged(false)
@@ -319,21 +330,41 @@ HdSt_RenderPass::_UpdateDrawItems(TfTokenVector const& renderTags)
     const int collectionVersion =
         tracker.GetCollectionVersion(collection.GetName());
 
-    const int renderTagVersion =
-        tracker.GetRenderTagVersion();
+    const int rprimRenderTagVersion = tracker.GetRenderTagVersion();
 
     const unsigned int materialTagsVersion =
         _GetMaterialTagsVersion(GetRenderIndex());
 
+    const unsigned int geomSubsetDrawItemsVersion =
+        _GetGeomSubsetDrawItemsVersion(GetRenderIndex());
+
     const bool collectionChanged = _collectionChanged ||
         (_collectionVersion != collectionVersion);
 
-    const bool renderTagsChanged = _renderTagVersion != renderTagVersion;
+    const bool rprimRenderTagChanged = _rprimRenderTagVersion != rprimRenderTagVersion;
 
     const bool materialTagsChanged =
         _materialTagsVersion != materialTagsVersion;
 
-    if (collectionChanged || renderTagsChanged || materialTagsChanged) {
+    const bool geomSubsetDrawItemsChanged =
+        _geomSubsetDrawItemsVersion != geomSubsetDrawItemsVersion;
+
+    const int taskRenderTagsVersion = tracker.GetTaskRenderTagsVersion();
+    bool taskRenderTagsChanged = false;
+    if (_taskRenderTagsVersion != taskRenderTagsVersion) {
+        _taskRenderTagsVersion = taskRenderTagsVersion;
+        if (_renderTags != renderTags) {
+            _renderTags = renderTags;
+            taskRenderTagsChanged = true;
+        }
+    }
+
+    if (collectionChanged ||
+        rprimRenderTagChanged ||
+        materialTagsChanged ||
+        geomSubsetDrawItemsChanged ||
+        taskRenderTagsChanged) {
+
         if (TfDebug::IsEnabled(HDST_DRAW_ITEM_GATHER)) {
             if (collectionChanged) {
                 TfDebug::Helper::Msg(
@@ -344,14 +375,22 @@ HdSt_RenderPass::_UpdateDrawItems(TfTokenVector const& renderTags)
                         collectionVersion);
             }
 
-            if (renderTagsChanged) {
-                TfDebug::Helper::Msg("RenderTagsChanged (version = %d -> %d)\n",
-                        _renderTagVersion, renderTagVersion);
+            if (rprimRenderTagChanged) {
+                TfDebug::Helper::Msg("RprimRenderTagChanged (version = %d -> %d)\n",
+                        _rprimRenderTagVersion, rprimRenderTagVersion);
             }
             if (materialTagsChanged) {
                 TfDebug::Helper::Msg(
                     "MaterialTagsChanged (version = %d -> %d)\n",
                     _materialTagsVersion, materialTagsVersion);
+            }
+            if (geomSubsetDrawItemsChanged) {
+                TfDebug::Helper::Msg(
+                    "GeomSubsetDrawItemsChanged (version = %d -> %d)\n",
+                    _geomSubsetDrawItemsVersion, geomSubsetDrawItemsVersion);
+            }
+            if (taskRenderTagsChanged) {
+                TfDebug::Helper::Msg( "TaskRenderTagsChanged\n" );
             }
         }
 
@@ -373,8 +412,9 @@ HdSt_RenderPass::_UpdateDrawItems(TfTokenVector const& renderTags)
         _collectionVersion = collectionVersion;
         _collectionChanged = false;
 
-        _renderTagVersion = renderTagVersion;
+        _rprimRenderTagVersion = rprimRenderTagVersion;
         _materialTagsVersion = materialTagsVersion;
+        _geomSubsetDrawItemsVersion = geomSubsetDrawItemsVersion;
     }
 }
 

@@ -24,6 +24,7 @@
 
 #include "pxr/imaging/hd/prefixingSceneIndex.h"
 #include "pxr/imaging/hd/dataSourceTypeDefs.h"
+#include "pxr/base/trace/trace.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -178,14 +179,21 @@ HdPrefixingSceneIndex::GetPrim(const SdfPath &primPath) const
     return prim;
 }
 
-TfTokenVector
-HdPrefixingSceneIndex::GetChildPrimNames(const SdfPath &primPath) const
+SdfPathVector
+HdPrefixingSceneIndex::GetChildPrimPaths(const SdfPath &primPath) const
 {
     // In the case that primPath has our prefix, we just strip out that
     // prefix and let the input scene index handle it.
     if (primPath.HasPrefix(_prefix)) {
-        return _GetInputSceneIndex()->GetChildPrimNames(
-                    _RemovePathPrefix(primPath));
+        SdfPathVector result = _GetInputSceneIndex()->GetChildPrimPaths(
+            _RemovePathPrefix(primPath));
+
+        for (SdfPath &path : result) {
+            path = _prefix.AppendPath(
+                path.MakeRelativePath(SdfPath::AbsoluteRootPath()));
+        }
+
+        return result;
     }
 
     // Okay now since primPath does not share our prefix, then we check to 
@@ -193,11 +201,10 @@ HdPrefixingSceneIndex::GetChildPrimNames(const SdfPath &primPath) const
     // element that matches. For example if our prefix is "/A/B/C/D" and 
     // primPath is "/A/B", we'd like to return "C".
     if (_prefix.HasPrefix(primPath)) {
-        return {_prefix.GetPrefixes()[
-                    primPath.GetPathElementCount()].GetNameToken()};
+        return {_prefix.GetPrefixes()[primPath.GetPathElementCount()]};
     }
 
-    return TfTokenVector();
+    return {};
 }
 
 void
@@ -205,6 +212,8 @@ HdPrefixingSceneIndex::_PrimsAdded(
     const HdSceneIndexBase &sender,
     const HdSceneIndexObserver::AddedPrimEntries &entries)
 {
+    TRACE_FUNCTION();
+
     HdSceneIndexObserver::AddedPrimEntries prefixedEntries;
     prefixedEntries.reserve(entries.size());
 
@@ -221,6 +230,8 @@ HdPrefixingSceneIndex::_PrimsRemoved(
     const HdSceneIndexBase &sender,
     const HdSceneIndexObserver::RemovedPrimEntries &entries)
 {
+    TRACE_FUNCTION();
+
     HdSceneIndexObserver::RemovedPrimEntries prefixedEntries;
     prefixedEntries.reserve(entries.size());
 
@@ -236,6 +247,8 @@ HdPrefixingSceneIndex::_PrimsDirtied(
     const HdSceneIndexBase &sender,
     const HdSceneIndexObserver::DirtiedPrimEntries &entries)
 {
+    TRACE_FUNCTION();
+
     HdSceneIndexObserver::DirtiedPrimEntries prefixedEntries;
     prefixedEntries.reserve(entries.size());
 

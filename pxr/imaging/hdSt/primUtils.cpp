@@ -28,6 +28,7 @@
 #include "pxr/imaging/hdSt/drawItem.h"
 #include "pxr/imaging/hdSt/instancer.h"
 #include "pxr/imaging/hdSt/material.h"
+#include "pxr/imaging/hdSt/materialNetworkShader.h"
 #include "pxr/imaging/hdSt/renderParam.h"
 #include "pxr/imaging/hdSt/resourceRegistry.h"
 #include "pxr/imaging/hdSt/shaderCode.h"
@@ -83,6 +84,16 @@ HdStMarkMaterialTagsDirty(HdRenderParam *renderParam)
 }
 
 void
+HdStMarkGeomSubsetDrawItemsDirty(HdRenderParam *renderParam)
+{
+    if (TF_VERIFY(renderParam)) {
+        HdStRenderParam *stRenderParam =
+            static_cast<HdStRenderParam*>(renderParam);
+        stRenderParam->MarkGeomSubsetDrawItemsDirty();
+    }
+}
+
+void
 HdStMarkGarbageCollectionNeeded(HdRenderParam *renderParam)
 {
     if (TF_VERIFY(renderParam)) {
@@ -92,24 +103,29 @@ HdStMarkGarbageCollectionNeeded(HdRenderParam *renderParam)
     }
 }
 
-void 
-HdStFinalizeRprim(HdRprim * const rprim,
-                  HdRenderParam * const renderParam)
-{
-    HdStMarkGarbageCollectionNeeded(renderParam);
-
-    HdStRenderParam * const stRenderParam =
-        static_cast<HdStRenderParam*>(renderParam);
-    stRenderParam->DecreaseMaterialTagCount(rprim->GetMaterialTag());
-}
-
 // -----------------------------------------------------------------------------
 // Primvar descriptor filtering utilities
 // -----------------------------------------------------------------------------
 static bool
-_IsEnabledPrimvarFiltering(HdStDrawItem const * drawItem) {
-    HdStShaderCodeSharedPtr materialShader = drawItem->GetMaterialShader();
-    return materialShader && materialShader->IsEnabledPrimvarFiltering();
+_IsEnabledPrimvarFiltering(HdStDrawItem const * drawItem)
+{
+    HdSt_MaterialNetworkShaderSharedPtr materialNetworkShader =
+        drawItem->GetMaterialNetworkShader();
+    return materialNetworkShader &&
+           materialNetworkShader->IsEnabledPrimvarFiltering();
+}
+
+static TfTokenVector const &
+_GetFilterNamesForMaterial(HdStDrawItem const * drawItem)
+{
+    HdSt_MaterialNetworkShaderSharedPtr materialNetworkShader =
+        drawItem->GetMaterialNetworkShader();
+    if (materialNetworkShader) {
+        return materialNetworkShader->GetPrimvarNames();
+    }
+
+    static const TfTokenVector fallback = TfTokenVector();
+    return fallback;
 }
 
 static TfTokenVector
@@ -119,11 +135,10 @@ _GetFilterNames(HdRprim const * prim,
 {
     TfTokenVector filterNames = prim->GetBuiltinPrimvarNames();
 
-    HdStShaderCodeSharedPtr materialShader = drawItem->GetMaterialShader();
-    if (materialShader) {
-        TfTokenVector const & names = materialShader->GetPrimvarNames();
-        filterNames.insert(filterNames.end(), names.begin(), names.end());
-    }
+    const TfTokenVector &matPvNames = _GetFilterNamesForMaterial(drawItem);
+    filterNames.insert(filterNames.end(), matPvNames.begin(), 
+        matPvNames.end());
+
     if (instancer) {
         TfTokenVector const & names = instancer->GetBuiltinPrimvarNames();
         filterNames.insert(filterNames.end(), names.begin(), names.end());
@@ -151,18 +166,49 @@ HdStGetPrimvarDescriptors(
     HdRprim const * prim,
     HdStDrawItem const * drawItem,
     HdSceneDelegate * delegate,
-    HdInterpolation interpolation)
+    HdInterpolation interpolation,
+    HdReprSharedPtr const &repr,
+    HdMeshGeomStyle descGeomStyle,
+    int geomSubsetDescIndex,
+    size_t numGeomSubsets)
 {
+    HD_TRACE_FUNCTION();
+
     HdPrimvarDescriptorVector primvars =
         prim->GetPrimvarDescriptors(delegate, interpolation);
 
+    TfTokenVector filterNames;
     if (_IsEnabledPrimvarFiltering(drawItem)) {
-        TfTokenVector filterNames = _GetFilterNames(prim, drawItem);
-
-        return _FilterPrimvarDescriptors(primvars, filterNames);
+        filterNames = _GetFilterNames(prim, drawItem);
     }
 
-    return primvars;
+    if (numGeomSubsets != 0 && 
+        repr && 
+        descGeomStyle != HdMeshGeomStyleInvalid && 
+        descGeomStyle != HdMeshGeomStylePoints) {
+        for (size_t i = 0; i < numGeomSubsets; ++i) {
+            HdStDrawItem const * subsetDrawItem =
+                static_cast<HdStDrawItem*>(repr->GetDrawItemForGeomSubset(
+                    geomSubsetDescIndex, numGeomSubsets, i));
+            if (!TF_VERIFY(subsetDrawItem)) {
+                continue;
+            }
+            if (_IsEnabledPrimvarFiltering(subsetDrawItem)) {
+                const TfTokenVector matPvNames = _GetFilterNamesForMaterial(
+                    subsetDrawItem);
+                filterNames.insert(filterNames.end(), matPvNames.begin(), 
+                    matPvNames.end());
+            }
+        }
+        std::sort(filterNames.begin(), filterNames.end());
+        filterNames.erase(std::unique(filterNames.begin(), filterNames.end()),
+            filterNames.end());
+    }
+
+    if (filterNames.empty()) {
+        return primvars;
+    }
+    return _FilterPrimvarDescriptors(primvars, filterNames);
 }
 
 HdPrimvarDescriptorVector
@@ -199,7 +245,7 @@ HdStSetMaterialId(HdSceneDelegate *delegate,
 
 void
 HdStSetMaterialTag(HdRenderParam * const renderParam,
-                   HdRprim * const rprim,
+                   HdDrawItem *drawItem,
                    const TfToken &materialTag)
 {
     HdStRenderParam * const stRenderParam =
@@ -208,8 +254,8 @@ HdStSetMaterialTag(HdRenderParam * const renderParam,
     {
         // prevMaterialTag scoped to express that it is a reference
         // to a field modified by SetMaterialTag later.
-        const TfToken &prevMaterialTag = rprim->GetMaterialTag();
-        
+        const TfToken &prevMaterialTag = drawItem->GetMaterialTag();
+
         if (materialTag == prevMaterialTag) {
             return;
         }
@@ -218,7 +264,7 @@ HdStSetMaterialTag(HdRenderParam * const renderParam,
     }
     {
         stRenderParam->IncreaseMaterialTagCount(materialTag);
-        rprim->SetMaterialTag(materialTag);
+        drawItem->SetMaterialTag(materialTag);
     }
 
     // Trigger invalidation of the draw items cache of the render pass(es).
@@ -231,7 +277,7 @@ HdStSetMaterialTag(HdRenderParam * const renderParam,
 static
 TfToken
 _ComputeMaterialTag(HdSceneDelegate * const delegate,
-                    HdRprim * const rprim,
+                    SdfPath const & materialId,
                     const bool hasDisplayOpacityPrimvar,
                     const bool occludedSelectionShowsThrough)
 {
@@ -242,7 +288,7 @@ _ComputeMaterialTag(HdSceneDelegate * const delegate,
     const HdStMaterial *material =
         static_cast<const HdStMaterial *>(
             delegate->GetRenderIndex().GetSprim(
-                HdPrimTypeTokens->material, rprim->GetMaterialId()));
+                HdPrimTypeTokens->material, materialId));
     if (material) {
         return material->GetMaterialTag();
     }
@@ -257,24 +303,32 @@ _ComputeMaterialTag(HdSceneDelegate * const delegate,
 void
 HdStSetMaterialTag(HdSceneDelegate * const delegate,
                    HdRenderParam * const renderParam,
-                   HdRprim *const rprim,
+                   HdDrawItem *drawItem,
+                   SdfPath const & materialId,
                    const bool hasDisplayOpacityPrimvar,
                    const bool occludedSelectionShowsThrough)
 {
     HdStSetMaterialTag(
-        renderParam, rprim,
+        renderParam, drawItem,
         _ComputeMaterialTag(
-            delegate, rprim,
-            hasDisplayOpacityPrimvar, occludedSelectionShowsThrough));
+            delegate, materialId, hasDisplayOpacityPrimvar, 
+            occludedSelectionShowsThrough));
 }
 
-HdStShaderCodeSharedPtr
-HdStGetMaterialShader(
+HdSt_MaterialNetworkShaderSharedPtr
+HdStGetMaterialNetworkShader(
     HdRprim const * prim,
     HdSceneDelegate * delegate)
 {
-    SdfPath const & materialId = prim->GetMaterialId();
+    return HdStGetMaterialNetworkShader(prim, delegate, prim->GetMaterialId());
+}
 
+HdSt_MaterialNetworkShaderSharedPtr
+HdStGetMaterialNetworkShader(
+    HdRprim const * prim,
+    HdSceneDelegate * delegate,
+    SdfPath const & materialId)
+{
     // Resolve the prim's material or use the fallback material.
     HdRenderIndex &renderIndex = delegate->GetRenderIndex();
     HdStMaterial const * material = static_cast<HdStMaterial const *>(
@@ -287,7 +341,7 @@ HdStGetMaterialShader(
                 renderIndex.GetFallbackSprim(HdPrimTypeTokens->material));
     }
 
-    return material->GetSurfaceShader();
+    return material->GetMaterialNetworkShader();
 }
 
 // -----------------------------------------------------------------------------
