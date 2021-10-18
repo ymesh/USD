@@ -29,7 +29,8 @@ pxr_library(glf
         trace
         sdf
         ${Boost_PYTHON_LIBRARY}
-        ${OPENGL_gl_LIBRARY}
+        ${OPENGL_glx_LIBRARY}
+        ${OPENGL_opengl_LIBRARY}
         ${X11_LIBRARIES}
         ${optionalLibs}
 
