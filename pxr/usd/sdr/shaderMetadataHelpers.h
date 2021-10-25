@@ -32,6 +32,7 @@
 #include "pxr/base/tf/token.h"
 #include "pxr/usd/sdr/declare.h"
 
+#include <stdexcept>
 #include <limits>
 
 PXR_NAMESPACE_OPEN_SCOPE
