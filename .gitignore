@@ -9,6 +9,7 @@ __pycache__/
 *$py.class
 *.egg
 
+.vscode
 tmp*
 env_*
 #/build
