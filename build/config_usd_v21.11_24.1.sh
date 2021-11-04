@@ -1,7 +1,7 @@
 #
 # Config USD ABI 0
 #
-USD_VER="21.08"
+USD_VER="21.11"
 RMAN_VER="24.1"
 
 source ./env_python2/bin/activate
