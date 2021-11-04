@@ -12,4 +12,6 @@ __pycache__/
 .vscode
 tmp*
 env_*
+/build/env_*
+/build/tmp_*
 #/build
