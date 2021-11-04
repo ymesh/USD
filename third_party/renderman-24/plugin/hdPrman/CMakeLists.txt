@@ -42,11 +42,13 @@ message("***** optionalLibs = ${optionalLibs}")
 pxr_plugin(${PXR_PACKAGE}
     LIBRARIES
         ar
+        arch
         plug
         tf
         vt
         gf
         hd
+        hio
         usdRi
         usdVol
         usdVolImaging
