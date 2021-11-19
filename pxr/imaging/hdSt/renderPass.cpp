@@ -23,15 +23,12 @@
 //
 #include "pxr/imaging/hdSt/renderPass.h"
 
-#include "pxr/imaging/glf/contextCaps.h"
-
 #include "pxr/imaging/hdSt/debugCodes.h"
 #include "pxr/imaging/hdSt/drawItemsCache.h"
 #include "pxr/imaging/hdSt/glUtils.h"
 #include "pxr/imaging/hdSt/indirectDrawBatch.h"
 #include "pxr/imaging/hdSt/resourceRegistry.h"
 #include "pxr/imaging/hdSt/renderParam.h"
-#include "pxr/imaging/hdSt/renderPassShader.h"
 #include "pxr/imaging/hdSt/renderPassState.h"
 
 #include "pxr/imaging/hdSt/drawItem.h"
@@ -128,17 +125,19 @@ HdSt_RenderPass::~HdSt_RenderPass()
 }
 
 bool
-HdSt_RenderPass::HasDrawItems() const
+HdSt_RenderPass::HasDrawItems(TfTokenVector const &renderTags) const
 {
-    // Note that using the material tag alone isn't a sufficient filter.
-    // The collection paths and task render tags also matter. Factoring them 
-    // requires querying the render index, which is an expensive operation that
-    // we avoid here.
+    // Note that using the material tag and render tags is not a sufficient
+    // filter. The collection paths also matter for computing the correct 
+    // subset.  So this method may produce false positives, but serves its 
+    // purpose of identifying when work can be skipped due to definite lack of
+    // draw items that pass the material tag and render tags filter.
     const HdStRenderParam * const renderParam =
         static_cast<HdStRenderParam *>(
             GetRenderIndex()->GetRenderDelegate()->GetRenderParam());
-    
-    return renderParam->HasMaterialTag(GetRprimCollection().GetMaterialTag());
+
+    return renderParam->HasMaterialTag(GetRprimCollection().GetMaterialTag()) &&
+        (renderTags.empty() || renderParam->HasAnyRenderTag(renderTags));
 }
 
 static
@@ -353,8 +352,8 @@ HdSt_RenderPass::_UpdateDrawItems(TfTokenVector const& renderTags)
     bool taskRenderTagsChanged = false;
     if (_taskRenderTagsVersion != taskRenderTagsVersion) {
         _taskRenderTagsVersion = taskRenderTagsVersion;
-        if (_renderTags != renderTags) {
-            _renderTags = renderTags;
+        if (_prevRenderTags != renderTags) {
+            _prevRenderTags = renderTags;
             taskRenderTagsChanged = true;
         }
     }
@@ -436,7 +435,8 @@ HdSt_RenderPass::_UpdateCommandBuffer(TfTokenVector const& renderTags)
     const int batchVersion = _GetDrawBatchesVersion(GetRenderIndex());
     // Rebuild draw batches based on new draw items
     if (_drawItemsChanged) {
-        _cmdBuffer.SetDrawItems(_drawItems, batchVersion);
+        _cmdBuffer.SetDrawItems(_drawItems, batchVersion,
+            *_hgi->GetCapabilities());
 
         _drawItemsChanged = false;
         size_t itemCount = _cmdBuffer.GetTotalSize();
@@ -444,7 +444,8 @@ HdSt_RenderPass::_UpdateCommandBuffer(TfTokenVector const& renderTags)
     } else {
         // validate command buffer to not include expired drawItems,
         // which could be produced by migrating BARs at the new repr creation.
-        _cmdBuffer.RebuildDrawBatchesIfNeeded(batchVersion);
+        _cmdBuffer.RebuildDrawBatchesIfNeeded(batchVersion,
+            *_hgi->GetCapabilities());
     }
 
     // -------------------------------------------------------------------
@@ -468,12 +469,14 @@ HdSt_RenderPass::_FrustumCullCPU(
     // This process should be moved to HdSt_DrawBatch::PrepareDraw
     // to be consistent with GPU culling.
 
-    GlfContextCaps const &caps = GlfContextCaps::GetInstance();
     HdChangeTracker const &tracker = GetRenderIndex()->GetChangeTracker();
+
+    const bool multiDrawIndirectEnabled = _hgi->
+        GetCapabilities()->IsSet(HgiDeviceCapabilitiesBitsMultiDrawIndirect);
 
     const bool
        skipCulling = TfDebug::IsEnabled(HDST_DISABLE_FRUSTUM_CULLING) ||
-           (caps.multiDrawIndirectEnabled
+           (multiDrawIndirectEnabled
                && HdSt_IndirectDrawBatch::IsEnabledGPUFrustumCulling());
     bool freezeCulling = TfDebug::IsEnabled(HD_FREEZE_CULL_FRUSTUM);
 

@@ -29,10 +29,7 @@
 #include "pxr/imaging/hd/version.h"
 #include "pxr/imaging/hd/enums.h"
 #include "pxr/imaging/hdSt/shaderCode.h"
-#include "pxr/imaging/hdSt/resourceRegistry.h"
 #include "pxr/usd/sdf/path.h"
-#include "pxr/imaging/garch/glApi.h"
-#include "pxr/imaging/hio/glslfx.h"
 
 #include <memory>
 
@@ -40,7 +37,10 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 using HdSt_GeometricShaderSharedPtr =
     std::shared_ptr<class HdSt_GeometricShader>;
+using HdStResourceRegistrySharedPtr =
+    std::shared_ptr<class HdStResourceRegistry>;
 struct HdSt_ShaderKey;
+class HioGlslfx;
 
 /// \class HdSt_GeometricShader
 ///
@@ -68,6 +68,8 @@ public:
         PRIM_MESH_REFINED_TRIANGLES, // e.g: loop subdiv
         PRIM_MESH_COARSE_QUADS,      // e.g: quadrangulation for ptex
         PRIM_MESH_REFINED_QUADS,     // e.g: catmark/bilinear subdiv
+        PRIM_MESH_COARSE_TRIQUADS,   // e.g: triangulated quadrangulation
+        PRIM_MESH_REFINED_TRIQUADS,  // e.g: triangulated catmark/bilinear
         PRIM_MESH_BSPLINE,           // e.g. catmark limit surface patches
         PRIM_MESH_BOXSPLINETRIANGLE, // e.g. loop limit surface patches
         PRIM_VOLUME                  // Simply draws triangles of bounding
@@ -90,6 +92,8 @@ public:
                 primType == PrimitiveType::PRIM_MESH_REFINED_TRIANGLES ||
                 primType == PrimitiveType::PRIM_MESH_COARSE_QUADS      ||
                 primType == PrimitiveType::PRIM_MESH_REFINED_QUADS     ||
+                primType == PrimitiveType::PRIM_MESH_COARSE_TRIQUADS   ||
+                primType == PrimitiveType::PRIM_MESH_REFINED_TRIQUADS  ||
                 primType == PrimitiveType::PRIM_MESH_BSPLINE   ||
                 primType == PrimitiveType::PRIM_MESH_BOXSPLINETRIANGLE);
     }
@@ -105,9 +109,15 @@ public:
                 primType == PrimitiveType::PRIM_MESH_REFINED_QUADS);
     }
 
+    static inline bool IsPrimTypeTriQuads(PrimitiveType primType) {
+        return (primType == PrimitiveType::PRIM_MESH_COARSE_TRIQUADS ||
+                primType == PrimitiveType::PRIM_MESH_REFINED_TRIQUADS);
+    }
+
     static inline bool IsPrimTypeRefinedMesh(PrimitiveType primType) {
         return (primType == PrimitiveType::PRIM_MESH_REFINED_TRIANGLES ||
                 primType == PrimitiveType::PRIM_MESH_REFINED_QUADS ||
+                primType == PrimitiveType::PRIM_MESH_REFINED_TRIQUADS ||
                 primType == PrimitiveType::PRIM_MESH_BSPLINE ||
                 primType == PrimitiveType::PRIM_MESH_BOXSPLINETRIANGLE);
     }
@@ -172,38 +182,58 @@ public:
         return _primType;
     }
 
+    HdCullStyle GetCullStyle() const {
+        return _cullStyle;
+    }
+
+    bool GetUseHardwareFaceCulling() const {
+        return _useHardwareFaceCulling;
+    }
+
+    bool GetHasMirroredTransform() const {
+        return _hasMirroredTransform;
+    }
+
+    bool GetDoubleSided() const {
+        return _doubleSided;
+    }
+
+    float GetLineWidth() const {
+        return _lineWidth;
+    }
+
+    HdPolygonMode GetPolygonMode() const {
+        return _polygonMode;
+    }
+
     /// member query functions for PrimitiveType
-     inline bool IsPrimTypePoints() const {
+    bool IsPrimTypePoints() const {
         return IsPrimTypePoints(_primType);
     }
 
-    inline bool IsPrimTypeBasisCurves() const {
+    bool IsPrimTypeBasisCurves() const {
         return IsPrimTypeBasisCurves(_primType);
     }
 
-    inline bool IsPrimTypeMesh() const {
+    bool IsPrimTypeMesh() const {
         return IsPrimTypeMesh(_primType);
     }
 
-    inline bool IsPrimTypeTriangles() const {
+    bool IsPrimTypeTriangles() const {
         return IsPrimTypeTriangles(_primType);
     }
 
-    inline bool IsPrimTypeQuads() const {
+    bool IsPrimTypeQuads() const {
         return IsPrimTypeQuads(_primType);
     }
 
-    inline bool IsPrimTypePatches() const {
+    bool IsPrimTypePatches() const {
         return IsPrimTypePatches(_primType);
     }
 
     FvarPatchType GetFvarPatchType() const {
         return _fvarPatchType;
     }
-
-    /// Return the GL primitive type of the draw item based on _primType
-    HDST_API
-    GLenum GetPrimitiveMode() const;
 
     // Returns the primitive index size based on the primitive mode
     // 3 for triangles, 4 for quads, 16 for regular b-spline patches etc.

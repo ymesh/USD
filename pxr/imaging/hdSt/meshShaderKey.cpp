@@ -58,6 +58,8 @@ TF_DEFINE_PRIVATE_TOKENS(
     ((edgeMaskTriangleFS,      "MeshWire.Fragment.EdgeMaskTriangle"))
     ((edgeMaskQuadFS,          "MeshWire.Fragment.EdgeMaskQuad"))
     ((edgeMaskRefinedQuadFS,   "MeshWire.Fragment.EdgeMaskRefinedQuad"))
+    ((edgeMaskTriQuadFS,       "MeshWire.Fragment.EdgeMaskTriQuad"))
+    ((edgeMaskRefinedTriQuadFS,"MeshWire.Fragment.EdgeMaskRefinedTriQuad"))
     ((edgeMaskNoneFS,          "MeshWire.Fragment.EdgeMaskNone"))
 
     ((edgeCommonFS,            "MeshWire.Fragment.EdgeCommon"))
@@ -109,7 +111,10 @@ TF_DEFINE_PRIVATE_TOKENS(
     ((mainVaryingInterpTES,    "Mesh.TessEval.VaryingInterpolation"))
     ((mainTriangleTessGS,      "Mesh.Geometry.TriangleTess"))
     ((mainTriangleGS,          "Mesh.Geometry.Triangle"))
+    ((mainTriQuadGS,           "Mesh.Geometry.TriQuad"))
     ((mainQuadGS,              "Mesh.Geometry.Quad"))
+    ((mainPatchCoordFS,        "Mesh.Fragment.PatchCoord"))
+    ((mainPatchCoordTriQuadFS, "Mesh.Fragment.PatchCoord.TriQuad"))
     ((mainFS,                  "Mesh.Fragment"))
 
     // instancing related mixins
@@ -166,8 +171,10 @@ HdSt_MeshShaderKey::HdSt_MeshShaderKey(
     useHardwareFaceCulling = !hasInstancer;
 
     bool isPrimTypePoints = HdSt_GeometricShader::IsPrimTypePoints(primType);
-    bool isPrimTypeQuads  = HdSt_GeometricShader::IsPrimTypeQuads(primType);
     bool isPrimTypeTris   = HdSt_GeometricShader::IsPrimTypeTriangles(primType);
+    bool isPrimTypeQuads  = HdSt_GeometricShader::IsPrimTypeQuads(primType);
+    bool isPrimTypeTriQuads =
+        HdSt_GeometricShader::IsPrimTypeTriQuads(primType);
     bool isPrimTypeRefinedMesh =
         HdSt_GeometricShader::IsPrimTypeRefinedMesh(primType);
     const bool isPrimTypePatches =
@@ -272,9 +279,13 @@ HdSt_MeshShaderKey::HdSt_MeshShaderKey(
         _tokens->noCustomDisplacementGS :
         _tokens->customDisplacementGS;
 
-    GS[gsIndex++] = isPrimTypeQuads ? _tokens->mainQuadGS :
-                    (isPrimTypePatches ? _tokens->mainTriangleTessGS
-                                       : _tokens->mainTriangleGS);
+    GS[gsIndex++] = isPrimTypeQuads
+                        ? _tokens->mainQuadGS
+                        : isPrimTypeTriQuads
+                            ? _tokens->mainTriQuadGS
+                            : isPrimTypePatches
+                                ? _tokens->mainTriangleTessGS
+                                    : _tokens->mainTriangleGS;
     GS[gsIndex] = TfToken();
 
     // Optimization : If the mesh is skipping displacement shading, we have an
@@ -322,13 +333,17 @@ HdSt_MeshShaderKey::HdSt_MeshShaderKey(
          geomStyle == HdMeshGeomStyleHullEdgeOnly)) {
 
         if (isPrimTypeRefinedMesh) {
-            if (isPrimTypeQuads) {
+            if (isPrimTypeTriQuads) {
+                FS[fsIndex++] = _tokens->edgeMaskRefinedTriQuadFS;
+            } else if (isPrimTypeQuads) {
                 FS[fsIndex++] = _tokens->edgeMaskRefinedQuadFS;
             } else {
                 FS[fsIndex++] = _tokens->edgeMaskNoneFS;
             }
         } else if (isPrimTypeTris) {
             FS[fsIndex++] = _tokens->edgeMaskTriangleFS;
+        } else if (isPrimTypeTriQuads) {
+            FS[fsIndex++] = _tokens->edgeMaskTriQuadFS;
         } else {
             FS[fsIndex++] = _tokens->edgeMaskQuadFS;
         }
@@ -345,13 +360,17 @@ HdSt_MeshShaderKey::HdSt_MeshShaderKey(
                 geomStyle == HdMeshGeomStyleHullEdgeOnSurf)) {
 
         if (isPrimTypeRefinedMesh) {
-            if (isPrimTypeQuads) {
+            if (isPrimTypeTriQuads) {
+                FS[fsIndex++] = _tokens->edgeMaskRefinedTriQuadFS;
+            } else if (isPrimTypeQuads) {
                 FS[fsIndex++] = _tokens->edgeMaskRefinedQuadFS;
             } else {
                 FS[fsIndex++] = _tokens->edgeMaskNoneFS;
             }
         } else if (isPrimTypeTris) {
             FS[fsIndex++] = _tokens->edgeMaskTriangleFS;
+        } else if (isPrimTypeTriQuads) {
+            FS[fsIndex++] = _tokens->edgeMaskTriQuadFS;
         } else {
             FS[fsIndex++] = _tokens->edgeMaskQuadFS;
         }
@@ -443,6 +462,11 @@ HdSt_MeshShaderKey::HdSt_MeshShaderKey(
                                       _tokens->pointIdFallbackFS;
     FS[fsIndex++] = hasTopologicalVisibility? _tokens->topVisFS :
                                               _tokens->topVisFallbackFS;
+    if (isPrimTypeTriQuads) {
+        FS[fsIndex++] = _tokens->mainPatchCoordTriQuadFS;
+    } else {
+        FS[fsIndex++] = _tokens->mainPatchCoordFS;
+    }
     FS[fsIndex++] = _tokens->mainFS;
     FS[fsIndex] = TfToken();
 }

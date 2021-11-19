@@ -22,7 +22,6 @@
 // language governing permissions and limitations under the Apache License.
 //
 #include "hdPrman/matfiltConvertPreviewMaterial.h"
-#include "hdPrman/context.h"
 #include "hdPrman/debugCodes.h"
 #include "pxr/usd/sdf/types.h"
 #include "pxr/base/arch/library.h"
@@ -88,6 +87,7 @@ TF_DEFINE_PRIVATE_TOKENS(
     (specularFaceColorOut)
     (specularIor)
     (specularIorOut)
+    (specularModelType)
     (specularRoughness)
     (specularRoughnessOut)
     (presence)
@@ -200,7 +200,10 @@ MatfiltConvertPreviewMaterial(
             nodesToAdd[pxrSurfacePath] = HdMaterialNode2 {
                 _tokens->PxrSurface, 
                 // parameters:
-                {},
+                {
+                    // UsdPreviewSurface uses GGX, not Beckmann
+                    {_tokens->specularModelType, VtValue(int(1))},
+                },
                 // connections:
                 {
                     {_tokens->bumpNormal,

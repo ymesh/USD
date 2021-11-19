@@ -22,9 +22,8 @@
 // language governing permissions and limitations under the Apache License.
 //
 #include "hdPrman/material.h"
-#include "hdPrman/context.h"
-#include "hdPrman/debugCodes.h"
 #include "hdPrman/renderParam.h"
+#include "hdPrman/debugCodes.h"
 #include "hdPrman/matfiltConvertPreviewMaterial.h"
 #include "hdPrman/matfiltFilterChain.h"
 #include "hdPrman/matfiltResolveVstructs.h"
@@ -55,6 +54,7 @@ TF_DEFINE_PRIVATE_TOKENS(
     (PxrDisplace)
     (bxdf)
     (OSL)
+    (omitFromRender)
 );
 
 TF_MAKE_STATIC_DATA(NdrTokenVec, _sourceTypes) {
@@ -115,15 +115,15 @@ HdPrmanMaterial::~HdPrmanMaterial()
 void
 HdPrmanMaterial::Finalize(HdRenderParam *renderParam)
 {
-    HdPrman_Context *context =
-        static_cast<HdPrman_RenderParam*>(renderParam)->AcquireContext();
-    _ResetMaterial(context);
+    HdPrman_RenderParam *param =
+        static_cast<HdPrman_RenderParam*>(renderParam);
+    _ResetMaterial(param);
 }
 
 void
-HdPrmanMaterial::_ResetMaterial(HdPrman_Context *context)
+HdPrmanMaterial::_ResetMaterial(HdPrman_RenderParam *renderParam)
 {
-    riley::Riley *riley = context->riley;
+    riley::Riley *riley = renderParam->AcquireRiley();
     if (_materialId != riley::MaterialId::InvalidId()) {
         riley->DeleteMaterial(_materialId);
         _materialId = riley::MaterialId::InvalidId();
@@ -161,6 +161,23 @@ _ConvertOptionTokenToInt(
 }
 
 using _PathSet = std::unordered_set<SdfPath, SdfPath::Hash>;
+
+// See also TfGetenvBool().
+static bool
+_GetStringAsBool(std::string value, bool defaultValue)
+{
+    if (value.empty()) {
+        return defaultValue;
+    } else {
+        for (char& c: value) {
+            c = tolower(c);
+        }
+        return value == "true" ||
+            value == "yes"  ||
+            value == "on"   ||
+            value == "1";
+    }
+}
 
 // Recursively convert a HdMaterialNode2 and its upstream dependencies
 // to Riley equivalents.  Avoids adding redundant nodes in the case
@@ -272,6 +289,15 @@ _ConvertNodes(
                      sdrEntry->GetName().c_str(),
                      nodePath.GetText());
             continue;
+        }
+        // Filter by omitFromRender metadata to pre-empt warnings
+        // from RenderMan.
+        std::string omitFromRenderValStr;
+        if (TfMapLookup(prop->GetMetadata(), _tokens->omitFromRender,
+            &omitFromRenderValStr)) {
+            if (_GetStringAsBool(omitFromRenderValStr, false)) {
+                continue;
+            }
         }
         TfToken propType = prop->GetType();
         if (propType.IsEmpty()) {
@@ -609,14 +635,14 @@ HdPrman_DumpNetwork(HdMaterialNetwork2 const& network, SdfPath const& id)
 // otherwise it will be created as needed.
 static void
 _ConvertHdMaterialNetwork2ToRman(
-    HdPrman_Context *context,
+    HdPrman_RenderParam *renderParam,
     SdfPath const& id,
     const HdMaterialNetwork2 &network,
     riley::MaterialId *materialId,
     riley::DisplacementId *displacementId)
 {
     HD_TRACE_FUNCTION();
-    riley::Riley *riley = context->riley;
+    riley::Riley *riley = renderParam->AcquireRiley();
     std::vector<riley::ShadingNode> nodes;
     nodes.reserve(network.nodes.size());
     bool materialFound = false, displacementFound = false;
@@ -684,8 +710,8 @@ HdPrmanMaterial::Sync(HdSceneDelegate *sceneDelegate,
                       HdDirtyBits     *dirtyBits)
 {  
     HD_TRACE_FUNCTION();
-    HdPrman_Context *context =
-        static_cast<HdPrman_RenderParam*>(renderParam)->AcquireContext();
+    HdPrman_RenderParam *param =
+        static_cast<HdPrman_RenderParam*>(renderParam);
 
     SdfPath id = GetId();
 
@@ -711,14 +737,14 @@ HdPrmanMaterial::Sync(HdSceneDelegate *sceneDelegate,
             if (TfDebug::IsEnabled(HDPRMAN_MATERIALS)) {
                 HdPrman_DumpNetwork(_materialNetwork, id);
             }
-            _ConvertHdMaterialNetwork2ToRman(context, id, _materialNetwork,
+            _ConvertHdMaterialNetwork2ToRman(param, id, _materialNetwork,
                                              &_materialId, &_displacementId);
         } else {
             TF_WARN("HdPrmanMaterial: Expected material resource "
                     "for <%s> to contain HdMaterialNodes, but "
                     "found %s instead.",
                     id.GetText(), hdMatVal.GetTypeName().c_str());
-            _ResetMaterial(context);
+            _ResetMaterial(param);
         }
     }
     *dirtyBits = HdChangeTracker::Clean;
@@ -735,6 +761,179 @@ bool
 HdPrmanMaterial::IsValid() const
 {
     return _materialId != riley::MaterialId::InvalidId();
+}
+
+HdMaterialNetwork2
+HdPrmanMaterial_GetFallbackSurfaceMaterialNetwork()
+{
+    // We expect this to be called once, at init time, but drop a trace
+    // scope in just in case that changes.  Accordingly, we also don't
+    // bother creating static tokens for the single-use cases below.
+    HD_TRACE_FUNCTION();
+
+    const std::map<SdfPath, HdMaterialNode2> nodes = {
+        {
+            // path
+            SdfPath("/Primvar_displayColor"),
+            // node info
+            HdMaterialNode2 {
+                // nodeTypeId
+                TfToken("PxrPrimvar"),
+                // parameters
+                {
+                    { TfToken("varname"),
+                      VtValue(TfToken("displayColor")) },
+                    { TfToken("defaultColor"),
+                      VtValue(GfVec3f(0.5, 0.5, 0.5)) },
+                    { TfToken("type"),
+                      VtValue(TfToken("color")) },
+                },
+            },
+        },
+        {
+            // path
+            SdfPath("/Primvar_displayRoughness"),
+            // node info
+            HdMaterialNode2 {
+                // nodeTypeId
+                TfToken("PxrPrimvar"),
+                // parameters
+                {
+                    { TfToken("varname"),
+                      VtValue(TfToken("displayRoughness")) },
+                    { TfToken("defaultFloat"),
+                      VtValue(1.0f) },
+                    { TfToken("type"),
+                      VtValue(TfToken("float")) },
+                },
+            },
+        },
+        {
+            // path
+            SdfPath("/Primvar_displayOpacity"),
+            // node info
+            HdMaterialNode2 {
+                // nodeTypeId
+                TfToken("PxrPrimvar"),
+                // parameters
+                {
+                    { TfToken("varname"),
+                      VtValue(TfToken("displayOpacity")) },
+                    { TfToken("defaultFloat"),
+                      VtValue(1.0f) },
+                    { TfToken("type"),
+                      VtValue(TfToken("float")) },
+                },
+            },
+        },
+        {
+            // path
+            SdfPath("/Primvar_displayMetallic"),
+            // node info
+            HdMaterialNode2 {
+                // nodeTypeId
+                TfToken("PxrPrimvar"),
+                // parameters
+                {
+                    { TfToken("varname"),
+                      VtValue(TfToken("displayMetallic")) },
+                    { TfToken("defaultFloat"),
+                      VtValue(0.0f) },
+                    { TfToken("type"),
+                      VtValue(TfToken("float")) },
+                },
+            },
+        },
+
+        // UsdPreviewSurfaceParameters
+        {
+            // path
+            SdfPath("/UsdPreviewSurfaceParameters"),
+            // node info
+            HdMaterialNode2 {
+                // nodeTypeId
+                TfToken("UsdPreviewSurfaceParameters"),
+                // parameters
+                {},
+                // connections
+                {
+                    { TfToken("diffuseColor"),
+                      { { SdfPath("/Primvar_displayColor"),
+                            TfToken("resultRGB") } } },
+                    { TfToken("roughness"),
+                      { { SdfPath("/Primvar_displayRoughness"),
+                          TfToken("resultF") } } },
+                    { TfToken("metallic"),
+                      { { SdfPath("/Primvar_displayMetallic"),
+                          TfToken("resultF") } } },
+                    { TfToken("opacity"),
+                      { { SdfPath("/Primvar_displayOpacity"),
+                          TfToken("resultF") } } },
+                },
+            },
+        },
+        // PxrSurface (connected to UsdPreviewSurfaceParameters)
+        {
+            // path
+            SdfPath("/PxrSurface"),
+            // node info
+            HdMaterialNode2 {
+                // nodeTypeId
+                TfToken("PxrSurface"),
+                // parameters
+                {
+                    { TfToken("specularModelType"),
+                      VtValue(int(1)) },
+                    { TfToken("diffuseDoubleSided"),
+                      VtValue(int(1)) },
+                    { TfToken("specularDoubleSided"),
+                      VtValue(int(1)) },
+                    { TfToken("specularFaceColor"),
+                      VtValue(GfVec3f(0.04)) },
+                    { TfToken("specularEdgeColor"),
+                      VtValue(GfVec3f(1.0)) },
+                },
+                // connections
+                {
+                    { TfToken("diffuseColor"),
+                      {{ SdfPath("/UsdPreviewSurfaceParameters"),
+                         TfToken("diffuseColorOut") }} },
+                    { TfToken("diffuseGain"),
+                      {{ SdfPath("/UsdPreviewSurfaceParameters"),
+                         TfToken("diffuseGainOut") }} },
+                    { TfToken("specularFaceColor"),
+                      {{ SdfPath("/UsdPreviewSurfaceParameters"),
+                         TfToken("specularFaceColorOut") }} },
+                    { TfToken("specularEdgeColor"),
+                      {{ SdfPath("/UsdPreviewSurfaceParameters"),
+                         TfToken("specularEdgeColorOut") }} },
+                    { TfToken("specularRoughness"),
+                      {{ SdfPath("/UsdPreviewSurfaceParameters"),
+                         TfToken("specularRoughnessOut") }} },
+                    { TfToken("presence"),
+                      {{ SdfPath("/Primvar_displayOpacity"),
+                         TfToken("resultF") }} },
+                },
+            },
+        },
+    };
+
+    const std::map<TfToken, HdMaterialConnection2> terminals = {
+        { TfToken("surface"),
+          HdMaterialConnection2 {
+            SdfPath("/PxrSurface"),
+            TfToken("outputName") }
+        },
+    };
+
+    const TfTokenVector primvars = {
+        TfToken("displayColor"),
+        TfToken("displayMetallic"),
+        TfToken("displayOpacity"),
+        TfToken("displayRoughness"),
+    };
+
+    return HdMaterialNetwork2{nodes, terminals, primvars};
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

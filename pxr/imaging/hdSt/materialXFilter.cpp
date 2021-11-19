@@ -135,8 +135,12 @@ HdSt_GenMaterialXShaderCode(
     mx::NodePtr node = renderableElem->asA<mx::Node>();
     if (node && node->getType() == mx::MATERIAL_TYPE_STRING) {
         // std::unordered_set<mx::NodePtr> mxShaderNodes;
-         std::vector<mx::NodePtr> mxShaderNodes;
-        mxShaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING);
+        // !!! ymesh_dev !!! BEGIN 
+        // std::vector<mx::NodePtr> mxShaderNodes;
+        // mxShaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING);
+        // !!! ymesh_dev !!! END
+        // Use auto so can compile against MaterialX 1.38.0 or 1.38.1
+        auto mxShaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING);
         if (!mxShaderNodes.empty()) {
             renderableElem = *mxShaderNodes.begin();
         }
@@ -503,8 +507,7 @@ HdSt_ApplyMaterialXFilter(
 
         // Load Standard Libraries/setup SearchPaths (for mxDoc and mxShaderGen)
         mx::FilePathVec libraryFolders;
-        mx::FileSearchPath searchPath;
-        searchPath.append(mx::FilePath(PXR_MATERIALX_STDLIB_DIR));
+        mx::FileSearchPath searchPath = HdMtlxSearchPaths();
         mx::DocumentPtr stdLibraries = mx::createDocument();
         mx::loadLibraries(libraryFolders, searchPath, stdLibraries);
 

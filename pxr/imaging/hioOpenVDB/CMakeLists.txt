@@ -22,6 +22,7 @@ pxr_library(hioOpenVDB
         ${OPENEXR_INCLUDE_DIR}
 
     PUBLIC_CLASSES
+        utils
         vdbAssetInterface
 
     PUBLIC_HEADERS

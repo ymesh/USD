@@ -62,7 +62,7 @@ pxr_plugin(${PXR_PACKAGE}
     PUBLIC_CLASSES
         basisCurves
         camera
-        context
+        cameraContext
         coordSys
         debugCodes
         gprim
@@ -75,16 +75,18 @@ pxr_plugin(${PXR_PACKAGE}
         matfiltFilterChain
         matfiltResolveVstructs
         mesh
-        offlineContext
+        offlineRenderParam
         points
+        paramsSetter
         renderDelegate
+        renderParam
         rixStrings
         volume
         xcpt
         ${optionalPublicClasses}
 
     PRIVATE_CLASSES
-        interactiveContext
+        interactiveRenderParam
         interactiveRenderPass
         framebuffer
         offlineRenderPass
@@ -95,10 +97,8 @@ pxr_plugin(${PXR_PACKAGE}
 
     PUBLIC_HEADERS
         api.h
-        renderParam.h
 
     PRIVATE_HEADERS
-        interactiveRenderParam.h
         virtualStructConditionalGrammar.tab.h
 
     CPPFILES
