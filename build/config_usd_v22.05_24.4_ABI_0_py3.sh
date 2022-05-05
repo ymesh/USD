@@ -1,16 +1,18 @@
 #
 # Config USD ABI 0
 #
-USD_VER="22.03"
-RMAN_VER="24.3"
+USD_VER="22.05"
+RMAN_VER="24.4"
 
-source ./env_python2/bin/activate
+PYTHON_VERSION="3"
+
+source ./env_python${PYTHON_VERSION}/bin/activate
 
 cur_dir=`pwd`
-tmp_dir="tmp_usd_v${USD_VER}_rman${RMAN_VER}_ABI_0"
+tmp_dir="tmp_usd_v${USD_VER}_rman${RMAN_VER}_ABI_0_py${PYTHON_VERSION}"
 
 deploy_root="/data/tools"
-deploy_dir="${deploy_root}/USD/pixar/USD-v${USD_VER}_rman${RMAN_VER}_ABI_0"
+deploy_dir="${deploy_root}/USD/pixar/USD-v${USD_VER}_rman${RMAN_VER}_ABI_0_py${PYTHON_VERSION}"
 
 if [ ! -d $tmp_dir ]; then
   mkdir $tmp_dir
@@ -77,7 +79,7 @@ cmake3 -LA -G "Unix Makefiles" \
 -DPXR_BUILD_DOCUMENTATION=OFF \
 -DPXR_ENABLE_GL_SUPPORT=ON \
 -DPXR_ENABLE_PYTHON_SUPPORT=ON \
--DPXR_USE_PYTHON_3=OFF \
+-DPXR_USE_PYTHON_3=ON \
 -DPXR_ENABLE_OSL_SUPPORT=ON \
 -DPXR_ENABLE_PTEX_SUPPORT=ON \
 -DPXR_ENABLE_OPENVDB_SUPPORT=ON \
