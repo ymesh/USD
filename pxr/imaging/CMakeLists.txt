@@ -16,6 +16,8 @@ add_subdirectory(hdGp)
 add_subdirectory(hdsi)
 
 if (${PXR_ENABLE_MATERIALX_SUPPORT})
+    include_directories(${MATERIALX_INCLUDE_DIRS})
+    link_directories(${MATERIALX_LIB_DIRS}) 
     add_subdirectory(hdMtlx)
 endif()
 

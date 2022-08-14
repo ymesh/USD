@@ -26,8 +26,10 @@ if (${PXR_ENABLE_MATERIALX_SUPPORT})
     add_definitions(-DPXR_MATERIALX_STDLIB_DIR="${MATERIALX_STDLIB_DIR}")
     add_definitions(-DPXR_MATERIALX_BASE_DIR="${MATERIALX_BASE_DIR}")
 
-    #list(APPEND optionalLibs ${MATERIALX_LIBRARIES} hdMtlx)
-    list(APPEND optionalLibs hdMtlx)
+    link_directories(${MATERIALX_LIB_DIRS}) 
+
+    list(APPEND optionalLibs ${MATERIALX_LIBRARIES} hdMtlx)
+    # list(APPEND optionalLibs hdMtlx)
     list(APPEND optionalIncludeDirs ${MATERIALX_INCLUDE_DIRS})
     list(APPEND optionalPublicClasses matfiltMaterialX)
 

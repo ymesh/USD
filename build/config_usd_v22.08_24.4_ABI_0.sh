@@ -1,18 +1,16 @@
 #
 # Config USD ABI 0
 #
-USD_VER="22.05"
+USD_VER="22.08"
 RMAN_VER="24.4"
 
-PYTHON_VERSION="3"
-
-source ./env_python${PYTHON_VERSION}/bin/activate
+source ./env_python2/bin/activate
 
 cur_dir=`pwd`
-tmp_dir="tmp_usd_v${USD_VER}_rman${RMAN_VER}_ABI_0_py${PYTHON_VERSION}"
+tmp_dir="tmp_usd_v${USD_VER}_rman${RMAN_VER}_ABI_0"
 
 deploy_root="/data/tools"
-deploy_dir="${deploy_root}/USD/pixar/USD-v${USD_VER}_rman${RMAN_VER}_ABI_0_py${PYTHON_VERSION}"
+deploy_dir="${deploy_root}/USD/pixar/USD-v${USD_VER}_rman${RMAN_VER}_ABI_0"
 
 if [ ! -d $tmp_dir ]; then
   mkdir $tmp_dir
@@ -35,7 +33,7 @@ export BOOST_LIBRARYDIR="${BOOST_ROOT}/lib"
 #export EMBREE_INCLUDE_DIR="/usr/include"
 #export EMBREE_LIBRARY="/usr/lib64/libembree.so"
 #export JEMALLOC="${deploy_root}/jemalloc/jemalloc-5.2.1"
-export MATERIALX_ROOT="${deploy_root}/MaterialX/MaterialX-v1.38.2_ABI_0"
+export MATERIALX_ROOT="${deploy_root}/MaterialX/MaterialX-v1.38.6_ABI_0"
 export MATERIALX_STDLIB_DIR="${MATERIALX_ROOT}/libraries/stdlib"
 export PTEX_LOCATION="${deploy_root}/wdas/ptex-v2.4.1_ABI_0"
 export OSL_LOCATION="${deploy_root}/OSL/OSL-v1.11.14.0_ABI_0"
@@ -79,7 +77,7 @@ cmake3 -LA -G "Unix Makefiles" \
 -DPXR_BUILD_DOCUMENTATION=OFF \
 -DPXR_ENABLE_GL_SUPPORT=ON \
 -DPXR_ENABLE_PYTHON_SUPPORT=ON \
--DPXR_USE_PYTHON_3=ON \
+-DPXR_USE_PYTHON_3=OFF \
 -DPXR_ENABLE_OSL_SUPPORT=ON \
 -DPXR_ENABLE_PTEX_SUPPORT=ON \
 -DPXR_ENABLE_OPENVDB_SUPPORT=ON \
