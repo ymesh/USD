@@ -14,6 +14,9 @@ set(optionalIncludeDirs "")
 set(optionalPublicClasses "")
 set(optionalPrivateClasses "")
 if (${PXR_ENABLE_MATERIALX_SUPPORT})
+    include_directories(${MATERIALX_INCLUDE_DIRS})
+    link_directories(${MATERIALX_LIB_DIRS}) 
+    
     list(APPEND optionalLibs
         MaterialXGenShader
         MaterialXRender
