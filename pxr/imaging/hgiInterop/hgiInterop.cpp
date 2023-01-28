@@ -31,7 +31,8 @@
     #include "pxr/imaging/hgiInterop/metal.h"
 #elif defined(PXR_VULKAN_SUPPORT_ENABLED)
     #include "pxr/imaging/hgiVulkan/hgi.h"
-    #include "pxr/imaging/hgiInterop/vulkan.h"
+    // #include "pxr/imaging/hgiInterop/vulkan.h"
+    #include "/home/data/code/LIBS/USD/me/USD/pxr/imaging/hgiInterop/vulkan.h"
 #else
     #include "pxr/imaging/hgiInterop/opengl.h"
 #endif
