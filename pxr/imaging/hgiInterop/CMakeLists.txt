@@ -21,10 +21,23 @@ if (PXR_ENABLE_METAL_SUPPORT)
     list(APPEND optionalCppFiles metal.mm)
     list(APPEND optionalPrivateHeaders metal.h)
 else()
-    # No OpenGL-to-OpenGL interop when using Metal.
-    list(APPEND optionalCppFiles opengl.cpp)
-    list(APPEND optionalPrivateHeaders opengl.h)
+    if (PXR_ENABLE_VULKAN_SUPPORT)
+        list(APPEND optionalCppFiles vulkan.cpp)
+        list(APPEND optionalPrivateHeaders vulkan.h)
+    else()
+        # No OpenGL-to-OpenGL interop when using Metal.
+        list(APPEND optionalCppFiles opengl.cpp)
+        list(APPEND optionalPrivateHeaders opengl.h)
+    endif()
 endif()
+
+# if (PXR_ENABLE_VULKAN_SUPPORT)
+#     list(APPEND optionalCppFiles vulkan.cpp)
+#     list(APPEND optionalPrivateHeaders vulkan.h)
+# endif()
+
+message ("*** optionalCppFiles = ${optionalCppFiles}")
+message ("*** optionalPrivateHeaders = ${optionalPrivateHeaders}")
 
 pxr_library(hgiInterop
     LIBRARIES
@@ -33,6 +46,7 @@ pxr_library(hgiInterop
         hgi
         vt
         ${optionalLibraries}
+        ${VULKAN_LIBS}
 
     PUBLIC_HEADERS
         api.h
