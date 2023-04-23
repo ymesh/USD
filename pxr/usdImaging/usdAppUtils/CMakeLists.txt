@@ -7,6 +7,13 @@ if (NOT ${PXR_BUILD_GPU_SUPPORT})
     return()
 endif()
 
+if (${PXR_ENABLE_MATERIALX_SUPPORT})
+    link_directories(
+        ${MATERIALX_LIB_DIRS}
+        ${OIIO_LIBRARY_DIR}
+    ) 
+endif()
+
 pxr_library(usdAppUtils
     LIBRARIES
         garch

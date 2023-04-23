@@ -1,7 +1,7 @@
 #
 # Config USD ABI 0
 #
-USD_VER="22.11"
+USD_VER="23.02"
 RMAN_VER="24.4"
 
 PYTHON_VERSION="3"
@@ -35,6 +35,7 @@ export BOOST_LIBRARYDIR="${BOOST_ROOT}/lib"
 #export EMBREE_INCLUDE_DIR="/usr/include"
 #export EMBREE_LIBRARY="/usr/lib64/libembree.so"
 #export JEMALLOC="${deploy_root}/jemalloc/jemalloc-5.2.1"
+export DRACO_ROOT="${deploy_root}/Google/draco-v1.4.3_ABI_0"
 export MATERIALX_ROOT="${deploy_root}/MaterialX/MaterialX-v1.38.5_ABI_0"
 export MATERIALX_STDLIB_DIR="${MATERIALX_ROOT}/libraries/stdlib"
 export PTEX_LOCATION="${deploy_root}/wdas/ptex-v2.4.1_ABI_0"
@@ -47,8 +48,7 @@ export OPENSUBDIV_ROOT_DIR="${deploy_root}/OSD/OpenSubdiv-v3.5.0_ABI_0"
 export OPENVDB_LOCATION="${deploy_root}/OpenVDB/openvdb-v8.2.0_ABI_0"
 export ALEMBIC_DIR="/${deploy_root}/alembic/alembic-v1.7.12_ABI_0"
 
-# export VULKAN_SDK="/home/data/code/LIBS/Vulkan/SDK/1.3.236.0/x86_64"
-export VULKAN_SDK="/home/data/code/LIBS/Vulkan/SDK/1.2.162.1/x86_64" 
+export VULKAN_SDK="/home/data/code/LIBS/Vulkan/SDK/1.3.236.0/x86_64"
 # export TBB_ROOT_DIR="${MAYA_SDK_DIR}"
 # export TBB_ROOT_DIR="/home/data/code/LIBS/Autodesk/Maya/Maya2019.1"
 
@@ -76,7 +76,7 @@ cmake3 -LA -G "Unix Makefiles" \
 -DPXR_BUILD_USDVIEW=ON \
 -DPXR_BUILD_ALEMBIC_PLUGIN=ON \
 -DPXR_ENABLE_HDF5_SUPPORT=ON \
--DPXR_BUILD_DRACO_PLUGIN=OFF \
+-DPXR_BUILD_DRACO_PLUGIN=ON \
 -DPXR_BUILD_PRMAN_PLUGIN=ON \
 -DPXR_BUILD_DOCUMENTATION=OFF \
 -DPXR_ENABLE_GL_SUPPORT=ON \
@@ -95,6 +95,7 @@ cmake3 -LA -G "Unix Makefiles" \
 -DRENDERMAN_LOCATION=${RENDERMAN_LOCATION} \
 -DOPENSUBDIV_ROOT_DIR=${OPENSUBDIV_ROOT_DIR} \
 -DALEMBIC_DIR=${ALEMBIC_DIR} \
+-DDRACO_ROOT=${DRACO_ROOT} \
 -DMATERIALX_BASE_DIR=${MATERIALX_ROOT} \
 -DOPENVDB_LOCATION=${OPENVDB_LOCATION} \
 -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" \

@@ -31,8 +31,11 @@
     #include "pxr/imaging/hgiInterop/metal.h"
 #elif defined(PXR_VULKAN_SUPPORT_ENABLED)
     #include "pxr/imaging/hgiVulkan/hgi.h"
-    // #include "pxr/imaging/hgiInterop/vulkan.h"
-    #include "/home/data/code/LIBS/USD/me/USD/pxr/imaging/hgiInterop/vulkan.h"
+    #include "pxr/imaging/hgiInterop/vulkan.h"
+    // #include "/home/data/code/LIBS/USD/me/USD/pxr/imaging/hgiInterop/vulkan.h"
+    #include "pxr/base/tf/debug.h"
+    #include <string>
+    #include <iostream>
 #else
     #include "pxr/imaging/hgiInterop/opengl.h"
 #endif
@@ -73,6 +76,7 @@ void HgiInterop::TransferToApp(
         _vulkanToOpenGL->CompositeToInterop(
             srcColor, srcDepth, dstFramebuffer, dstRegion);
     } else {
+        std::cout << "* dstApi = " <<  dstApi.GetText() << std::endl;
         TF_CODING_ERROR("Unsupported Hgi backend: %s", srcApi.GetText());
     }
 #else

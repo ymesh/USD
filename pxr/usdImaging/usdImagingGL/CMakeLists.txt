@@ -7,6 +7,12 @@ if (NOT ${PXR_BUILD_GPU_SUPPORT})
     return()
 endif()
 
+if (${PXR_ENABLE_MATERIALX_SUPPORT})
+    link_directories(
+        ${MATERIALX_LIB_DIRS}
+        ${OIIO_LIBRARY_DIR}
+    ) 
+endif()
 # Note: both python include directives are included for compatibility.
 pxr_library(usdImagingGL
     LIBRARIES

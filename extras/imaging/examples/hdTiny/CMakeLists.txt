@@ -1,6 +1,13 @@
 set(PXR_PREFIX pxr/imaging)
 set(PXR_PACKAGE hdTiny)
 
+if (${PXR_ENABLE_MATERIALX_SUPPORT})
+    link_directories(
+        ${MATERIALX_LIB_DIRS}
+        ${OIIO_LIBRARY_DIR}
+    ) 
+endif()
+
 pxr_plugin(${PXR_PACKAGE}
     LIBRARIES
         hd

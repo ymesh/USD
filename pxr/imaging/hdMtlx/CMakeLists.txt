@@ -2,7 +2,11 @@ set(PXR_PREFIX pxr/imaging)
 set(PXR_PACKAGE hdMtlx)
 
 include_directories(${MATERIALX_INCLUDE_DIRS})
-link_directories(${MATERIALX_LIB_DIRS}) 
+link_directories(
+    ${MATERIALX_LIB_DIRS}
+    ${OIIO_LIBRARY_DIR}
+) 
+
 
 pxr_library(hdMtlx
     LIBRARIES
@@ -16,6 +20,7 @@ pxr_library(hdMtlx
         vt
         MaterialXCore
         MaterialXFormat
+        ${OIIO_LIBRARIES}
 
     PUBLIC_CLASSES
         hdMtlx
