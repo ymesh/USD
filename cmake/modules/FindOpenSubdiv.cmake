@@ -28,12 +28,12 @@ IF(NOT OPENSUBDIV_ROOT_DIR AND NOT $ENV{OPENSUBDIV_ROOT_DIR} STREQUAL "")
 ENDIF()
 
 SET(_opensubdiv_FIND_COMPONENTS
-    osdCPU
+    libosdCPU.a
 )
 if(OPENSUBDIV_USE_GPU)
     list(APPEND
         _opensubdiv_FIND_COMPONENTS
-        osdGPU)
+        libosdGPU.a)
 endif()
 
 
