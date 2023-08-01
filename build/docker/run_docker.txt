@@ -1,0 +1,22 @@
+# docker run --rm -v "$(pwd -W):c:/source" -v "$(pwd -W)/../out:c:/out" -v "C:/Program Files/Side Effects Software:c:/sidefx" -v "C:/Program Files/Autodesk:c:/autodesk:ro" cgcpp
+
+docker container run -it --name usd_rockylinux8.6  rockylinux/rockylinux:8.6
+
+docker ps -a
+docker images -a
+
+docker commit usd_rockylinux8.6 {usd_rockylinux8.6_work}
+docker tag e3446e1cd1da usd_rockylinux8.6_work
+
+usd_rockylinux8.6_work (tmp image)
+
+docker stop usd_rockylinux8.6
+docker rm usd_rockylinux8.6
+
+dnf -y install mc which cmake
+dnf -y install python39.x86_64
+dnf -y install gcc-toolset-11-gcc.x86_64
+
+scl enable gcc-toolset-11 /bin/bash
+
+docker container run -it --name usd_rockylinux8.6  -v "/home/data:/home/data" -v "/mnt/STORE0/data:/mnt/STORE0/data" -v "/usr/autodesk:/usr/autodesk" -v "/opt/pixar:/opt/pixar" usd_rockylinux8.6_work_01
