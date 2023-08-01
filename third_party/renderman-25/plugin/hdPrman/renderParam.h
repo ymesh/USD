@@ -21,13 +21,8 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-<<<<<<< HEAD
-#ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_PARAM_H
-#define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_PARAM_H
-=======
 #ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_PARAM_H
 #define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_PARAM_H
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
 #include "pxr/pxr.h"
 #include "hdPrman/api.h"
@@ -37,11 +32,7 @@
 #include "hdPrman/renderViewContext.h"
 #include "pxr/imaging/hd/sceneDelegate.h"
 #include "pxr/imaging/hd/renderDelegate.h"
-<<<<<<< HEAD
-#include "pxr/base/gf/matrix4d.h"
-=======
 #include "pxr/imaging/hd/material.h"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
 #include "Riley.h"
 #include <unordered_map>
@@ -57,10 +48,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 class HdPrmanFramebuffer;
 class HdPrmanCamera;
-<<<<<<< HEAD
-=======
 class HdPrmanInstancer;
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 class HdPrmanRenderDelegate;
 class HdPrman_RenderSettings;
 class SdfAssetPath;
@@ -77,13 +65,9 @@ class HdPrman_RenderParam : public HdRenderParam
 {
 public:
     HDPRMAN_API
-<<<<<<< HEAD
-    HdPrman_RenderParam(const std::string &rileyVariant, 
-=======
     HdPrman_RenderParam(
         HdPrmanRenderDelegate *renderDelegate,
         const std::string &rileyVariant, 
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         const std::string &xpuDevices,
         const std::vector<std::string>& extraArgs);
 
@@ -145,17 +129,6 @@ public:
     bool IsLightFilterUsed(TfToken const& name);
 
     HDPRMAN_API
-<<<<<<< HEAD
-    void SetOptionsFromRenderSettings(HdPrmanRenderDelegate *renderDelegate, 
-                                      RtParamList& options);
-
-    // Set integrator params from the HdRenderSettingsMap
-    HDPRMAN_API
-    void SetIntegratorParamsFromRenderSettings(
-                        HdPrmanRenderDelegate *renderDelegate,
-                        const std::string& integratorName,
-                        RtParamList& params);
-=======
     void SetOptionsFromRenderSettingsMap(
         HdRenderSettingsMap const &renderSettingsMap,
         RtParamList& options);
@@ -166,25 +139,12 @@ public:
         HdPrmanRenderDelegate *renderDelegate,
         const std::string& integratorName,
         RtParamList& params);
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
     // Set integrator params from the camera.
     // This invokes any callbacks registered with
     // RegisterIntegratorCallbackForCamera().
     HDPRMAN_API
     void SetIntegratorParamsFromCamera(
-<<<<<<< HEAD
-                        HdPrmanRenderDelegate *renderDelegate,
-                        const HdPrmanCamera *camera,
-                        std::string const& integratorName,
-                        RtParamList& params);
-
-    HDPRMAN_API
-    void SetBatchCommandLineArgs(
-                        HdPrmanRenderDelegate *renderDelegate,
-                        VtValue const &cmdLine,
-                        RtParamList * options);
-=======
         HdPrmanRenderDelegate *renderDelegate,
         const HdPrmanCamera *camera,
         std::string const& integratorName,
@@ -194,7 +154,6 @@ public:
     void SetBatchCommandLineArgs(
         VtValue const &cmdLine,
         RtParamList * options);
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
     // Callback to convert any camera settings that should become
     // parameters on the integrator.
@@ -213,16 +172,6 @@ public:
     // Get RIX vs XPU
     bool IsXpu() const { return _xpu; }
 
-<<<<<<< HEAD
-    // Adds VtValue contents to RtParamList
-    bool SetParamFromVtValue(
-        RtUString const& name,
-        VtValue const& val,
-        TfToken const& role,
-        RtParamList& params);
-
-=======
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     // Request edit access to the Riley scene and return it.
     riley::Riley * AcquireRiley();
 
@@ -238,15 +187,10 @@ public:
         return _fallbackVolumeMaterialId;
     }
 
-<<<<<<< HEAD
-    int GetLastSettingsVersion() const { return _lastSettingsVersion; }
-    void SetLastSettingsVersion(int version);
-=======
     int GetLastLegacySettingsVersion() const {
         return _lastLegacySettingsVersion;
     }
     void SetLastLegacySettingsVersion(int version);
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
     // Invalidate texture at path.
     void InvalidateTexture(const std::string &path);
@@ -329,15 +273,6 @@ public:
 
     GfVec2i resolution;
 
-<<<<<<< HEAD
-    // Some quantites previously given as options now need to be provided
-    // through different Riley APIs. However, it is still convenient for these
-    // values to be stored in _options (for now). This method returns a pruned
-    // copy of the options, to be provided to SetOptions().
-    RtParamList _GetDeprecatedOptionsPrunedList();
-
-=======
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     void UpdateQuickIntegrator(const HdRenderIndex * renderIndex);
 
     riley::IntegratorId GetQuickIntegratorId() const {
@@ -348,8 +283,6 @@ public:
     // immediately set it as riley option.
     void UpdateRileyShutterInterval(const HdRenderIndex * renderIndex);
 
-<<<<<<< HEAD
-=======
     // Path to the Integrator from the Render Settings Prim
     void SetRenderSettingsIntegratorPath(HdSceneDelegate *sceneDelegate,
         SdfPath const &renderSettingsIntegratorPath);
@@ -362,7 +295,6 @@ public:
         return _renderSettingsIntegratorNode;
     };
 
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     // Path to the connected Sample Filter from the Render Settings Prim
     void SetConnectedSampleFilterPaths(HdSceneDelegate *sceneDelegate,
         SdfPathVector const& connectedSampleFilterPaths);
@@ -393,12 +325,9 @@ public:
     void CreateDisplayFilterNetwork(HdSceneDelegate *sceneDelegate);
     riley::DisplayFilterList GetDisplayFilterList();
 
-<<<<<<< HEAD
-=======
     // Instancer by id
     HdPrmanInstancer* GetInstancer(const SdfPath& id);
 
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 private:
     void _CreateStatsSession();
     void _CreateRiley(const std::string &rileyVariant, 
@@ -487,12 +416,6 @@ private:
     // Fallback material for volumes that don't have materials.
     riley::MaterialId _fallbackVolumeMaterialId;
 
-<<<<<<< HEAD
-    riley::IntegratorId _integratorId;
-    RtParamList _integratorParams;
-
-=======
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     riley::IntegratorId _quickIntegratorId;
     RtParamList _quickIntegratorParams;
 
@@ -509,15 +432,12 @@ private:
     HdPrman_CameraContext _cameraContext;
     HdPrman_RenderViewContext _renderViewContext;
 
-<<<<<<< HEAD
-=======
     // Integrator
     SdfPath _renderSettingsIntegratorPath;
     HdMaterialNode2 _renderSettingsIntegratorNode;
     riley::IntegratorId _integratorId;
     RtParamList _integratorParams; // XXX: this is mainly here for ParamsSetter
 
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     // SampleFilter
     SdfPathVector _connectedSampleFilterPaths;
     std::map<SdfPath, riley::ShadingNode> _sampleFilterNodes;
@@ -532,36 +452,6 @@ private:
     bool _xpu;
     std::vector<int> _xpuGpuConfig;
 
-<<<<<<< HEAD
-    int _lastSettingsVersion;
-
-    std::vector<std::string> _outputNames;
-};
-
-// Helper to convert matrix types, handling double->float conversion.
-inline RtMatrix4x4
-HdPrman_GfMatrixToRtMatrix(const GfMatrix4d &m)
-{
-    const double *d = m.GetArray();
-    return RtMatrix4x4(
-        d[0], d[1], d[2], d[3],
-        d[4], d[5], d[6], d[7],
-        d[8], d[9], d[10], d[11],
-        d[12], d[13], d[14], d[15]);
-}
-
-// Helper to convert matrix types, handling float->double conversion.
-inline GfMatrix4d
-HdPrman_RtMatrixToGfMatrix(const RtMatrix4x4 &m)
-{
-    return GfMatrix4d(
-        m.m[0][0], m.m[0][1], m.m[0][2], m.m[0][3],
-        m.m[1][0], m.m[1][1], m.m[1][2], m.m[1][3],
-        m.m[2][0], m.m[2][1], m.m[2][2], m.m[2][3],
-        m.m[3][0], m.m[3][1], m.m[3][2], m.m[3][3]);
-}
-
-=======
     int _lastLegacySettingsVersion;
 
     std::vector<std::string> _outputNames;
@@ -569,7 +459,6 @@ HdPrman_RtMatrixToGfMatrix(const RtMatrix4x4 &m)
     HdPrmanRenderDelegate* _renderDelegate;
 };
 
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 // Convert Hydra points to Riley point primvar.
 void
 HdPrman_ConvertPointsPrimvar(HdSceneDelegate *sceneDelegate, SdfPath const &id,
@@ -597,25 +486,10 @@ HdPrman_TransferMaterialPrimvarOpinions(HdSceneDelegate *sceneDelegate,
 bool
 HdPrman_ResolveMaterial(HdSceneDelegate *sceneDelegate,
                         SdfPath const& hdMaterialId,
-<<<<<<< HEAD
-                        riley::MaterialId *materialId,
-                        riley::DisplacementId *dispId);
-
-// Attempt to extract a useful texture identifier from the given \p asset.
-// If \p asset is determined to not be a .tex file, attempt to use the Hio
-// based Rtx plugin to load the texture.  If \p asset is non-empty, we will
-// always return _something_
-RtUString
-HdPrman_ResolveAssetToRtUString(SdfAssetPath const &asset,
-                                bool flipTexture = true,
-                                char const *debugNodeType=nullptr);
-
-=======
                         riley::Riley *riley,
                         riley::MaterialId *materialId,
                         riley::DisplacementId *dispId);
 
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 /// Update the supplied list of options using searchpaths
 /// pulled from envrionment variables:
 ///
@@ -630,8 +504,4 @@ HdPrman_UpdateSearchPathsFromEnvironment(RtParamList& options);
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
-<<<<<<< HEAD
-#endif // EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_PARAM_H
-=======
 #endif // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_PARAM_H
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0

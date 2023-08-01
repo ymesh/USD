@@ -30,10 +30,7 @@
 #include "hdPrman/renderParam.h"
 #include "hdPrman/renderBuffer.h"
 #include "hdPrman/renderSettings.h"
-<<<<<<< HEAD
-=======
 #include "hdPrman/integrator.h"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 #include "hdPrman/sampleFilter.h"
 #include "hdPrman/displayFilter.h"
 #include "hdPrman/coordSys.h"
@@ -102,12 +99,8 @@ const TfTokenVector HdPrmanRenderDelegate::SUPPORTED_RPRIM_TYPES =
     HdPrimTypeTokens->volume,
 
     // New type, specific to mesh light source geom.
-<<<<<<< HEAD
-    HdPrmanTokens->meshLightSourceGeom,
-=======
     HdPrmanTokens->meshLightSourceMesh,
     HdPrmanTokens->meshLightSourceVolume
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 };
 
 const TfTokenVector HdPrmanRenderDelegate::SUPPORTED_SPRIM_TYPES =
@@ -126,10 +119,7 @@ const TfTokenVector HdPrmanRenderDelegate::SUPPORTED_SPRIM_TYPES =
     HdPrimTypeTokens->pluginLight,
     HdPrimTypeTokens->extComputation,
     HdPrimTypeTokens->coordSys,
-<<<<<<< HEAD
-=======
     HdPrimTypeTokens->integrator,
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     HdPrimTypeTokens->sampleFilter,
     HdPrimTypeTokens->displayFilter,
     _tokens->prmanParams,
@@ -194,11 +184,7 @@ HdPrmanRenderDelegate::HdPrmanRenderDelegate(
         HdPrmanRenderSettingsTokens->xpuDevices, std::string());
 
     _renderParam = std::make_unique<HdPrman_RenderParam>(
-<<<<<<< HEAD
-        rileyVariant, xpuDevices, _GetExtraArgs(settingsMap));
-=======
         this, rileyVariant, xpuDevices, _GetExtraArgs(settingsMap));
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
     _Initialize();
 }
@@ -364,18 +350,12 @@ HdPrmanRenderDelegate::CreateRprim(TfToken const& typeId,
                                     SdfPath const& rprimId)
 {
     bool isMeshLight = false;
-<<<<<<< HEAD
-    if (typeId == HdPrmanTokens->meshLightSourceGeom) {
-        isMeshLight = true;
-        return new HdPrman_Mesh(rprimId, isMeshLight);
-=======
     if (typeId == HdPrmanTokens->meshLightSourceMesh) {
         isMeshLight = true;
         return new HdPrman_Mesh(rprimId, isMeshLight);
     } else if (typeId == HdPrmanTokens->meshLightSourceVolume) {
         isMeshLight = true;
         return new HdPrman_Volume(rprimId, isMeshLight);
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     } else if (typeId == HdPrimTypeTokens->mesh) {
         return new HdPrman_Mesh(rprimId, isMeshLight);
     } else if (typeId == HdPrimTypeTokens->basisCurves) {
@@ -389,11 +369,7 @@ HdPrmanRenderDelegate::CreateRprim(TfToken const& typeId,
     } else if (typeId == HdPrimTypeTokens->points) {
         return new HdPrman_Points(rprimId);
     } else if (typeId == HdPrimTypeTokens->volume) {
-<<<<<<< HEAD
-        return new HdPrman_Volume(rprimId);
-=======
         return new HdPrman_Volume(rprimId, isMeshLight);
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     } else {
         TF_CODING_ERROR("Unknown Rprim Type %s", typeId.GetText());
     }
@@ -440,11 +416,8 @@ HdPrmanRenderDelegate::CreateSprim(TfToken const& typeId,
     
     } else if (typeId == _tokens->prmanParams) {
         sprim = new HdPrmanParamsSetter(sprimId);
-<<<<<<< HEAD
-=======
     } else if (typeId == HdPrimTypeTokens->integrator) {
         sprim = new HdPrman_Integrator(sprimId);
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     } else if (typeId == HdPrimTypeTokens->sampleFilter) {
         sprim = new HdPrman_SampleFilter(sprimId);
     } else if (typeId == HdPrimTypeTokens->displayFilter) {
@@ -483,11 +456,8 @@ HdPrmanRenderDelegate::CreateFallbackSprim(TfToken const& typeId)
         return new HdExtComputation(SdfPath::EmptyPath());
     } else if (typeId == _tokens->prmanParams) {
         return new HdPrmanParamsSetter(SdfPath::EmptyPath());
-<<<<<<< HEAD
-=======
     } else if (typeId == HdPrimTypeTokens->integrator) {
         return new HdPrman_Integrator(SdfPath::EmptyPath());
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     } else if (typeId == HdPrimTypeTokens->sampleFilter) {
         return new HdPrman_SampleFilter(SdfPath::EmptyPath());
     } else if (typeId == HdPrimTypeTokens->displayFilter) {
@@ -612,30 +582,6 @@ HdPrmanRenderDelegate::GetRenderSettingsNamespaces() const
 }
 #endif
 
-<<<<<<< HEAD
-void
-HdPrmanRenderDelegate::SetRenderSetting(TfToken const &key, 
-                                        VtValue const &value)
-{
-    // update settings version only if a setting actually changed
-    auto it = _settingsMap.find(key);
-    if (it != _settingsMap.end()) {
-        if (value != it->second) {
-            _settingsVersion++;
-        }
-    } else {
-        _settingsVersion++;
-    }
-
-    _settingsMap[key] = value;
-
-    if (TfDebug::IsEnabled(HD_RENDER_SETTINGS)) {
-        std::cout << "Render Setting [" << key << "] = " << value << std::endl;
-    }
-}
-
-=======
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 bool
 HdPrmanRenderDelegate::IsStopSupported() const
 {
@@ -675,8 +621,6 @@ HdPrmanRenderDelegate::Restart()
     return false;
 }
 
-<<<<<<< HEAD
-=======
 HdRenderIndex*
 HdPrmanRenderDelegate::GetRenderIndex() const
 {
@@ -686,5 +630,4 @@ HdPrmanRenderDelegate::GetRenderIndex() const
     return nullptr;
 }
 
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 PXR_NAMESPACE_CLOSE_SCOPE

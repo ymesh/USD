@@ -1,15 +1,9 @@
 #usda 1.0
 (
     subLayers = [
-<<<<<<< HEAD
-        @usd/schema.usda@,
-        @usdLux/schema.usda@,
-        @usdGeom/schema.usda@
-=======
         @usdGeom/schema.usda@,
         @usdLux/schema.usda@,
         @usd/schema.usda@
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     ]
 )
 
@@ -213,8 +207,6 @@ class "PxrAttributesAPI" (
                 If the string is empty (the default) then the Display Format resolution will be used.
             '''
     )
-<<<<<<< HEAD
-=======
     int primvars:ri:attributes:curves:widthaffectscurvature = 1 (
         displayGroup = "Shading"
         displayName = "Width Affects Curvature"
@@ -223,7 +215,6 @@ class "PxrAttributesAPI" (
                 If turned off, only the curvature along the curve spline will be calculated.
             """
     )
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     int primvars:ri:attributes:grouping:id = 0 (
         displayGroup = "Common"
         displayName = "Grouping Id"
@@ -579,11 +570,7 @@ class "PxrOptionsAPI" (
                 Render bucket order.
             """
     )
-<<<<<<< HEAD
-    int[] ri:bucket:orderorigin = [-1, -1] (
-=======
     int2 ri:bucket:orderorigin = (0, 0) (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Display"
         displayName = "Bucket Origin"
         doc = '''
@@ -985,11 +972,7 @@ class "PxrOptionsAPI" (
                 Brickmap cache size in kB.
             """
     )
-<<<<<<< HEAD
-    int[] ri:limits:bucketsize = [16, 16] (
-=======
     int2 ri:limits:bucketsize = (0, 0) (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Configuration"
         displayName = "Bucket Size Limit"
         doc = """
@@ -1162,11 +1145,7 @@ class "PxrOptionsAPI" (
                 Output image pixel aspect ratio.
             """
     )
-<<<<<<< HEAD
-    int[] ri:Ri:FormatResolution = [640, 480] (
-=======
     int2 ri:Ri:FormatResolution = (0, 0) (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Display"
         displayName = "Resolution"
         doc = """
@@ -1202,79 +1181,6 @@ class "PxrOptionsAPI" (
                 Screen window [left right top bottom] in screen space.
             """
     )
-<<<<<<< HEAD
-    string ri:ribparse:varsubst = "" (
-        displayGroup = "RIB"
-        displayName = "RIB Varsubst"
-        doc = """
-                RIB parse only.
-            """
-    )
-    string ri:scenedump:filename = "" (
-        displayGroup = "RIB"
-        displayName = "Scene Dump Filename"
-        doc = '''
-                Path to dump RIB scene for rendermode "catrib".
-            '''
-    )
-    string ri:searchpath:archive = "" (
-        displayGroup = "Configuration"
-        displayName = "Archive Search Path"
-        doc = """
-                Search path for Rib archives and DelayedReadArchive.
-            """
-    )
-    string ri:searchpath:dirmap = "" (
-        displayGroup = "Configuration"
-        displayName = "Directory Map"
-        doc = """
-                Search path remapping.
-            """
-    )
-    string ri:searchpath:display = "" (
-        displayGroup = "Configuration"
-        displayName = "Display Search Path"
-        doc = """
-                Search path for display plug-ins.
-            """
-    )
-    string ri:searchpath:procedural = "" (
-        displayGroup = "Configuration"
-        displayName = "Procedural Search Path"
-        doc = """
-                Search path for DynamicLoad procedural plug-ins.
-            """
-    )
-    string ri:searchpath:rifilter = "" (
-        displayGroup = "Configuration"
-        displayName = "Rif Filter Search Path"
-        doc = """
-                Search path for Rif plug-ins.
-            """
-    )
-    string ri:searchpath:rixplugin = "" (
-        displayGroup = "Configuration"
-        displayName = "Rix Plugin Search Path"
-        doc = """
-                Search path for shading plug-ins.
-            """
-    )
-    string ri:searchpath:shader = "" (
-        displayGroup = "Configuration"
-        displayName = "Shader Search Path"
-        doc = """
-                Search path for OSL pattern plug-ins.
-            """
-    )
-    string ri:searchpath:texture = "" (
-        displayGroup = "Configuration"
-        displayName = "Texture Search Path"
-        doc = """
-                Search path for texture files.
-            """
-    )
-=======
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     float ri:shade:chiangCompatibilityVersion = 24 (
         displayGroup = "Statistics"
         displayName = "PxrChiangHair compatibility version"
@@ -1309,8 +1215,6 @@ class "PxrOptionsAPI" (
                 Setting to control whether bump shadow terminators are smoothed in non-hair bxdfs.
             """
     )
-<<<<<<< HEAD
-=======
     bool ri:shade:subsurfaceTypeDefaultFromVersion24 = 0 (
         displayGroup = "Statistics"
         displayName = "Use old subsurfaceType default (0) in PxrSurface bxdf"
@@ -1319,7 +1223,6 @@ class "PxrOptionsAPI" (
                 dipole diffusion), new default is 5 (path-traced subsurface scattering).
             """
     )
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     float ri:Shutter:offset = 0 (
         displayGroup = "Common"
         displayName = "Shutter Offset"
@@ -1445,11 +1348,7 @@ class "PxrPrimvarsAPI" (
         displayGroup = "Curves"
         displayName = "Opacity Samples"
         doc = """
-<<<<<<< HEAD
-                number of opacity/presence shading samples along a curve for opacity caching, if equal to zero then the value is determined using the dicing oracle and the lenght of each curve.
-=======
                 number of opacity/presence shading samples along a curve for opacity caching, if equal to zero then the value is determined using the dicing oracle and the length of each curve.
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
             """
     )
     bool primvars:ri:curve:widthaffectscurvature = 1 (
@@ -1659,17 +1558,6 @@ class "PxrPrimvarsAPI" (
                 depth of field.
             """
     )
-<<<<<<< HEAD
-    float primvars:ri:Ri:GeometricApproximationMotionFactor = 0 (
-        displayGroup = "Dicing"
-        displayName = "Motion Factor"
-        doc = """
-                Allows the renderer to use more coarse dicing for blurry objects due to
-                motion blur.
-            """
-    )
-=======
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     token primvars:ri:Ri:Orientation = "outside" (
         allowedTokens = ["inside", "outside"]
         displayGroup = "Shading"
@@ -1688,15 +1576,9 @@ class "PxrPrimvarsAPI" (
     )
     string primvars:ri:stats:prototypeIdentifier = "" (
         displayGroup = "Common"
-<<<<<<< HEAD
-        displayName = "Stats Master Identifier"
-        doc = """
-                Identifier string used by the stats system when referring to this master.
-=======
         displayName = "Stats Prototype Identifier"
         doc = """
                 Identifier string used by the stats system when referring to this prototype.
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
             """
     )
     string primvars:ri:stitchbound:CoordinateSystem = "" (
@@ -1752,11 +1634,7 @@ class "PxrPrimvarsAPI" (
         displayName = "Trim Curve Sense"
         doc = "<help />"
     )
-<<<<<<< HEAD
-    string primvars:ri:volume:aggregate = "" (
-=======
     string primvars:ri:volume:aggregate = "globalVolumeAggregate" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Volume"
         displayName = "Aggregate"
         doc = """
@@ -1767,11 +1645,7 @@ class "PxrPrimvarsAPI" (
                 binds the named aggregate to its interior.
             """
     )
-<<<<<<< HEAD
-    bool primvars:ri:volume:aggregaterespectvisibility = 0 (
-=======
     bool primvars:ri:volume:aggregaterespectvisibility = 1 (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Volume"
         displayName = "Aggregate Respect Visibility"
         doc = """
@@ -1798,8 +1672,6 @@ class "PxrPrimvarsAPI" (
                 signal requires setting this parameter to off.
             """
     )
-<<<<<<< HEAD
-=======
     bool primvars:ri:volume:dsovelocity (
         displayGroup = "Volume"
         displayName = "DSO Velocity"
@@ -1812,7 +1684,6 @@ class "PxrPrimvarsAPI" (
                 is used directly.
             """
     )
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     float primvars:ri:volume:fps = 1 (
         displayGroup = "Volume"
         displayName = "Velocity frames per second"
@@ -4789,8 +4660,6 @@ class PxrIntMultLightFilter "PxrIntMultLightFilter" (
         </p>
 """
     )
-<<<<<<< HEAD
-=======
     float inputs:ri:lightFilter:density = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Multiplier"
@@ -4798,7 +4667,6 @@ class PxrIntMultLightFilter "PxrIntMultLightFilter" (
         doc = """density: How much effect the filter has (0-1).
             """
     )
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     float inputs:ri:lightFilter:diffuse = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Multiplier"
@@ -4842,15 +4710,12 @@ class PxrIntMultLightFilter "PxrIntMultLightFilter" (
         displayName = "Specular"
         doc = "specular: How much this light filter affects specular lighting."
     )
-<<<<<<< HEAD
-=======
     color3f inputs:ri:lightFilter:tint = (1, 1, 1) (
         connectability = "interfaceOnly"
         displayGroup = "Multiplier"
         displayName = "Tint"
         doc = "Tint of the light color after saturation."
     )
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     uniform token ri:lightFilter:shaderId = "PxrIntMultLightFilter" (
         displayGroup = "Internal"
     )
@@ -5255,10 +5120,7 @@ class PxrCamera "PxrCamera" (
         remain straight.  Positive values produce pincushion-like
         distortion.  Negative values produce barrel-like distortion.
       """
-<<<<<<< HEAD
-=======
         hidden = true
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     )
     float inputs:ri:assymY = 0 (
         connectability = "interfaceOnly"
@@ -5269,10 +5131,7 @@ class PxrCamera "PxrCamera" (
         remain straight.  Positive values produce pincushion-like
         distortion.  Negative values produce barrel-like distortion.
       """
-<<<<<<< HEAD
-=======
         hidden = true
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     )
     color3f inputs:ri:axial = (0, 0, 0) (
         connectability = "interfaceOnly"
@@ -5285,14 +5144,11 @@ class PxrCamera "PxrCamera" (
         out of focus objects.  It will increase color noise, however.
       """
     )
-<<<<<<< HEAD
-=======
     asset inputs:ri:cocTexture (
         displayGroup = "DOF Distortion"
         displayName = "Circle of Confusion Texture"
         doc = "If set, this overrides the lens's circle of confusion."
     )
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     float inputs:ri:detail = 0 (
         connectability = "interfaceOnly"
         displayGroup = "Advanced"
@@ -5305,8 +5161,6 @@ class PxrCamera "PxrCamera" (
         selected for geometry.
       """
     )
-<<<<<<< HEAD
-=======
     float2 inputs:ri:distortionCtr = (0, 0) (
         connectability = "interfaceOnly"
         displayGroup = "Lens Distortion"
@@ -5357,7 +5211,6 @@ class PxrCamera "PxrCamera" (
         displayName = "Squeeze Strength"
         doc = ' Strength of DOF "squeeze" effect. Positive values squeeze along the circumference; negative values squeeze along the radius. 0 is off.'
     )
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     float inputs:ri:duration = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Shutter"
@@ -5381,8 +5234,6 @@ class PxrCamera "PxrCamera" (
         affect level-of-detail, dicing, displacement, or MIP map levels.
       """
     )
-<<<<<<< HEAD
-=======
     bool inputs:ri:enhanceDiffAdjust = 0 (
         displayGroup = "Enhance"
         displayName = "Adjust differentials in enhance"
@@ -5398,7 +5249,6 @@ class PxrCamera "PxrCamera" (
         displayName = "Disable Motion Blur in enhance"
         doc = " Disable distribution of samples over time in enhance mode. Renderman still thinks motion blur is enabled, so motion factor will apply to geometry tessellation, but blurring due to motion blur will not occur. "
     )
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     float inputs:ri:focalDistance = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Standard Perspective"
@@ -5484,8 +5334,6 @@ class PxrCamera "PxrCamera" (
         of field is turned off.
       """
     )
-<<<<<<< HEAD
-=======
     float inputs:ri:lensAsymmetryX = 0 (
         connectability = "interfaceOnly"
         displayGroup = "Lens Distortion"
@@ -5515,7 +5363,6 @@ class PxrCamera "PxrCamera" (
         displayName = "Lens Type"
         doc = " Lens model type. "
     )
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     asset inputs:ri:matte = @@ (
         connectability = "interfaceOnly"
         displayGroup = "Advanced"
@@ -5539,14 +5386,11 @@ class PxrCamera "PxrCamera" (
         intermediate values will blend accordingly.
       """
     )
-<<<<<<< HEAD
-=======
     int inputs:ri:numSplitDiopters = 0 (
         displayGroup = "Split Diopter"
         displayName = "Number of Split Diopters"
         doc = " Number of split diopters lens (minimum 0, maximum 2) being enabled. "
     )
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     float inputs:ri:optical = 0 (
         connectability = "interfaceOnly"
         displayGroup = "Vignetting"
@@ -5607,8 +5451,6 @@ class PxrCamera "PxrCamera" (
         the subject.  Positive values shift towards the top.
       '''
     )
-<<<<<<< HEAD
-=======
     float inputs:ri:splitDiopterAngle = 0 (
         displayGroup = "Split Diopter"
         displayName = "Split Diopter Angle"
@@ -5644,7 +5486,6 @@ class PxrCamera "PxrCamera" (
         displayName = "Split Diopter Width 2"
         doc = " Width of the band between the center and second split diopter region, perpendicular to the split diopter axis, where the focal distance is smoothly interpolated. Unit is such that distance from the image center to the left (or right) edge is 1. "
     )
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     float inputs:ri:squeeze = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Lens Distortion"
@@ -5953,11 +5794,7 @@ class PxrBackgroundDisplayFilter "PxrBackgroundDisplayFilter" (
         Color of the background.
     """
     )
-<<<<<<< HEAD
-    uniform token ri:displayfilter:shaderId = "PxrBackgroundDisplayFilter" (
-=======
     uniform token ri:displayFilter:shaderId = "PxrBackgroundDisplayFilter" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -5983,11 +5820,7 @@ class PxrCopyAOVDisplayFilter "PxrCopyAOVDisplayFilter" (
         displayName = "Write AOV"
         doc = "Name of AOV to write to."
     )
-<<<<<<< HEAD
-    uniform token ri:displayfilter:shaderId = "PxrCopyAOVDisplayFilter" (
-=======
     uniform token ri:displayFilter:shaderId = "PxrCopyAOVDisplayFilter" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -6008,11 +5841,7 @@ class PxrDisplayFilterCombiner "PxrDisplayFilterCombiner" (
             Display filters.
         """
     )
-<<<<<<< HEAD
-    uniform token ri:displayfilter:shaderId = "PxrDisplayFilterCombiner" (
-=======
     uniform token ri:displayFilter:shaderId = "PxrDisplayFilterCombiner" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -6037,11 +5866,7 @@ class PxrEdgeDetect "PxrEdgeDetect" (
       Name of a color AOV to do edge detection on.
     """
     )
-<<<<<<< HEAD
-    uniform token ri:displayfilter:shaderId = "PxrEdgeDetect" (
-=======
     uniform token ri:displayFilter:shaderId = "PxrEdgeDetect" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -6118,11 +5943,7 @@ class PxrFilmicTonemapperDisplayFilter "PxrFilmicTonemapperDisplayFilter" (
             Linear white point value.
         """
     )
-<<<<<<< HEAD
-    uniform token ri:displayfilter:shaderId = "PxrFilmicTonemapperDisplayFilter" (
-=======
     uniform token ri:displayFilter:shaderId = "PxrFilmicTonemapperDisplayFilter" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -6212,11 +6033,7 @@ class PxrGradeDisplayFilter "PxrGradeDisplayFilter" (
             Ci is remapped so that this color becomes 1.
         """
     )
-<<<<<<< HEAD
-    uniform token ri:displayfilter:shaderId = "PxrGradeDisplayFilter" (
-=======
     uniform token ri:displayFilter:shaderId = "PxrGradeDisplayFilter" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -6256,11 +6073,7 @@ class PxrHalfBufferErrorFilter "PxrHalfBufferErrorFilter" (
       Name of the AOV to write the estimated error to.
     """
     )
-<<<<<<< HEAD
-    uniform token ri:displayfilter:shaderId = "PxrHalfBufferErrorFilter" (
-=======
     uniform token ri:displayFilter:shaderId = "PxrHalfBufferErrorFilter" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -6348,11 +6161,7 @@ class PxrImageDisplayFilter "PxrImageDisplayFilter" (
         displayName = "Scale Y"
         doc = "Scale in Y."
     )
-<<<<<<< HEAD
-    uniform token ri:displayfilter:shaderId = "PxrImageDisplayFilter" (
-=======
     uniform token ri:displayFilter:shaderId = "PxrImageDisplayFilter" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -6417,11 +6226,7 @@ class PxrLightSaturation "PxrLightSaturation" (
       Luminance in the light AOV less than this is considered shadowed.
     """
     )
-<<<<<<< HEAD
-    uniform token ri:displayfilter:shaderId = "PxrLightSaturation" (
-=======
     uniform token ri:displayFilter:shaderId = "PxrLightSaturation" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -6454,11 +6259,7 @@ class PxrShadowDisplayFilter "PxrShadowDisplayFilter" (
         displayName = "Unoccluded AOV"
         doc = "The name of the unoccluded AOV to look up."
     )
-<<<<<<< HEAD
-    uniform token ri:displayfilter:shaderId = "PxrShadowDisplayFilter" (
-=======
     uniform token ri:displayFilter:shaderId = "PxrShadowDisplayFilter" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -6471,19 +6272,11 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         Required AOVs: 
         P 
         Nn
-<<<<<<< HEAD
-        diffuse 
-        albedo 
-        directSpecular 
-        NPRalbedo 
-        NPRlineAlbedo 
-=======
         diffuse
         albedo
         directSpecular
         NPRalbedo
         NPRlineAlbedo
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         NPRtextureCoords
         NPRPtriplanar
         NPRNtriplanar
@@ -6491,21 +6284,9 @@ class PxrStylizedHatching "PxrStylizedHatching" (
     inherits = </PxrDisplayFilterPluginBase>
 )
 {
-<<<<<<< HEAD
-    bool inputs:ri:AddSpec_switch = 0 (
-        connectability = "interfaceOnly"
-        displayName = "Add Spec"
-        doc = """
-        Add spec to hatching
-    """
-    )
-    bool inputs:ri:alpha_black_hatch_switch = 0 (
-        connectability = "interfaceOnly"
-=======
     bool inputs:ri:alpha_black_hatch_switch = 0 (
         connectability = "interfaceOnly"
         displayGroup = "Mask"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Alpha Hatch Switch"
         doc = """
         When using Light Mask, black areas of hatch are transparent to previously daisy-chained or physically based layers
@@ -6513,40 +6294,20 @@ class PxrStylizedHatching "PxrStylizedHatching" (
     )
     color3f inputs:ri:BGColor = (0, 0, 0) (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Background Color"
-=======
         displayGroup = "Compositing:Canvas"
         displayName = "Canvas Color"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
       Background color outside of alpha
     """
     )
     asset inputs:ri:BGTex = @@ (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Background Tex"
-=======
         displayGroup = "Compositing:Canvas"
         displayName = "Canvas Texture"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = "Provide BG texture, if blank uses BG Color"
     )
     bool inputs:ri:blending_black = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-        displayName = "Blend Black Darkest"
-        doc = """
-          After the darkest texture, tex8, add solid color black
-        """
-    )
-    float inputs:ri:blending_hold = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-        displayName = "Blending Hold"
-=======
         displayGroup = "Blending"
         displayName = "Last Texture is Black"
         doc = """
@@ -6557,38 +6318,12 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         connectability = "interfaceOnly"
         displayGroup = "Blending"
         displayName = "Hold"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """ Hold texture full value
     """
     )
     token inputs:ri:blending_mode = "mix" (
         allowedTokens = ["mix", "weighted"]
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-        displayName = "Blending Mode"
-        doc = "<help />"
-    )
-    float inputs:ri:blending_overlap = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-        displayName = "Blending Overlap"
-        doc = """ Overlap of the Bell Curve weighting function. 0.125 is minimum and blends 2 textures, higher values blend more up to 8 textures.
-    """
-    )
-    bool inputs:ri:blending_test_colors_switch = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-        displayName = "Rainbow Test"
-        doc = """
-          Replace tex1-tex8 with RED, ORANGE, YELLOW, GREEN, BLUE, INDIGO, VIOLET, TORQOISE for previewing blending
-        """
-    )
-    bool inputs:ri:blending_white = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-        displayName = "Blend White Lightest"
-=======
         displayGroup = "Blending"
         displayName = "Blending Mode"
         doc = "<help />"
@@ -6612,42 +6347,18 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         connectability = "interfaceOnly"
         displayGroup = "Blending"
         displayName = "First Texture is White"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
           After the lightest texture, tex1, add solid color white
         """
     )
     bool inputs:ri:camera_range_mask_switch = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Camera Range"
-=======
         displayGroup = "Input:Camera Range"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Camera Range Mask Switch"
         doc = """
         Mask out regular hatching (When Visualizer on Hatching On Color, Hatching Final) by Camera Range defined by Z_min and Z_max below
     """
     )
-<<<<<<< HEAD
-    bool inputs:ri:flip_tex = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-        displayName = "Flip Texture"
-        doc = "Flip Texture"
-    )
-    float inputs:ri:Hatch_Gamma = 0.5 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-        displayName = "Hatching Gamma"
-        doc = """
-            Gamma (Contrast)
-        """
-    )
-    color3f inputs:ri:hatchColor = (0, 0, 0) (
-        connectability = "interfaceOnly"
-        displayName = "Hatch Color"
-=======
     bool inputs:ri:flip_min_max = 0 (
         connectability = "interfaceOnly"
         displayGroup = "Input:Camera Range"
@@ -6682,7 +6393,6 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         connectability = "interfaceOnly"
         displayGroup = "Color"
         displayName = "Color"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
       Hatching color
     """
@@ -6690,24 +6400,6 @@ class PxrStylizedHatching "PxrStylizedHatching" (
     token inputs:ri:hatchColorFrom = "colorSwatch" (
         allowedTokens = ["colorSwatch", "NPRalbedoAOV", "albedoAOV", "NPRlineAlbedoAOV", "texture"]
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Hatch Color From"
-        doc = """Select which AOV to determine the coloring of the hatching
-    """
-    )
-    float inputs:ri:hatching_freq = 0.2 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-        displayName = "Hatching Frequency"
-        doc = """Higher numbers, higher frequency. For screen start at 1. For triplanar start at 0.005.
-    """
-    )
-    token inputs:ri:hatching_freq_mode = "1Value" (
-        allowedTokens = ["1Value", "8Values", "camdistRange", "lightSignalRange"]
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-        displayName = "Hatching Freq Mode"
-=======
         displayGroup = "Color"
         displayName = "Color From"
         doc = """Select which AOV to determine the coloring of the hatching
@@ -6741,210 +6433,121 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         connectability = "interfaceOnly"
         displayGroup = "Projection"
         displayName = "Mode"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = "<help />"
     )
     float inputs:ri:hatching_freq_tex1 = 1 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Projection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Freq Tex 1"
         doc = """Higher numbers, higher frequency. For screen start at 1. For triplanar start at 0.005.
     """
     )
-<<<<<<< HEAD
-    float inputs:ri:hatching_freq_tex2 = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-=======
     float inputs:ri:hatching_freq_tex2 = 2 (
         connectability = "interfaceOnly"
         displayGroup = "Projection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Freq Tex 2"
         doc = """Higher numbers, higher frequency. For screen start at 1. For triplanar start at 0.005.
     """
     )
-<<<<<<< HEAD
-    float inputs:ri:hatching_freq_tex3 = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-=======
     float inputs:ri:hatching_freq_tex3 = 2.5 (
         connectability = "interfaceOnly"
         displayGroup = "Projection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Freq Tex 3"
         doc = """Higher numbers, higher frequency. For screen start at 1. For triplanar start at 0.005.
     """
     )
-<<<<<<< HEAD
-    float inputs:ri:hatching_freq_tex4 = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-=======
     float inputs:ri:hatching_freq_tex4 = 3 (
         connectability = "interfaceOnly"
         displayGroup = "Projection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Freq Tex 4"
         doc = """Higher numbers, higher frequency. For screen start at 1. For triplanar start at 0.005.
     """
     )
-<<<<<<< HEAD
-    float inputs:ri:hatching_freq_tex5 = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-=======
     float inputs:ri:hatching_freq_tex5 = 3.5 (
         connectability = "interfaceOnly"
         displayGroup = "Projection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Freq Tex 5"
         doc = """Higher numbers, higher frequency. For screen start at 1. For triplanar start at 0.005.
     """
     )
-<<<<<<< HEAD
-    float inputs:ri:hatching_freq_tex6 = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-=======
     float inputs:ri:hatching_freq_tex6 = 4 (
         connectability = "interfaceOnly"
         displayGroup = "Projection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Freq Tex 6"
         doc = """Higher numbers, higher frequency. For screen start at 1. For triplanar start at 0.005.
     """
     )
-<<<<<<< HEAD
-    float inputs:ri:hatching_freq_tex7 = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-=======
     float inputs:ri:hatching_freq_tex7 = 4.5 (
         connectability = "interfaceOnly"
         displayGroup = "Projection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Freq Tex 7"
         doc = """Higher numbers, higher frequency. For screen start at 1. For triplanar start at 0.005.
     """
     )
-<<<<<<< HEAD
-    float inputs:ri:hatching_freq_tex8 = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-=======
     float inputs:ri:hatching_freq_tex8 = 5 (
         connectability = "interfaceOnly"
         displayGroup = "Projection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Freq Tex 8"
         doc = """Higher numbers, higher frequency. For screen start at 1. For triplanar start at 0.005.
     """
     )
     bool inputs:ri:hatchingMask_switch = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Use Hatching Mask"
-        doc = """Mult by hatching mask from Pxr Stylized Control node in AOV NPRlineMask GREEN channel
-=======
         displayGroup = "Mask"
         displayName = "PxrStylizedControl Mask"
         doc = """Mult by hatching mask from PxrStylizedControl node in AOV NPRlineMask GREEN channel
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
   """
     )
     asset inputs:ri:hatchingTex1 = @@ (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Textures"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Texture 1"
         doc = "Provide COLOR texture"
     )
     asset inputs:ri:hatchingTex2 = @@ (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Textures"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Texture 2"
         doc = "Provide COLOR texture"
     )
     asset inputs:ri:hatchingTex3 = @@ (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Textures"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Texture 3"
         doc = "Provide COLOR texture"
     )
     asset inputs:ri:hatchingTex4 = @@ (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Textures"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Texture 4"
         doc = "Provide COLOR texture"
     )
     asset inputs:ri:hatchingTex5 = @@ (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Textures"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Texture 5"
         doc = "Provide COLOR texture"
     )
     asset inputs:ri:hatchingTex6 = @@ (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Textures"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Texture 6"
         doc = "Provide COLOR texture"
     )
     asset inputs:ri:hatchingTex7 = @@ (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Textures"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Texture 7"
         doc = "Provide COLOR texture"
     )
     asset inputs:ri:hatchingTex8 = @@ (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Textures"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatching Texture 8"
         doc = "Provide COLOR texture"
     )
     asset inputs:ri:hatchingTexSetCustom = @@ (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-        displayName = "Texture Set"
-        doc = "Provide Texture Set Directory"
-=======
         displayGroup = "Textures"
         displayName = "Texture Set"
         doc = """Provide Texture Set Directory
@@ -6958,16 +6561,11 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         Stock texture sets are like
         [rmantree/lib/textures/]StylizedLooks/pxrStylized-woven/pxrStylized-woven-01.tex
     """
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     )
     token inputs:ri:hatchingTexSetStock = "StylizedLooks/pxrStylized-woven" (
         allowedTokens = ["StylizedLooks/pxrStylized-aquatint", "StylizedLooks/pxrStylized-charcoal", "StylizedLooks/pxrStylized-crosshatch", "StylizedLooks/pxrStylized-curl", "StylizedLooks/pxrStylized-halftone", "StylizedLooks/pxrStylized-patches", "StylizedLooks/pxrStylized-random", "StylizedLooks/pxrStylized-scumble", "StylizedLooks/pxrStylized-splatter", "StylizedLooks/pxrStylized-stipple", "StylizedLooks/pxrStylized-wash", "StylizedLooks/pxrStylized-woven"]
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Textures"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Texture Set"
         doc = """
     Select a hatching texture set from the built-in predefined collection.
@@ -6976,32 +6574,15 @@ class PxrStylizedHatching "PxrStylizedHatching" (
     token inputs:ri:hatchingTexType = "texSetStock" (
         allowedTokens = ["texSetStock", "texSetCustom", "texIndividualFiles"]
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-        displayName = "Hatching Texture Type"
-=======
         displayGroup = "Textures"
         displayName = "Type"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
     Select the source for hatching textures.
     """
     )
-<<<<<<< HEAD
-    bool inputs:ri:HatchOnBG_switch = 0 (
-        connectability = "interfaceOnly"
-        displayName = "Hatch On Background"
-        doc = """
-        Use background color or texture for object albedo color. Texture will swim if movement.
-    """
-    )
-    color3f inputs:ri:HatchOnColor = (1, 1, 1) (
-        connectability = "interfaceOnly"
-=======
     color3f inputs:ri:HatchOnColor = (1, 1, 1) (
         connectability = "interfaceOnly"
         displayGroup = "Compositing"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Hatch On Color"
         doc = """
       Ignore albedo color for base color, use this color on all objects
@@ -7009,28 +6590,14 @@ class PxrStylizedHatching "PxrStylizedHatching" (
     )
     bool inputs:ri:hatchTex_invert_switch = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-        displayName = "Hatch Tex Invert Switch"
-=======
         displayGroup = "Textures"
         displayName = "Invert"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
           Invert order of progression of hatch texture lookups. For diffuse signals, typically left OFF (default)
       """
     )
     float inputs:ri:hatchTexClr_mix = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-        displayName = "Hatch Tex Color Mix"
-        doc = "<help />"
-    )
-    bool inputs:ri:light_mask_switch = 0 (
-        connectability = "interfaceOnly"
-        displayName = "Light Mask Switch"
-=======
         displayGroup = "Textures"
         displayName = "Hatch Tex Color Mix"
         doc = "<help />"
@@ -7047,49 +6614,24 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         connectability = "interfaceOnly"
         displayGroup = "Mask"
         displayName = "Input Mask"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
         Use light aov defined in signal_aov_string above as mask for previously daisy-chained Stylized shaders and/or physically based lighting
     """
     )
     float inputs:ri:Light_max_freq = 1 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Textures"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Light Max Hatch Frequency"
         doc = "<help />"
     )
     float inputs:ri:Light_min_freq = 5 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Hatching"
-=======
         displayGroup = "Textures"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Light Min Hatch Frequency"
         doc = "<help />"
     )
     float inputs:ri:NPR_mix = 1 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Hatching Mix"
-        doc = """0: disables this Hatching Node and shows previous node if daisy chained, or original beauty if no previous Stylized Looks nodes. 1: full Hatching from this node.
-  """
-    )
-    bool inputs:ri:progressive_tex_switch = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-        displayName = "Progressive Tex Switch"
-        doc = "Progressive Tex Switch"
-    )
-    token inputs:ri:projection = "triplanar" (
-        allowedTokens = ["screen", "triplanar", "NPRtextureCoordsAOV"]
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-=======
         displayGroup = "Compositing"
         displayName = "Mix"
         doc = """0: disables this Hatching Node and shows previous node if daisy chained, or original beauty if no previous Stylized Looks nodes. 1: full Hatching from this node.
@@ -7110,57 +6652,30 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         allowedTokens = ["screen", "triplanar", "NPRtextureCoordsAOV"]
         connectability = "interfaceOnly"
         displayGroup = "Projection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Projection"
         doc = "<help />"
     )
     int inputs:ri:ramp = 4 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Float Spline"
-        displayName = "Ramp"
-        doc = "Ramp"
-    )
-    float[] inputs:ri:ramp_Floats = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
-        displayGroup = "Float Spline"
-=======
         displayGroup = "Input:Input Remap"
         displayName = "Ramp"
         doc = "Ramp"
     )
     float[] inputs:ri:ramp_Floats = [0, 0, 1, 1] (
         displayGroup = "Input:Input Remap"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         hidden = true
     )
     token inputs:ri:ramp_Interpolation = "linear" (
         allowedTokens = ["linear", "catmull-rom", "bspline", "constant"]
-<<<<<<< HEAD
-        displayGroup = "Float Spline"
-        hidden = true
-    )
-    float[] inputs:ri:ramp_Knots = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
-        displayGroup = "Float Spline"
-=======
         displayGroup = "Input:Input Remap"
         hidden = true
     )
     float[] inputs:ri:ramp_Knots = [0, 0, 1, 1] (
         displayGroup = "Input:Input Remap"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         hidden = true
     )
     bool inputs:ri:remapSplineSwitch = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Float Spline"
-        displayName = "Remap Spline Switch"
-        doc = "Remap Spline Switch"
-    )
-    string inputs:ri:signal_aov_string = "diffuse" (
-        connectability = "interfaceOnly"
-        displayName = "Signal AOV"
-=======
         displayGroup = "Input:Input Remap"
         displayName = "Enable Ramp"
         doc = "Enable Ramp"
@@ -7180,16 +6695,10 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         connectability = "interfaceOnly"
         displayGroup = "Input"
         displayName = "Signal String"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
       Name of a color AOV to use for the signal to hatching. Typically diffuse, can put any light AOV here. This AOV has to be setup in Maya/Katana/Houdini or DisplayFilter will exit.
     """
     )
-<<<<<<< HEAD
-    float inputs:ri:triplanar_blending = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-=======
     float inputs:ri:Signal_Pre_Gain = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Input:Input Remap"
@@ -7213,17 +6722,10 @@ class PxrStylizedHatching "PxrStylizedHatching" (
     float inputs:ri:triplanar_blending = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Projection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Triplanar Blending"
         doc = """0 - no blending, 1 - full blending
     """
     )
-<<<<<<< HEAD
-    string inputs:ri:triplanar_N_aov_string = "Nn" (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-        displayName = "Triplanar N AOV"
-=======
     token inputs:ri:triplanar_N = "NPRNtriplanar" (
         allowedTokens = ["NPRNtriplanar", "Nn", "__Nref", "aov"]
         connectability = "interfaceOnly"
@@ -7240,25 +6742,10 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         connectability = "interfaceOnly"
         displayGroup = "Projection"
         displayName = "Triplanar N String"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = '''
       Name of a color AOV to use for the triplanar blending of N. If set to "NPRNtriplanar": need to plug PxrManifold3d into PxrStylizedControl node to provide custom co-ordinate system. Can also be factory "N" "__Nref" if those AOVs are setup.
     '''
     )
-<<<<<<< HEAD
-    string inputs:ri:triplanar_P_aov_string = "P" (
-        connectability = "interfaceOnly"
-        displayGroup = "Hatching"
-        displayName = "Triplanar P AOV"
-        doc = '''
-      Name of a color AOV to use for the triplanar blending of P. If set to "NPRPtriplanar": need to plug PxrManifold3d into LS_Pattern_NPR node to provide custom co-ordinate system. Can also be factory "P" "__Pref" "Pworld" if those AOVs are setup.
-    '''
-    )
-    token inputs:ri:visualizer = "hatchingOnColor" (
-        allowedTokens = ["beauty", "hatchingFinal", "hatchingBlend", "hatchingOnColor", "hatchingCameraRange", "diffuse", "diffuseLuminance", "diffuseEnergy", "triplanarTestColors"]
-        connectability = "interfaceOnly"
-        displayName = "Visualizer"
-=======
     token inputs:ri:triplanar_P = "NPRPtriplanar" (
         allowedTokens = ["NPRPtriplanar", "P", "__Pref", "aov"]
         connectability = "interfaceOnly"
@@ -7283,80 +6770,51 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         allowedTokens = ["beauty", "hatchingFinal", "separator", "hatchingBlend", "diffuseLuminance", "diffuseEnergy", "triplanarTestColors"]
         connectability = "interfaceOnly"
         displayName = "Result"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = "<help />"
     )
     token inputs:ri:whiteShader = "signalAovAverage" (
         allowedTokens = ["signalAovMono", "signalAovAverage", "albedoAOV", "NPRalbedoAOV"]
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Signal Energy From"
-=======
         displayGroup = "Input"
         displayName = "Mode"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """ Under the hood a white shader approximation is created based off the Signal AOV to drive the Hatching. By default using average of RGB components of Signal AOV, but can also divide Signal AOV lighting results with a pure albedo from NPRalbedo AOV or albedo AOV. If NPRalbedo AOV chosen, must set Albedo Color in Stylized Controller Pattern node.
     """
     )
     token inputs:ri:z_depth_mode = "lineNZAOV" (
         allowedTokens = ["lineNZAOV", "PAOV"]
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Camera Range"
-=======
         displayGroup = "Input:Camera Range"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Z Depth Mode"
         doc = """ Slightly different Z depth data from these 2 sources
       """
     )
     float inputs:ri:Z_max = 200 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Camera Range"
-=======
         displayGroup = "Input:Camera Range"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Cam Dist Z Max"
         doc = """ Linstep Max on Z (blue channel from lineNZ)
     """
     )
     float inputs:ri:Z_max_freq = 1 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Camera Range"
-=======
         displayGroup = "Input:Camera Range"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Z Max Hatch Frequency"
         doc = "<help />"
     )
     float inputs:ri:Z_min = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Camera Range"
-=======
         displayGroup = "Input:Camera Range"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Cam Dist Z Min"
         doc = """ Linstep Min on Z (blue channel from lineNZ)
     """
     )
     float inputs:ri:Z_min_freq = 5 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Camera Range"
-        displayName = "Z Min Hatch Frequency"
-        doc = "<help />"
-    )
-    uniform token ri:displayfilter:shaderId = "PxrStylizedHatching" (
-=======
         displayGroup = "Input:Camera Range"
         displayName = "Z Min Hatch Frequency"
         doc = "<help />"
     )
     uniform token ri:displayFilter:shaderId = "PxrStylizedHatching" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -7366,25 +6824,6 @@ class PxrStylizedLines "PxrStylizedLines" (
         string className = "StylizedLines"
     }
     doc = """
-<<<<<<< HEAD
-Required AOVs:
-
- 1) NPRoutline
- 2) NPRsections
- 3) NPRlineNZ
- 4) NPRlineCamdist
- 5) NPRalbedo
- 6) NPRlineAlbedo
- 7) NPRlineMask
- 8) NPRlineWidth
- 9) diffuse
-10) albedo
-11) NPRallLines
-12) NPRallLinesAlpha
-13) sampleCount
-14) NPRcurvature
-  """
-=======
         Required AOVs:
 
          1) NPRoutline
@@ -7403,28 +6842,20 @@ Required AOVs:
         14) NPRcurvature
         15) NPRdistort
 """
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     inherits = </PxrDisplayFilterPluginBase>
 )
 {
     token inputs:ri:activation_function = "spline" (
         allowedTokens = ["spline", "sigmoid"]
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Activation Function"
-=======
         displayGroup = "Line Detection"
         displayName = "Activation"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """ During line detection weighting to get variance
     """
     )
     string inputs:ri:aov = "NPRsections" (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-=======
         displayGroup = "Line Detection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Data AOV"
         doc = """
       Name of a color AOV to do line detection on. Manually set if you want to test on your AOV.
@@ -7461,13 +6892,6 @@ Required AOVs:
         doc = """ Use Z Scale
       """
     )
-<<<<<<< HEAD
-    token inputs:ri:daisy_chain_comp = "over" (
-        allowedTokens = ["over", "plus", "multiply"]
-        connectability = "interfaceOnly"
-        displayName = "Daisy Chain Comp"
-        doc = """ Comp mode if have previous daisy chained Lines node
-=======
     float inputs:ri:compModeMix = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Compositing"
@@ -7482,40 +6906,26 @@ Required AOVs:
         displayGroup = "Compositing"
         displayName = "Mode"
         doc = """ Comp mode over previous result (if have previous daisy-chained Stylized nodes, or beauty)
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     """
     )
     bool inputs:ri:Dilate_Sort_Alpha_Switch = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Dilate Sort"
-=======
         displayGroup = "Input:Dilation Sorting"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Use Alpha"
         doc = """ If object has alpha, the zero alpha on camera depth will be incorrect, switch to ON to mix between camera depth of object and Dilate_Sort_Max_Depth based on alpha
       """
     )
     float inputs:ri:Dilate_Sort_Depth_Scale = 1 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Dilate Sort"
-        displayName = "Dilate Sort Depth Scale"
-=======
         displayGroup = "Input:Dilation Sorting"
         displayName = "Depth Scale"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
       Scale Z depth for sorting based on scene scale
     """
     )
     float inputs:ri:Dilate_Sort_Max_Depth = 1000 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Dilate Sort"
-=======
         displayGroup = "Input:Dilation Sorting"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Dilate Sort Max Depth"
         doc = """
       Max Depth to consider for outside of alpha
@@ -7523,40 +6933,22 @@ Required AOVs:
     )
     float inputs:ri:Dilate_Sort_Radius = 1 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Dilate Sort"
-        displayName = "Dilate Sort Radius"
-=======
         displayGroup = "Input:Dilation Sorting"
         displayName = "Radius"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
       How big of a radius to dilate Z-sorted signal. Larger values = longer render time. MAX size of 6: will clamp if over.
     """
     )
     bool inputs:ri:Dilate_Sort_Switch = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Dilate Sort"
-        displayName = "Dilate Sort Switch"
-=======
         displayGroup = "Input:Dilation Sorting"
         displayName = "Enable"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """ If using signals to drive line thickness/color, need to dilate and sort by z depth to pickup correct signal since line detection goes half off geo.
       """
     )
     token inputs:ri:Dilate_Sort_Weight_Type = "Bell Curve" (
         allowedTokens = ["Bell Curve", "Hermite", "Clamp"]
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Dilate Sort"
-        displayName = "Dilate Sort Weight Type"
-        doc = """ During dilate sort, weighting
-      """
-    )
-    float3 inputs:ri:HSV_Dark = (0, 1, 0) (
-=======
         displayGroup = "Input:Dilation Sorting"
         displayName = "Weight"
         doc = """ During dilate sort, weighting
@@ -7585,7 +6977,6 @@ Required AOVs:
 """
     )
     vector3f inputs:ri:HSV_Dark = (0, 1, 0) (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         connectability = "interfaceOnly"
         displayGroup = "Line Color"
         displayName = "HSV Dark"
@@ -7593,11 +6984,7 @@ Required AOVs:
           HSV
       """
     )
-<<<<<<< HEAD
-    float3 inputs:ri:HSV_Light = (0, 1, 1) (
-=======
     vector3f inputs:ri:HSV_Light = (0, 1, 1) (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         connectability = "interfaceOnly"
         displayGroup = "Line Color"
         displayName = "HSV Light"
@@ -7607,51 +6994,30 @@ Required AOVs:
     )
     bool inputs:ri:light_mask_switch = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Light Mask Switch"
-        doc = """
-        Use light aov defined in signal_aov_string above as mask for previously daisy-chained Stylized shaders and/or physically based lighting
-=======
         displayGroup = "Mask"
         displayName = "Input Mask"
         doc = """
         Use AOV defined in Input Signal as mask for previously daisy-chained Stylized shaders and/or physically based lighting
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     """
     )
     float inputs:ri:Light_max_thickness = 5 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-        displayName = "Light Max Thickness Scale"
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
         displayName = "High Mult"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """ Scale (multiply) Line Thickness by this value in light areas. Use Line Thickness From Lighting in Visualizer dropdown to preview signal.
     """
     )
     bool inputs:ri:Light_min_max_thickness_invert = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-        displayName = "Light Min Max Thick Invert"
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
         displayName = "Invert"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """ Invert min max above: so thicker in shadows
       """
     )
     float inputs:ri:Light_min_thickness = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-        displayName = "Light Min Thickness Scale"
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
         displayName = "Low Mult"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """ Scale (multiply) Line Thickness by this value in shadows. Use Line Thickness From Lighting in Visualizer dropdown to preview signal.
     """
     )
@@ -7659,32 +7025,19 @@ Required AOVs:
         allowedTokens = ["none", "HSVLightDark", "lineColorShadow"]
         connectability = "interfaceOnly"
         displayGroup = "Line Color"
-<<<<<<< HEAD
-        displayName = "Light Response"
-=======
         displayName = "Light Tint"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """ Color lines by lighting
     """
     )
     float inputs:ri:Light_thickness_gamma = 1 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-        displayName = "Light Thickness Gamma"
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
         displayName = "Gamma"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = "<help />"
     )
     float inputs:ri:line_thickness_scale = 1 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "PxrStylizedControl Scale"
         doc = """
       Globally scale line thickness. If you have line thickness set per object and they are all different values, and you up the resolution of the render, use this global scale to increase or decrease line thickness of all lines, since they are based on pixel width.
@@ -7702,11 +7055,7 @@ Required AOVs:
         allowedTokens = ["colorSwatch", "patternShader", "NPRalbedoAOV", "albedoAOV"]
         connectability = "interfaceOnly"
         displayGroup = "Line Color"
-<<<<<<< HEAD
-        displayName = "Line Color From"
-=======
         displayName = "From"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = "<help />"
     )
     color3f inputs:ri:lineColorShadow = (0.5, 0.5, 0.5) (
@@ -7719,29 +7068,13 @@ Required AOVs:
     )
     bool inputs:ri:lineMask_switch = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Use Line Mask"
-        doc = """ Mult by line mask from pattern node in AOV NPRlineMask
-=======
         displayGroup = "Mask"
         displayName = "PxrStylizedControl Mask"
         doc = """ Mult by line mask from PxrStylizedControl pattern node in AOV NPRmask
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
   """
     )
     float inputs:ri:linesGamma = 1 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Final Line Gamma"
-        doc = """
-        After line detection happens, runs gamma on final lines.
-      """
-    )
-    bool inputs:ri:linesInside_switch = 0 (
-        connectability = "interfaceOnly"
-        displayName = "Lines Inside"
-        doc = """ Mult by alpha for only inside lines from line detect, don't go off geo
-=======
         displayGroup = "Compositing"
         displayName = "Gamma"
         doc = """
@@ -7753,91 +7086,50 @@ Required AOVs:
         displayGroup = "Mask"
         displayName = "Lines Inside Alpha"
         doc = """ Mult by alpha for only inside lines from line detect, don't go off geo. Premult.
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
   """
     )
     float inputs:ri:lineThickness = 1 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Line Thickness"
-=======
         displayGroup = "Line Thickness"
         displayName = "Thickness"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
         Master Line Thickness, based on pixels
     """
     )
     token inputs:ri:lineType = "sections" (
-<<<<<<< HEAD
-        allowedTokens = ["aov", "outline", "sections", "lineNZ", "curvature", "camdist"]
-        connectability = "interfaceOnly"
-        displayName = "Line Type"
-        doc = """
-      aov - custom AOV defined below
-=======
         allowedTokens = ["outline", "sections", "lineNZ", "curvature", "camdist", "aov"]
         connectability = "interfaceOnly"
         displayGroup = "Line Detection"
         displayName = "Type"
         doc = """
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
       outline - line on alpha of object
       sections - line on random id
       lineNZ - line on combination of X Y components of surface normal and Z depth, good for unit scale
       curvature - line on change in surface normal
       camdist - line on change in camera distance
-<<<<<<< HEAD
-=======
       aov - custom AOV defined below
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     """
     )
     bool inputs:ri:overwriteDataAOV = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Overwrite Data AOV"
-        doc = """
-        OFF: edge detection results go into NPRallLinesAlpha and NPRallLines. ON: overwrite original signal, example writes back to NPRlineNZ/NPRsections/etc
-=======
         displayGroup = "Line Detection"
         displayName = "Write To Type AOV"
         doc = """
         OFF: edge detection results go into NPRlineOutAlpha and NPRlineOut. ON: overwrite original signal, example writes back to NPRlineNZ/NPRsections/etc
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     """
     )
     int inputs:ri:ramp = 4 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Signal Remap Spline"
-=======
         displayGroup = "Line Detection:Activation Spline"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Ramp"
         doc = "Ramp"
     )
     float[] inputs:ri:ramp_Floats = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
-<<<<<<< HEAD
-        displayGroup = "Signal Remap Spline"
-=======
         displayGroup = "Line Detection:Activation Spline"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         hidden = true
     )
     token inputs:ri:ramp_Interpolation = "linear" (
         allowedTokens = ["linear", "catmull-rom", "bspline", "constant"]
-<<<<<<< HEAD
-        displayGroup = "Signal Remap Spline"
-        hidden = true
-    )
-    float[] inputs:ri:ramp_Knots = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
-        displayGroup = "Signal Remap Spline"
-        hidden = true
-    )
-    float inputs:ri:sigmoid_activation_offset = 0 (
-        connectability = "interfaceOnly"
-=======
         displayGroup = "Line Detection:Activation Spline"
         hidden = true
     )
@@ -7872,46 +7164,31 @@ Required AOVs:
     float inputs:ri:sigmoid_activation_offset = 0 (
         connectability = "interfaceOnly"
         displayGroup = "Line Detection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Sigmoid Offset"
         doc = """ See: https://www.desmos.com/calculator/1agy4wsmrh and modify offset variable o
     """
     )
     float inputs:ri:sigmoid_activation_sharpness = 25 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-=======
         displayGroup = "Line Detection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Sigmoid Sharpness"
         doc = """ See: https://www.desmos.com/calculator/1agy4wsmrh and modify sharpness variable a
     """
     )
     float inputs:ri:sigmoid_offset = 0.3 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-=======
         displayGroup = "Line Detection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Sigmoid Offset"
         doc = """ Offset from the midpoint for each sigmoid. Used for line thickness, the bigger the offset the thicker the weighting. See: https://www.desmos.com/calculator/g4jbxcvtqz and modify variable o
     """
     )
     float inputs:ri:sigmoid_sharpness = 17 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-=======
         displayGroup = "Line Detection"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Sigmoid Sharpness"
         doc = """ Sharpness of the sigmoid pair. Used for softening/hardening the line edge. See: https://www.desmos.com/calculator/g4jbxcvtqz and modify variable a
     """
     )
-<<<<<<< HEAD
-    string inputs:ri:signal_aov_string = "diffuse" (
-        connectability = "interfaceOnly"
-        displayName = "Light Signal AOV"
-=======
     token inputs:ri:signal = "diffuse" (
         allowedTokens = ["beauty", "diffuse", "directSpecular", "aov"]
         connectability = "interfaceOnly"
@@ -7927,135 +7204,84 @@ Required AOVs:
         connectability = "interfaceOnly"
         displayGroup = "Input"
         displayName = "Signal String"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
       Name of a color AOV to use for the light signal to line color and line thickness by lighting. Typically diffuse, can put any light AOV here. This AOV has to be setup in Maya/Katana/Houdini or DisplayFilter will exit.
     """
     )
     bool inputs:ri:thickness_from_lighting_switch = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-        displayName = "Lighting"
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
         displayName = "by Lighting"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
             Hot tips here!
         """
     )
     bool inputs:ri:thickness_from_pattern_switch = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-        displayName = "PxrStylizedControl"
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
         displayName = "by PxrStylizedControl"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
             Multiply Line Thickness by set here by Line Thickness set on PxrStylizedControl per object
         """
     )
     bool inputs:ri:thickness_from_zdepth_switch = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-        displayName = "Z Depth"
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
         displayName = "by Z Depth"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
             Hot tips here!
         """
     )
     token inputs:ri:visualizer = "finalLinesBeauty" (
-<<<<<<< HEAD
-        allowedTokens = ["beauty", "finalLines", "finalLinesInvert", "finalLinesBeauty", "finalLinesAlpha", "lineThicknessFromPattern", "lineThicknessFromLighting", "Luminance", "diffuseEnergy", "zCamdist"]
-        connectability = "interfaceOnly"
-        displayName = "Visualizer"
-=======
         allowedTokens = ["beauty", "finalLinesBeauty", "separator", "finalLines", "finalLinesInvert", "finalLinesAlpha", "lineThicknessFromPattern", "lineThicknessFromLighting", "Luminance", "diffuseEnergy", "zCamdist"]
         connectability = "interfaceOnly"
         displayName = "Result"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = "<help />"
     )
     token inputs:ri:weight_type = "bellCurve" (
         allowedTokens = ["bellCurve", "hermite", "doubleSigmoid"]
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Weight Type"
-=======
         displayGroup = "Line Detection"
         displayName = "Weight"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """ During line detection weighting to get variance
     """
     )
     token inputs:ri:whiteShader = "signalAovAverage" (
         allowedTokens = ["signalAovAverage", "albedoAOV", "NPRalbedoAOV"]
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Signal Energy From"
-        doc = """ Under the hood a white shader approximation is created based off the Signal AOV to drive the Hatching. By default using average of RGB components of Signal AOV, but can also divide Signal AOV lighting results with a pure albedo from NPRalbedo AOV or albedo AOV. If NPRalbedo AOV chosen, must set Albedo Color in Stylized Controller Pattern node.
-=======
         displayGroup = "Input"
         displayName = "Mode"
         doc = """ 
         Under the hood a white shader approximation is created based off the Signal AOV to drive the Hatching. By default using average of RGB components of Signal AOV, but can also divide Signal AOV lighting results with a pure albedo from NPRalbedo AOV or albedo AOV. If NPRalbedo AOV chosen, must set Albedo Color in PxrStylizedControl node.
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     """
     )
     float inputs:ri:Zmax = 200 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Cam Dist Z Max"
         doc = """ Linstep Max on Z (blue channel from lineNZ)
     """
     )
     float inputs:ri:Zmax_thickness = 1 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Z Max Thickness Scale"
         doc = "<help />"
     )
     float inputs:ri:Zmin = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Cam Dist Z Min"
         doc = """ Linstep Min on Z (blue channel from lineNZ)
     """
     )
     float inputs:ri:Zmin_thickness = 5 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Line Thickness Scaling"
-        displayName = "Z Min Thickness Scale"
-        doc = "<help />"
-    )
-    uniform token ri:displayfilter:shaderId = "PxrStylizedLines" (
-=======
         displayGroup = "Line Thickness:Line Thickness Remap"
         displayName = "Z Min Thickness Scale"
         doc = "<help />"
     )
     uniform token ri:displayFilter:shaderId = "PxrStylizedLines" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -8065,22 +7291,14 @@ class PxrStylizedToon "PxrStylizedToon" (
         string className = "StylizedToon"
     }
     doc = """
-<<<<<<< HEAD
-        Required AOVs: diffuse albedo directSpecular NPRtoonDiffRamp NPRalbedo
-=======
         Required AOVs: diffuse albedo directSpecular NPRtoonOut NPRalbedo
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     """
     inherits = </PxrDisplayFilterPluginBase>
 )
 {
     float inputs:ri:albedoLift = 0 (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayGroup = "Toon"
-=======
         displayGroup = "Toon Blending"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Albedo Lift"
         doc = """
             When Step Mode = Albedo or Light to Albedo, lift albedo values
@@ -8088,20 +7306,12 @@ class PxrStylizedToon "PxrStylizedToon" (
     )
     color3f inputs:ri:backgroundColor = (0, 0, 0) (
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-=======
         displayGroup = "Toon"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "BG Color"
         doc = """
       BG Color
   """
     )
-<<<<<<< HEAD
-    color3f inputs:ri:darks = (0, 0, 0) (
-        connectability = "interfaceOnly"
-        displayGroup = "Toon"
-=======
     int inputs:ri:colorRamp = 4 (
         displayName = "Color Spline Ramp"
         doc = "Color Spline Ramp"
@@ -8119,67 +7329,19 @@ class PxrStylizedToon "PxrStylizedToon" (
     color3f inputs:ri:darks = (0, 0, 0) (
         connectability = "interfaceOnly"
         displayGroup = "Toon Blending"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayName = "Darks Color"
         doc = """
           Color to step to
       """
     )
-<<<<<<< HEAD
-    float inputs:ri:gamma = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Toon"
-        displayName = "Gamma"
-        doc = """
-            Gamma for toon ramp. Check the NPRtoonDiffRamp AOV to visualize.
-        """
-    )
-    bool inputs:ri:light_mask_switch = 0 (
-        connectability = "interfaceOnly"
-        displayName = "Light Mask Switch"
-=======
     int inputs:ri:light_mask_switch = 0 (
         connectability = "interfaceOnly"
         displayGroup = "Mask"
         displayName = "Input Mask"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
         Use light aov defined in signal_aov_string above as mask for previously daisy-chained Stylized shaders and/or physically based lighting.
     """
     )
-<<<<<<< HEAD
-    float inputs:ri:maxVal = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Toon"
-        displayName = "Remap Max"
-        doc = """
-            Max for min max remap of stepping. Check the NPRtoonDiffRamp AOV to visualize.
-        """
-    )
-    float inputs:ri:minVal = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Toon"
-        displayName = "Remap Min"
-        doc = """
-            Min for min max remap of stepping. Check the NPRtoonDiffRamp AOV to visualize.
-        """
-    )
-    bool inputs:ri:occlusion_integrator_switch = 0 (
-        connectability = "interfaceOnly"
-        displayName = "Occl Integrator Switch"
-        doc = """
-        If Using Occlusion Integrator, turn this on
-    """
-    )
-    int inputs:ri:ramp = 4 (
-        connectability = "interfaceOnly"
-        displayGroup = "Float Spline"
-        displayName = "Ramp"
-        doc = "Ramp"
-    )
-    float[] inputs:ri:ramp_Floats = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
-        displayGroup = "Float Spline"
-=======
     int inputs:ri:ramp = 4 (
         connectability = "interfaceOnly"
         displayGroup = "Input Remap"
@@ -8188,29 +7350,10 @@ class PxrStylizedToon "PxrStylizedToon" (
     )
     float[] inputs:ri:ramp_Floats = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
         displayGroup = "Input Remap"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         hidden = true
     )
     token inputs:ri:ramp_Interpolation = "linear" (
         allowedTokens = ["linear", "catmull-rom", "bspline", "constant"]
-<<<<<<< HEAD
-        displayGroup = "Float Spline"
-        hidden = true
-    )
-    float[] inputs:ri:ramp_Knots = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
-        displayGroup = "Float Spline"
-        hidden = true
-    )
-    bool inputs:ri:remapSplineSwitch = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Float Spline"
-        displayName = "Remap Spline Switch"
-        doc = "Remap Spline Switch"
-    )
-    string inputs:ri:signal_aov_string = "diffuse" (
-        connectability = "interfaceOnly"
-        displayName = "Signal AOV"
-=======
         displayGroup = "Input Remap"
         hidden = true
     )
@@ -8232,33 +7375,10 @@ class PxrStylizedToon "PxrStylizedToon" (
         connectability = "interfaceOnly"
         displayGroup = "Input"
         displayName = "Custom AOV"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = """
       Name of a color AOV to use for the signal to toon shading. Typically diffuse, can put any light AOV here. This AOV has to be setup in Maya/Katana/Houdini or DisplayFilter will exit.
     """
     )
-<<<<<<< HEAD
-    token inputs:ri:stepMode = "albedo" (
-        allowedTokens = ["albedo", "lightToAlbedo", "darks"]
-        connectability = "interfaceOnly"
-        displayGroup = "Toon"
-        displayName = "Step Mode"
-        doc = """Albedo: steps to object albedo from albedo AOV. Light To Albedo: steps from white or light color to albedo color of object (use albedoLift to see more if dark albedo or textures). Darks Color: step to chosen color instead of default black.
-      """
-    )
-    int inputs:ri:toonDiffuse_numSteps = 4 (
-        connectability = "interfaceOnly"
-        displayGroup = "Toon"
-        displayName = "Toon Steps"
-        doc = """
-          Number of steps to quantize lighting
-      """
-    )
-    token inputs:ri:visualizer = "toonDiffuseFinal" (
-        allowedTokens = ["beauty", "toonDiffRamp", "toonDiffuseFinal", "toonDiffuseFinalwSpec", "diffuseEnergy", "diffuseLuminance", "albedo"]
-        connectability = "interfaceOnly"
-        displayName = "Visualizer"
-=======
     float inputs:ri:Signal_Energy_Threshold_Max = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Input"
@@ -8320,19 +7440,11 @@ class PxrStylizedToon "PxrStylizedToon" (
         allowedTokens = ["beauty", "toonDiffRamp", "toonDiffuseFinal", "separator", "diffuseEnergy", "diffuseLuminance", "albedo"]
         connectability = "interfaceOnly"
         displayName = "Result"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         doc = "<help />"
     )
     token inputs:ri:whiteShader = "signalAovAverage" (
         allowedTokens = ["signalAovAverage", "albedoAOV", "NPRalbedoAOV"]
         connectability = "interfaceOnly"
-<<<<<<< HEAD
-        displayName = "Signal Energy From"
-        doc = """ Under the hood a white shader approximation is created based off the Signal AOV to drive the Toon response. By default using average of RGB components of Signal AOV, but can also divide Signal AOV lighting results with a pure albedo from NPRalbedo AOV or albedo AOV. If NPRalbedo AOV chosen, must set Albedo Color in Stylized Controller Pattern node.
-    """
-    )
-    uniform token ri:displayfilter:shaderId = "PxrStylizedToon" (
-=======
         displayGroup = "Input"
         displayName = "Grayscale Mode"
         doc = """ Under the hood a white shader approximation is created based off the Signal AOV to drive the Toon response. 
@@ -8342,7 +7454,6 @@ class PxrStylizedToon "PxrStylizedToon" (
     """
     )
     uniform token ri:displayFilter:shaderId = "PxrStylizedToon" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -8387,11 +7498,7 @@ class PxrWhitePointDisplayFilter "PxrWhitePointDisplayFilter" (
            color temperature for white balance.
         """
     )
-<<<<<<< HEAD
-    uniform token ri:displayfilter:shaderId = "PxrWhitePointDisplayFilter" (
-=======
     uniform token ri:displayFilter:shaderId = "PxrWhitePointDisplayFilter" (
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Internal"
     )
 }
@@ -8795,39 +7902,26 @@ class PxrPathTracer "PxrPathTracer" (
     The default is "bxdf".
         '''
     )
-<<<<<<< HEAD
-    string inputs:ri:volumeAggregate = "" (
-=======
     string inputs:ri:volumeAggregate = "globalVolumeAggregate" (
         connectability = "interfaceOnly"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Aggregate Volumes"
         displayName = "Volume Aggregate Name"
         doc = "Specifies the name of the global volume aggregate to use for rendering."
     )
     string inputs:ri:volumeAggregateCamera = "" (
-<<<<<<< HEAD
-=======
         connectability = "interfaceOnly"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Aggregate Volumes"
         displayName = "Camera Aggregate Override"
         doc = "Overrides the global aggregate name for camera rays. If left empty, the global volume aggregate will be used."
     )
     string inputs:ri:volumeAggregateIndirect = "" (
-<<<<<<< HEAD
-=======
         connectability = "interfaceOnly"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Aggregate Volumes"
         displayName = "Indirect Aggregate Override"
         doc = "Overrides the global aggregate name for indirect rays. If left empty, the global volume aggregate will be used."
     )
     string inputs:ri:volumeAggregateTransmission = "" (
-<<<<<<< HEAD
-=======
         connectability = "interfaceOnly"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         displayGroup = "Aggregate Volumes"
         displayName = "Transmission Aggregate Override"
         doc = "Overrides the global aggregate name for transmission rays. If left empty, the global volume aggregate will be used."

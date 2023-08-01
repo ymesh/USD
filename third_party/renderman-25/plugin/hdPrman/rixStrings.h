@@ -21,13 +21,8 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-<<<<<<< HEAD
-#ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RIX_STRINGS_H
-#define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RIX_STRINGS_H
-=======
 #ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RIX_STRINGS_H
 #define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RIX_STRINGS_H
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
 #include "hdPrman/api.h"
 #include "ri.hpp"
@@ -36,8 +31,4 @@ class RixContext;
 
 extern HDPRMAN_API RiPredefinedStrings RixStr;
 
-<<<<<<< HEAD
-#endif
-=======
 #endif // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RIX_STRINGS_H
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0

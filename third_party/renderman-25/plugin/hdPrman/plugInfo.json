@@ -21,15 +21,6 @@
                         "priority": 0,
                         "displayName": "Prman MaterialX Filtering Scene Index"
                     },
-<<<<<<< HEAD
-                    "HdPrman_TerminalsResolvingSceneIndexPlugin" : {
-                        "bases": ["HdSceneIndexPlugin"],
-                        "loadWithRenderer": "Prman",
-                        "priority": 0,
-                        "displayName": "Prman Terminals Resolving Scene Index"
-                    },
-=======
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
                     "HdPrman_VirtualStructResolvingSceneIndexPlugin" : {
                         "bases": ["HdSceneIndexPlugin"],
                         "loadWithRenderer": "Prman",
@@ -48,13 +39,6 @@
                         "priority": 0,
                         "displayName": "Prman Dependency Forwarding Scene Index"
                     },
-<<<<<<< HEAD
-                    "HdPrman_OutputFilterInvalidatingSceneIndexPlugin" : {
-                        "bases": ["HdSceneIndexPlugin"],
-                        "loadWithRenderer": "Prman",
-                        "priority": 0,
-                        "displayName": "Prman Output Filter Invalidating Scene Index"
-=======
                     "HdPrman_RenderTerminalOutputInvalidatingSceneIndexPlugin" : {
                         "bases": ["HdSceneIndexPlugin"],
                         "loadWithRenderer": "Prman",
@@ -66,7 +50,6 @@
                         "loadWithRenderer": "Prman",
                         "priority": 0,
                         "displayName": "Prman Material Primvar Transfer Scene Index"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
                     },
                     "HdPrman_PinnedCurveExpandingSceneIndexPlugin" : {
                         "bases": ["HdSceneIndexPlugin"],
@@ -79,8 +62,6 @@
                         "loadWithRenderer": "Prman",
                         "priority": 0,
                         "displayName": "Prman ExtComputation Primvar Pruning Scene Index"
-<<<<<<< HEAD
-=======
                     },
                     "HdPrman_RenderSettingsFilteringSceneIndexPlugin" : {
                         "bases": ["HdSceneIndexPlugin"],
@@ -93,7 +74,6 @@
                         "loadWithRenderer": "Prman",
                         "priority": 0,
                         "displayName": "Prman Coord Sys Prim Scene Index"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
                     }
                 }
             },

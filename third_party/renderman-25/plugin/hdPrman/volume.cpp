@@ -89,13 +89,6 @@ HdDirtyBits HdPrman_Field::GetInitialDirtyBitsMask() const
     return (HdDirtyBits)mask;
 }
 
-<<<<<<< HEAD
-HdPrman_Volume::HdPrman_Volume(SdfPath const& id)
-    : BASE(id)
-{
-}
-
-=======
 HdPrman_Volume::HdPrman_Volume(SdfPath const& id, const bool isMeshLight)
     : BASE(id)
     , _isMeshLight(isMeshLight)
@@ -107,7 +100,6 @@ bool HdPrman_Volume::_PrototypeOnly()
     return _isMeshLight;
 }
 
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 HdDirtyBits
 HdPrman_Volume::GetInitialDirtyBitsMask() const
 {

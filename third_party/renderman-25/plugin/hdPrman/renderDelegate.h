@@ -21,13 +21,8 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-<<<<<<< HEAD
-#ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_DELEGATE_H
-#define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_DELEGATE_H
-=======
 #ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_DELEGATE_H
 #define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_DELEGATE_H
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
 #include "pxr/pxr.h"
 #include "pxr/imaging/hd/renderDelegate.h"
@@ -51,10 +46,6 @@ PXR_NAMESPACE_OPEN_SCOPE
     ((disableMotionBlur,              "disableMotionBlur"))            \
     ((shutterOpen,                    "shutter:open"))                 \
     ((shutterClose,                   "shutter:close"))                \
-<<<<<<< HEAD
-    ((experimentalRenderSettingsPrimPath,"experimental:renderSettingsPrimPath"))\
-=======
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     ((experimentalSettingsCameraPath, "experimental:settingsCameraPath"))\
     ((experimentalRenderSpec,         "experimental:renderSpec"))      \
     ((delegateRenderProducts,         "delegateRenderProducts"))       \
@@ -116,13 +107,9 @@ public:
     HDPRMAN_API 
     ~HdPrmanRenderDelegate() override;
 
-<<<<<<< HEAD
-    // HdRenderDelegate API implementation.
-=======
     // ------------------------------------------------------------------------
     // Satisfying HdRenderDelegate
     // ------------------------------------------------------------------------
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     HDPRMAN_API
     HdRenderParam *GetRenderParam() const override;
     HDPRMAN_API 
@@ -139,12 +126,6 @@ public:
     HdRenderSettingDescriptorList GetRenderSettingDescriptors() const override;
 
     HDPRMAN_API 
-<<<<<<< HEAD
-    HdRenderSettingsMap GetRenderSettingsMap() const;        
-
-    HDPRMAN_API 
-=======
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     HdRenderPassSharedPtr CreateRenderPass(
                 HdRenderIndex *index,
                 HdRprimCollection const& collection) override;
@@ -195,12 +176,6 @@ public:
     TfTokenVector GetRenderSettingsNamespaces() const override;
 #endif
 
-<<<<<<< HEAD
-    HDPRMAN_API 
-    void SetRenderSetting(TfToken const &key, VtValue const &value) override;
-
-=======
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     /// NOTE: RenderMan has no notion of pausing the render threads.
     ///       We don't return true, because otherwise start/stop causes
     ///       the renderer to reset to increment zero, which gives a poor
@@ -224,11 +199,6 @@ public:
     HDPRMAN_API 
     bool Restart() override;
 
-<<<<<<< HEAD
-    HDPRMAN_API
-    bool IsInteractive() const;
-
-=======
     // ------------------------------------------------------------------------
     // Public (non-virtual) API
     // ------------------------------------------------------------------------
@@ -242,7 +212,6 @@ public:
     HDPRMAN_API
     HdRenderIndex* GetRenderIndex() const;
 
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 private:
     // This class does not support copying.
     HdPrmanRenderDelegate(const HdPrmanRenderDelegate &) = delete;
@@ -263,8 +232,4 @@ protected:
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
-<<<<<<< HEAD
-#endif // EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_DELEGATE_H
-=======
 #endif // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_DELEGATE_H
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0

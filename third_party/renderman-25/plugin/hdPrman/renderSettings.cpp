@@ -22,12 +22,6 @@
 // language governing permissions and limitations under the Apache License.
 //
 #include "hdPrman/renderSettings.h"
-<<<<<<< HEAD
-#include "hdPrman/renderParam.h"
-
-#include "pxr/imaging/hd/sceneDelegate.h"
-
-=======
 #include "hdPrman/debugCodes.h"
 #include "hdPrman/debugUtil.h"
 #include "hdPrman/renderParam.h"
@@ -42,23 +36,16 @@
 
 #include <string>
 #include <iostream> // XXX
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
 PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DEFINE_PRIVATE_TOKENS(
-<<<<<<< HEAD
-    _tokens,
-=======
     _renderTerminalTokens, // properties in PxrRenderTerminalsAPI
     ((outputsRiIntegrator, "outputs:ri:integrator"))
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     ((outputsRiSampleFilters, "outputs:ri:sampleFilters"))
     ((outputsRiDisplayFilters, "outputs:ri:displayFilters"))
 );
 
-<<<<<<< HEAD
-=======
 
 namespace {
 
@@ -111,7 +98,6 @@ _GenerateParamList(VtDictionary const &settings)
 }
 
 
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 HdPrman_RenderSettings::HdPrman_RenderSettings(SdfPath const& id)
     : HdRenderSettings(id)
 {
@@ -130,25 +116,6 @@ void HdPrman_RenderSettings::_Sync(
 {
     HdPrman_RenderParam *param = static_cast<HdPrman_RenderParam*>(renderParam);
 
-<<<<<<< HEAD
-    if (*dirtyBits & HdRenderSettings::DirtyNamespacedSettings) {
-        // NamespacedSettings contains all the Prman-specific Render Settings
-        const VtDictionary& namespacedSettings = GetNamespacedSettings();
-
-        // Set the SampleFilters connected to this Render Settings prim
-        const auto sampleFilterIt = namespacedSettings.find(
-            _tokens->outputsRiSampleFilters.GetString());
-        if (sampleFilterIt != namespacedSettings.end()) {
-            param->SetConnectedSampleFilterPaths(sceneDelegate,
-                sampleFilterIt->second.GetWithDefault<SdfPathVector>());
-        }
-        // Set the DisplayFilters connected to this Render Settings prim
-        const auto displayFilterIt = namespacedSettings.find(
-            _tokens->outputsRiDisplayFilters.GetString());
-        if (displayFilterIt != namespacedSettings.end()) {
-            param->SetConnectedDisplayFilterPaths(sceneDelegate, 
-                displayFilterIt->second.GetWithDefault<SdfPathVector>());
-=======
     // XXX Preserve existing data flow for clients that don't populate the
     //     sceneGlobals.activeRenderSettingsPrim locator at the root prim of the
     //     scene index. In this scenario, integrator, sample and display
@@ -211,7 +178,6 @@ void HdPrman_RenderSettings::_Sync(
 
                 param->SetConnectedDisplayFilterPaths(sceneDelegate, paths);
             }
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
         }
     }
 }

@@ -25,10 +25,7 @@
 
 #include "hdPrman/renderDelegate.h"
 #include "hdPrman/renderParam.h"
-<<<<<<< HEAD
-=======
 #include "hdPrman/utils.h"
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
 #include "pxr/usd/sdr/shaderProperty.h"
 #include "pxr/usd/sdr/registry.h"
@@ -39,11 +36,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DEFINE_PRIVATE_TOKENS(
     _tokens,
-<<<<<<< HEAD
-    (sampleFilterResource)
-=======
     (resource)
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 );
 
 TF_MAKE_STATIC_DATA(NdrTokenVec, _sourceTypes) {
@@ -101,15 +94,9 @@ HdPrman_SampleFilter::_CreateRmanSampleFilter(
                     filterPrimPath.GetText());
             continue;
         }
-<<<<<<< HEAD
-        renderParam->SetParamFromVtValue(
-            RtUString(prop->GetImplementationName().c_str()),
-            param.second, prop->GetType(), rileyNode.params);
-=======
         HdPrman_Utils::SetParamFromVtValue(
             RtUString(prop->GetImplementationName().c_str()),
             param.second, prop->GetType(), &rileyNode.params);
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
     }
     renderParam->AddSampleFilter(sceneDelegate, filterPrimPath, rileyNode);
     return;
@@ -132,11 +119,7 @@ HdPrman_SampleFilter::Sync(
         if (std::find(connectedFilters.begin(), connectedFilters.end(), id)
             != connectedFilters.end()) {
             const VtValue sampleFilterResourceValue =
-<<<<<<< HEAD
-                sceneDelegate->Get(id, _tokens->sampleFilterResource);
-=======
                 sceneDelegate->Get(id, _tokens->resource);
->>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
             if (sampleFilterResourceValue.IsHolding<HdMaterialNode2>()) {
                 HdMaterialNode2 sampleFilterNode =
