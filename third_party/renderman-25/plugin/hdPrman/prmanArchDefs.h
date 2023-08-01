@@ -22,8 +22,13 @@
 // language governing permissions and limitations under the Apache License.
 //
 
+<<<<<<< HEAD
 #ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_ARCH_DEFS_H
 #define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_ARCH_DEFS_H
+=======
+#ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_ARCH_DEFS_H
+#define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_ARCH_DEFS_H
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
 // PRMan depends on a nonstandard set of architecture defines which, when prman
 // is built, are defined in the build script and passed to the compiler as -D
@@ -57,4 +62,8 @@
     #endif
 #endif
 
+<<<<<<< HEAD
 #endif // EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_ARCH_DEFS_H
+=======
+#endif // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_ARCH_DEFS_H
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0

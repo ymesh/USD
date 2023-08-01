@@ -22,17 +22,15 @@
 // language governing permissions and limitations under the Apache License.
 //
 #include "hdPrman/material.h"
-#include "hdPrman/renderParam.h"
 #include "hdPrman/debugCodes.h"
-#include "hdPrman/matfiltConvertPreviewMaterial.h"
-#include "hdPrman/matfiltResolveTerminals.h"
-#include "hdPrman/matfiltResolveVstructs.h"
-#ifdef PXR_MATERIALX_SUPPORT_ENABLED
-#include "hdPrman/matfiltMaterialX.h"
-#endif
+#include "hdPrman/renderParam.h"
+#include "hdPrman/utils.h"
+
 #include "pxr/base/gf/vec3f.h"
 #include "pxr/usd/sdf/types.h"
+#include "pxr/base/tf/getenv.h"
 #include "pxr/base/tf/envSetting.h"
+#include "pxr/base/tf/scopeDescription.h"
 #include "pxr/base/tf/staticData.h"
 #include "pxr/base/tf/staticTokens.h"
 #include "pxr/imaging/hd/light.h"
@@ -45,8 +43,14 @@
 #include "pxr/usd/sdr/shaderNode.h"
 #include "pxr/usd/sdr/shaderProperty.h"
 #include "pxr/usd/sdr/registry.h"
+#include <boost/functional/hash.hpp>
 
 PXR_NAMESPACE_OPEN_SCOPE
+
+TF_DEFINE_ENV_SETTING(HD_PRMAN_MATERIALID, true,
+                      "Enable __materialid as hash of material network");
+static bool _enableMaterialID =
+    TfGetEnvSetting(HD_PRMAN_MATERIALID);
 
 TF_DEFINE_PRIVATE_TOKENS(
     _tokens,
@@ -55,6 +59,8 @@ TF_DEFINE_PRIVATE_TOKENS(
     (OSL)
     (omitFromRender)
     (material)
+    (surface)
+    ((materialid, "__materialid"))
     (light)
     (PrimvarPass)
 );
@@ -68,6 +74,37 @@ TF_MAKE_STATIC_DATA(NdrTokenVec, _sourceTypes) {
 #endif
     };}
 
+struct _HashMaterial {
+    size_t operator()(const HdMaterialNetwork2 &mat) const
+    {
+        size_t v=0;
+        for (TfToken const& primvarName: mat.primvars) {
+            boost::hash_combine(v, primvarName.Hash());
+        }
+        for (auto const& node: mat.nodes) {
+            boost::hash_combine(v, node.first.GetHash());
+            boost::hash_combine(v, node.second.nodeTypeId.Hash());
+            for (auto const& param: node.second.parameters) {
+                boost::hash_combine(v, param.first.Hash());
+                boost::hash_combine(v, param.second.GetHash());
+            }
+            for (auto const& input: node.second.inputConnections) {
+                boost::hash_combine(v, input.first.Hash());
+                for (auto const& conn: input.second) {
+                    boost::hash_combine(v, conn.upstreamNode.GetHash());
+                    boost::hash_combine(v, conn.upstreamOutputName.Hash());
+                }
+            }
+        }
+        for (auto const& term: mat.terminals) {
+            boost::hash_combine(v, term.first.Hash());
+            boost::hash_combine(v, term.second.upstreamNode.GetHash());
+            boost::hash_combine(v, term.second.upstreamOutputName.Hash());
+        }
+        return v;
+    }
+};
+
 TfTokenVector const&
 HdPrmanMaterial::GetShaderSourceTypes()
 {
@@ -77,6 +114,18 @@ HdPrmanMaterial::GetShaderSourceTypes()
 HdMaterialNetwork2 const&
 HdPrmanMaterial::GetMaterialNetwork() const
 {
+    // XXX We could make this API entry point do the sync as needed,
+    // if we passed in the necessary context.  However, we should
+    // remove this and the retained _materialNetwork entirely,
+    // since it is solely used to allow UsdPreviewSurface materials
+    // to supply a PrimvarPass shader that in turn sets a disp bound.
+    // Now that scene indexes are handling UsdPreviewSurface
+    // conversion and material primvar attribute transfer, we should
+    // not need this whole affordance for that case.  In the
+    // meantime, leave this here to guard against mis-usage.
+    std::lock_guard<std::mutex> lock(_syncToRileyMutex);
+    TF_VERIFY(_rileyIsInSync, "Must call SyncToRiley() first");
+
     return _materialNetwork;
 }
 
@@ -84,6 +133,7 @@ HdPrmanMaterial::HdPrmanMaterial(SdfPath const& id)
     : HdMaterial(id)
     , _materialId(riley::MaterialId::InvalidId())
     , _displacementId(riley::DisplacementId::InvalidId())
+    , _rileyIsInSync(false)
 {
     /* NOTHING */
 }
@@ -97,13 +147,15 @@ HdPrmanMaterial::Finalize(HdRenderParam *renderParam)
 {
     HdPrman_RenderParam *param =
         static_cast<HdPrman_RenderParam*>(renderParam);
-    _ResetMaterial(param);
+    riley::Riley *riley = param->AcquireRiley();
+
+    std::lock_guard<std::mutex> lock(_syncToRileyMutex);
+    _ResetMaterialWithLock(riley);
 }
 
 void
-HdPrmanMaterial::_ResetMaterial(HdPrman_RenderParam *renderParam)
+HdPrmanMaterial::_ResetMaterialWithLock(riley::Riley *riley)
 {
-    riley::Riley *riley = renderParam->AcquireRiley();
     if (_materialId != riley::MaterialId::InvalidId()) {
         riley->DeleteMaterial(_materialId);
         _materialId = riley::MaterialId::InvalidId();
@@ -167,13 +219,14 @@ _ConvertNodes(
     HdMaterialNetwork2 const& network,
     SdfPath const& nodePath,
     std::vector<riley::ShadingNode> *result,
-    _PathSet* visitedNodes)
+    _PathSet* visitedNodes,
+    bool elideDefaults)
 {
     // Check if we've processed this node before. If we have, we'll just return.
     // This is not an error, since we often have multiple connection paths
     // leading to the same upstream node.
     if (visitedNodes->count(nodePath) > 0) {
-        return false;
+        return true;
     }
     visitedNodes->insert(nodePath);
 
@@ -191,14 +244,24 @@ _ConvertNodes(
         for (auto const& e: connEntry.second) {
             // This method will just return if we've visited this upstream node
             // before
-            _ConvertNodes(network, e.upstreamNode, result, visitedNodes);
+            _ConvertNodes(network, e.upstreamNode, result, visitedNodes,
+                          elideDefaults);
         }
     }
 
     // Ignore nodes of id "PrimvarPass". This node is a workaround for 
     // UsdPreviewSurface materials and is not a registered shader node.
     if (node.nodeTypeId == _tokens->PrimvarPass) {
-        return false;
+        return true;
+    }
+
+    // Ignore nodes of id "PxrDisplace" that lack both parameters
+    // and connections.  This can save render startup time by avoiding
+    // creating unnecessary Riley displacement networks.
+    if ((node.nodeTypeId == _tokens->PxrDisplace)
+        && node.parameters.empty()
+        && node.inputConnections.empty()) {
+        return true;
     }
 
     // Find shader registry entry.
@@ -275,6 +338,10 @@ _ConvertNodes(
                      param.first.GetText(),
                      sdrEntry->GetName().c_str(),
                      nodePath.GetText());
+            continue;
+        }
+        // Skip parameter values that match schema-defined defaults
+        if (elideDefaults && param.second == prop->GetDefaultValue()) {
             continue;
         }
         // Filter by omitFromRender metadata to pre-empt warnings
@@ -455,7 +522,7 @@ _ConvertNodes(
             bool isLight = (sn.type == riley::ShadingNode::Type::k_Light &&
                             param.first == HdLightTokens->textureFile);
 
-            RtUString v = HdPrman_ResolveAssetToRtUString(
+            RtUString v = HdPrman_Utils::ResolveAssetToRtUString(
                 param.second.UncheckedGet<SdfAssetPath>(),
                 !isLight, // only flip if NOT a light
                 isLight ? _tokens->light.GetText() : 
@@ -577,9 +644,14 @@ HdPrman_ConvertHdMaterialNetwork2ToRmanNodes(
     SdfPath const& nodePath,
     std::vector<riley::ShadingNode> *result)
 {
+    // If XPU_INTERACTIVE_SHADER_EDITS is true, do not elide defaults.
+    // This makes it faster to edit parameter values later.
+    // Look this env var up here since it can be changed in-app.
+    bool elideDefaults = !TfGetenvBool("XPU_INTERACTIVE_SHADER_EDITS", false);
+
     _PathSet visitedNodes;
     return _ConvertNodes(
-        network, nodePath, result, &visitedNodes);
+        network, nodePath, result, &visitedNodes, elideDefaults);
 }
     
 // Debug helper
@@ -620,48 +692,70 @@ HdPrman_DumpNetwork(HdMaterialNetwork2 const& network, SdfPath const& id)
 static void
 _ConvertHdMaterialNetwork2ToRman(
     HdSceneDelegate *sceneDelegate,
-    HdPrman_RenderParam *renderParam,
+    riley::Riley *riley,
     SdfPath const& id,
     const HdMaterialNetwork2 &network,
     riley::MaterialId *materialId,
     riley::DisplacementId *displacementId)
 {
     HD_TRACE_FUNCTION();
-    riley::Riley *riley = renderParam->AcquireRiley();
     std::vector<riley::ShadingNode> nodes;
     nodes.reserve(network.nodes.size());
     bool materialFound = false, displacementFound = false;
+
     for (auto const& terminal: network.terminals) {
         if (HdPrman_ConvertHdMaterialNetwork2ToRmanNodes(
                 network, terminal.second.upstreamNode, &nodes)) {
+            if (nodes.empty()) {
+                // Already emitted a specific warning.
+                continue;
+            }
+            // Compute a hash of the material network, and pass it as
+            // __materialid on the terminal shader node.  RenderMan uses
+            // this detect and re-use material netowrks, which is valuable
+            // in production scenes where upstream scene instancing did
+            // not already catch the reuse.
+            if (_enableMaterialID) {
+                static RtUString const materialid = RtUString("__materialid");
+                const size_t networkHash = _HashMaterial()(network);
+                nodes.back().params.SetString(
+                    materialid,
+                    RtUString(TfStringify(networkHash).c_str()));
+            }
             if (terminal.first == HdMaterialTerminalTokens->surface ||
                 terminal.first == HdMaterialTerminalTokens->volume) {
                 // Create or modify Riley material.
                 materialFound = true;
+                TRACE_SCOPE("_ConvertHdMaterialNetwork2ToRman - Update Riley Material");
                 if (*materialId == riley::MaterialId::InvalidId()) {
+                    TRACE_SCOPE("riley::CreateMaterial");
                     *materialId = riley->CreateMaterial(
                         riley::UserId(stats::AddDataLocation(id.GetText()).GetValue()),
                         {static_cast<uint32_t>(nodes.size()), &nodes[0]},
                         RtParamList());
                 } else {
+                    TRACE_SCOPE("riley::ModifyMaterial");
                     riley::ShadingNetwork const material = {
                         static_cast<uint32_t>(nodes.size()), &nodes[0]};
                     riley->ModifyMaterial(*materialId, &material, nullptr);
                 }
                 if (*materialId == riley::MaterialId::InvalidId()) {
-                    TF_RUNTIME_ERROR("Failed to create material %s\n",
+                    TF_WARN("Failed to create material %s\n",
                                      id.GetText());
                 }
             } else if (terminal.first ==
                        HdMaterialTerminalTokens->displacement) {
                 // Create or modify Riley displacement.
+                TRACE_SCOPE("_ConvertHdMaterialNetwork2ToRman - Update Riley Displacement");
                 displacementFound = true;
                 if (*displacementId == riley::DisplacementId::InvalidId()) {
+                    TRACE_SCOPE("riley::CreateDisplacement");
                     *displacementId = riley->CreateDisplacement(
                         riley::UserId(stats::AddDataLocation(id.GetText()).GetValue()),
                         {static_cast<uint32_t>(nodes.size()), &nodes[0]},
                         RtParamList());
                 } else {
+                    TRACE_SCOPE("riley::ModifyDisplacement");
                     riley::ShadingNetwork const displacement = {
                         static_cast<uint32_t>(nodes.size()), &nodes[0]};
                     riley::DisplacementResult const result =
@@ -684,12 +778,12 @@ _ConvertHdMaterialNetwork2ToRman(
                     }
                 }
                 if (*displacementId == riley::DisplacementId::InvalidId()) {
-                    TF_RUNTIME_ERROR("Failed to create displacement %s\n",
+                    TF_WARN("Failed to create displacement %s\n",
                                      id.GetText());
                 }
             }
         } else {
-            TF_RUNTIME_ERROR("Failed to convert nodes for %s\n", id.GetText());
+            TF_WARN("Failed to convert nodes for %s\n", id.GetText());
         }
         nodes.clear();
     }
@@ -711,38 +805,73 @@ HdPrmanMaterial::Sync(HdSceneDelegate *sceneDelegate,
                       HdDirtyBits     *dirtyBits)
 {  
     HD_TRACE_FUNCTION();
+
     HdPrman_RenderParam *param =
         static_cast<HdPrman_RenderParam*>(renderParam);
 
-    SdfPath id = GetId();
-
     if ((*dirtyBits & HdMaterial::DirtyResource) ||
         (*dirtyBits & HdMaterial::DirtyParams)) {
-        VtValue hdMatVal = sceneDelegate->GetMaterialResource(id);
 
-        if (hdMatVal.IsEmpty()) {
-            if (TfDebug::IsEnabled(HDPRMAN_MATERIALS)) {
-                printf("no material network found for %s:\n", id.GetText());
-            }
-            _ResetMaterial(param);
-        } else if (hdMatVal.IsHolding<HdMaterialNetworkMap>()) {
-            // Convert HdMaterial to HdMaterialNetwork2 form.
-            _materialNetwork = HdConvertToHdMaterialNetwork2(
-                    hdMatVal.UncheckedGet<HdMaterialNetworkMap>());
-            if (TfDebug::IsEnabled(HDPRMAN_MATERIALS)) {
-                HdPrman_DumpNetwork(_materialNetwork, id);
-            }
-            _ConvertHdMaterialNetwork2ToRman(sceneDelegate,
-                                             param, id, _materialNetwork,
-                                             &_materialId, &_displacementId);
+        std::lock_guard<std::mutex> lock(_syncToRileyMutex);
+        if (_rileyIsInSync) {
+            // Material was previously pushed to Riley, so sync
+            // immediately, because we cannot assume there will be
+            // a subsequent gprim update that would pull on this material
+            _rileyIsInSync = false;
+            _SyncToRileyWithLock(sceneDelegate, param->AcquireRiley());
         } else {
-            TF_CODING_ERROR("HdPrmanMaterial: Expected material resource "
-                "for <%s> to contain HdMaterialNodes, but found %s instead.",
-                id.GetText(), hdMatVal.GetTypeName().c_str());
-            _ResetMaterial(param);
+            // Otherwise, wait until a gprim pulls on this material
+            // to sync it to Riley.  This avoids doing any further
+            // work for unused materials, and moves remaining work
+            // from single-threaded Hydra sprim sync
+            // to multi-threaded Hydra rprim sync.
         }
     }
     *dirtyBits = HdChangeTracker::Clean;
+}
+
+void
+HdPrmanMaterial::SyncToRiley(
+    HdSceneDelegate *sceneDelegate,
+    riley::Riley *riley)
+{
+    {
+        TRACE_SCOPE("HdPrmanMaterial::SyncToRiley - wait for lock");
+        _syncToRileyMutex.lock();
+    }
+    std::lock_guard<std::mutex> lock(_syncToRileyMutex, std::adopt_lock);
+    if (!_rileyIsInSync) {
+        _SyncToRileyWithLock(sceneDelegate, riley);
+    }
+}
+
+void
+HdPrmanMaterial::_SyncToRileyWithLock(
+    HdSceneDelegate *sceneDelegate,
+    riley::Riley *riley)
+{
+    SdfPath const& id = GetId();
+    VtValue hdMatVal = sceneDelegate->GetMaterialResource(id);
+
+    if (hdMatVal.IsHolding<HdMaterialNetworkMap>()) {
+        TF_DESCRIBE_SCOPE("Processing material %s", id.GetName().c_str());
+        // Convert HdMaterial to HdMaterialNetwork2 form.
+        _materialNetwork = HdConvertToHdMaterialNetwork2(
+                hdMatVal.UncheckedGet<HdMaterialNetworkMap>());
+        if (TfDebug::IsEnabled(HDPRMAN_MATERIALS)) {
+            HdPrman_DumpNetwork(_materialNetwork, id);
+        }
+        _ConvertHdMaterialNetwork2ToRman(sceneDelegate,
+                                         riley, id, _materialNetwork,
+                                         &_materialId, &_displacementId);
+    } else {
+        TF_CODING_ERROR("HdPrmanMaterial: Expected material resource "
+            "for <%s> to contain material, but found %s instead.",
+            id.GetText(), hdMatVal.GetTypeName().c_str());
+        _ResetMaterialWithLock(riley);
+    }
+
+    _rileyIsInSync = true;
 }
 
 /* virtual */

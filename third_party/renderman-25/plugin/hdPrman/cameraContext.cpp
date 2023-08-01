@@ -25,6 +25,7 @@
 
 #include "hdPrman/camera.h"
 #include "hdPrman/rixStrings.h"
+#include "hdPrman/utils.h"
 
 #include "Riley.h"
 #include "RixShadingUtils.h"
@@ -45,7 +46,7 @@ static const RtUString _us_main_cam_projection("main_cam_projection");
 // need to be ported to PxrProjection and then back-ported to the PxrCamera
 // in RenderMan 24.
 //
-TF_DEFINE_ENV_SETTING(HD_PRMAN_SUPPORT_LENS_DISTORTION, false,
+TF_DEFINE_ENV_SETTING(HD_PRMAN_SUPPORT_LENS_DISTORTION, true,
                       "Switches camera shader from PxrPerspective to "
                       "PxrProjection/PxrCamera so that lens distortion "
                       "parametrers are supported.");
@@ -468,7 +469,7 @@ _ToRtMatrices(
     static const GfMatrix4d flipZMatrix(GfVec4d(1.0, 1.0, -1.0, 1.0));
     
     for (size_t i = 0; i < samples.count; ++i) {
-        matrices[i] = HdPrman_GfMatrixToRtMatrix(
+        matrices[i] = HdPrman_Utils::GfMatrixToRtMatrix(
             flipZ
                 ? flipZMatrix * samples.values[i]
                 : samples.values[i]);
@@ -843,6 +844,12 @@ HdPrman_CameraContext::GetCamera(
             renderIndex->GetSprim(
                 HdPrimTypeTokens->camera,
                 _cameraPath));
+}
+
+const CameraUtilFraming &
+HdPrman_CameraContext::GetFraming() const
+{
+    return _framing;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

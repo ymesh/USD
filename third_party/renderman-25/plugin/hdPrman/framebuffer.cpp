@@ -141,8 +141,6 @@ static PtDspyError HydraDspyImageData(
         return PkDspyErrorBadParams;
     }
 
-    buf->newData = true;
-
     if (buf->pendingClear) {
         buf->pendingClear = false;
         buf->Clear();
@@ -287,6 +285,9 @@ static PtDspyError HydraDspyImageData(
 
         dataOffset += cc;
     }
+
+    buf->newData = true;
+
     return PkDspyErrorNone;
 }
 

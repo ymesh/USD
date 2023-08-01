@@ -21,8 +21,8 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_CONTEXT_H
-#define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_CONTEXT_H
+#ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_CONTEXT_H
+#define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_CONTEXT_H
 
 #include "pxr/pxr.h"
 #include "hdPrman/api.h"
@@ -143,6 +143,9 @@ public:
     /// For convenience, get camera at camera path from render index.
     const HdPrmanCamera * GetCamera(const HdRenderIndex *renderIndex) const;
 
+    /// Get the camera framing.
+    const CameraUtilFraming &GetFraming() const;
+
 private:
     /// Computes the screen window for the camera and conforms
     /// it to have the display window's aspect ratio using the
@@ -180,4 +183,4 @@ private:
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
-#endif  // EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_CONTEXT_H
+#endif  // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_CONTEXT_H

@@ -21,8 +21,8 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MAT_FILT_SCENE_INDEX_PLUGINS_H
-#define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MAT_FILT_SCENE_INDEX_PLUGINS_H
+#ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MAT_FILT_SCENE_INDEX_PLUGINS_H
+#define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MAT_FILT_SCENE_INDEX_PLUGINS_H
 
 #include "pxr/pxr.h"
 #include "pxr/imaging/hd/sceneIndexPlugin.h"
@@ -73,25 +73,6 @@ protected:
 };
 
 /// ----------------------------------------------------------------------------
-/// \class HdPrman_TerminalsResolvingSceneIndexPlugin
-///
-/// Plugin that provides a scene index that renames termianls (typically
-/// prefixed with "ri:") to the standard Hd terminal tokens.
-///
-/// This plugin is registered with the scene index plugin registry for Prman.
-///
-class HdPrman_TerminalsResolvingSceneIndexPlugin : public HdSceneIndexPlugin
-{
-public:
-    HdPrman_TerminalsResolvingSceneIndexPlugin();
-
-protected:
-    HdSceneIndexBaseRefPtr _AppendSceneIndex(
-        const HdSceneIndexBaseRefPtr &inputScene,
-        const HdContainerDataSourceHandle &inputArgs) override;
-};
-
-/// ----------------------------------------------------------------------------
 /// \class HdPrman_VirtualStructResolvingSceneIndexPlugin
 ///
 /// Plugin that provides a scene index that expands "virtual struct"
@@ -112,4 +93,4 @@ protected:
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
-#endif //EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MAT_FILT_SCENE_INDEX_PLUGINS_H
+#endif //EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MAT_FILT_SCENE_INDEX_PLUGINS_H

@@ -21,8 +21,13 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
+<<<<<<< HEAD
 #ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_TOKENS_H
 #define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_TOKENS_H
+=======
+#ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_TOKENS_H
+#define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_TOKENS_H
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
 #include "pxr/pxr.h"
 #include "hdPrman/api.h"
@@ -31,10 +36,20 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 #define HD_PRMAN_TOKENS                         \
+<<<<<<< HEAD
     (meshLightSourceGeom)                       
+=======
+    (meshLightSourceMesh)                       \
+    (meshLightSourceVolume)                     \
+    (sourceGeom)
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
 TF_DECLARE_PUBLIC_TOKENS(HdPrmanTokens, HDPRMAN_API, HD_PRMAN_TOKENS);
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
+<<<<<<< HEAD
 #endif //EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_TOKENS_H
+=======
+#endif //EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_TOKENS_H
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0

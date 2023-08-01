@@ -21,12 +21,13 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MATERIAL_H
-#define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MATERIAL_H
+#ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MATERIAL_H
+#define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MATERIAL_H
 
 #include "pxr/pxr.h"
 #include "pxr/imaging/hd/material.h"
 #include "Riley.h"
+#include <mutex>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -67,13 +68,25 @@ public:
     /// Return the material network after filtering.
     HdMaterialNetwork2 const& GetMaterialNetwork() const;
 
+    /// Make sure this material has been updated in Riley.
+    void SyncToRiley(
+        HdSceneDelegate *sceneDelegate,
+        riley::Riley *riley);
+
 private:
-    void _ResetMaterial(HdPrman_RenderParam *renderParam);
+    void _ResetMaterialWithLock(riley::Riley *riley);
+    void _SyncToRileyWithLock(
+        HdSceneDelegate *sceneDelegate,
+        riley::Riley *riley);
 
     riley::MaterialId _materialId;
     riley::DisplacementId _displacementId;
 
+    // XXX only used to set disp bound for UsdPreviewMaterial cases
     HdMaterialNetwork2 _materialNetwork;
+
+    mutable std::mutex _syncToRileyMutex;
+    bool _rileyIsInSync;
 };
 
 /// Helper function for converting an HdMaterialNetwork into Riley shading
@@ -93,4 +106,4 @@ HdPrmanMaterial_GetFallbackSurfaceMaterialNetwork();
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
-#endif  // EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MATERIAL_H
+#endif  // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_MATERIAL_H

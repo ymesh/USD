@@ -21,20 +21,39 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_DEBUG_UTIL_H
-#define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_DEBUG_UTIL_H
+#ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_DEBUG_UTIL_H
+#define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_DEBUG_UTIL_H
 
 #include "pxr/pxr.h"
-#include "pxr/base/arch/stackTrace.h"
-#include "hdPrman/renderParam.h"
+
+#include "pxr/base/gf/matrix4d.h"
+
+#include "RiTypesHelper.h"
+
 #include <string>
+#include <vector>
 
 PXR_NAMESPACE_OPEN_SCOPE
+
+class SdfPath;
+class TfCallContext;
 
 namespace HdPrmanDebugUtil {
 
 std::string
-RtParamListToString(const RtParamList& params, const std::string& name = "");
+MatrixToString(
+    const GfMatrix4d& mat,
+    const int indent = 0,
+    const int precision = 0);
+
+std::string
+MatrixToString(
+    const RtMatrix4x4& mat,
+    const int indent = 0,
+    const int precision = 0);
+
+std::string
+RtParamListToString(const RtParamList& params, const int indent = 0);
 
 std::string
 GetCallerAsString(const TfCallContext& ctx);
@@ -60,4 +79,4 @@ SdfPathVecToString(const std::vector<SdfPath>& vec);
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
-#endif // EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_DEBUG_UTIL_H
+#endif // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_DEBUG_UTIL_H

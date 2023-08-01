@@ -21,8 +21,8 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_LIGHT_H
-#define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_LIGHT_H
+#ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_LIGHT_H
+#define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_LIGHT_H
 
 #include "pxr/pxr.h"
 #include "pxr/imaging/hd/light.h"
@@ -37,7 +37,7 @@ class HdPrman_RenderParam;
 ///
 /// A representation for lights.
 ///
-class HdPrmanLight final : public HdLight 
+class HdPrmanLight final : public HdLight
 {
 public:
     HdPrmanLight(SdfPath const& id, TfToken const& lightType);
@@ -53,28 +53,26 @@ public:
     /// Typically this would be all dirty bits.
     HdDirtyBits GetInitialDirtyBitsMask() const override;
 
-    /// Return true if this light is valid.
-    bool IsValid() const;
-
     void Finalize(HdRenderParam *renderParam) override;
 
 private:
-    void _ResetLight(HdPrman_RenderParam *renderParam, bool clearFilterPaths);
 
     const TfToken _hdLightType;
     riley::LightShaderId _shaderId;
     riley::LightInstanceId _instanceId;
-    riley::GeometryPrototypeId _groupPrototypeId;
+    
+    // state for change tracking
     riley::GeometryPrototypeId _geometryPrototypeId;
-    riley::MaterialId _instanceMaterialId;
-
+    SdfPath _sourceGeomPath;
+    RtUString _lightShaderType;
     TfToken _lightLink;
     SdfPathVector _lightFilterPaths;
     std::vector<TfToken> _lightFilterLinks;
-    SdfPath _sourceMeshPath;
+    TfToken _shadowLink;
+    std::vector<riley::CoordinateSystemId> _coordSysIds;
 };
 
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
-#endif  // EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_LIGHT_H
+#endif  // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_LIGHT_H

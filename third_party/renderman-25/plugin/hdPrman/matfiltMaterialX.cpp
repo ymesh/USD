@@ -56,6 +56,8 @@
 #include <fstream>
 #endif
 
+#include <mutex>
+
 namespace mx = MaterialX;
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -919,6 +921,15 @@ MatfiltMaterialX(
             netInterface->GetNodeInputConnectionNames(terminalNodeName);
         // If we have a nodegraph (i.e., input into the terminal node)...
         if (!cNames.empty()) {
+            // Serialize MaterialX usage to avoid crashes.
+            //
+            // XXX It may be the case that a finer-grained locking
+            //     pattern can be used here.  Starting with a coarse
+            //     lock to establish a basic level of safety.
+            //
+            static std::mutex materialXMutex;
+            std::lock_guard<std::mutex> lock(materialXMutex);
+
             // Load Standard Libraries/setup SearchPaths (for mxDoc and
             // mxShaderGen)
             mx::FilePathVec libraryFolders;

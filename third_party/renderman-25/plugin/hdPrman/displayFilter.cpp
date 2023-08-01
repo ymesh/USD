@@ -25,6 +25,7 @@
 
 #include "hdPrman/renderDelegate.h"
 #include "hdPrman/renderParam.h"
+#include "hdPrman/utils.h"
 
 #include "pxr/usd/sdr/shaderProperty.h"
 #include "pxr/usd/sdr/registry.h"
@@ -35,7 +36,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DEFINE_PRIVATE_TOKENS(
     _tokens,
-    (displayFilterResource)
+    (resource)
 );
 
 TF_MAKE_STATIC_DATA(NdrTokenVec, _sourceTypes) {
@@ -93,9 +94,9 @@ HdPrman_DisplayFilter::_CreateRmanDisplayFilter(
                     filterPrimPath.GetText());
             continue;
         }
-        renderParam->SetParamFromVtValue(
+        HdPrman_Utils::SetParamFromVtValue(
             RtUString(prop->GetImplementationName().c_str()),
-            param.second, prop->GetType(), rileyNode.params);
+            param.second, prop->GetType(), &rileyNode.params);
     }
     renderParam->AddDisplayFilter(sceneDelegate, filterPrimPath, rileyNode);
     return;
@@ -118,7 +119,7 @@ HdPrman_DisplayFilter::Sync(
         if (std::find(connectedFilters.begin(), connectedFilters.end(), id)
             != connectedFilters.end()) {
             const VtValue displayFilterResourceValue =
-                sceneDelegate->Get(id, _tokens->displayFilterResource);
+                sceneDelegate->Get(id, _tokens->resource);
 
             if (displayFilterResourceValue.IsHolding<HdMaterialNode2>()) {
                 HdMaterialNode2 displayFilterNode =

@@ -23,19 +23,73 @@
 //
 #include "hdPrman/debugUtil.h"
 
+#include "pxr/base/arch/stackTrace.h"
+#include "pxr/base/tf/callContext.h"
+#include "pxr/base/tf/stringUtils.h"
+#include "pxr/usd/sdf/path.h"
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 namespace HdPrmanDebugUtil {
 
-std::string 
-_FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
-    static const char* Vec3Fmt = "(%f, %f, %f)";
-    static const char* Vec4Fmt = "(%f, %f, %f, %f)";
-    static const char* Mat4x4Fmt = 
-        "((%f, %f, %f, %f), (%f, %f, %f, %f), (%f, %f, %f, %f), (%f, %f, %f, %f))";
-    
+static const int cw = 3; // length of "─"
+static const char empty[] = "";
+static const char line[] = "────────────────────";
+static const char fmt[] = 
+             "%01$+*20$.*17$f  %02$+*21$.*17$f  %03$+*22$.*17$f │ %04$+*23$.*17$f\n"
+    "%19$*18$s%05$+*20$.*17$f  %06$+*21$.*17$f  %07$+*22$.*17$f │ %08$+*23$.*17$f\n"
+    "%19$*18$s%09$+*20$.*17$f  %10$+*21$.*17$f  %11$+*22$.*17$f │ %12$+*23$.*17$f\n"
+    "%19$*18$s%28$.*24$s"   "──%28$.*25$s"   "──%28$.*26$s"   "─┼─%28$.*27$s"   "\n"
+    "%19$*18$s%13$+*20$.*17$f  %14$+*21$.*17$f  %15$+*22$.*17$f │ %16$+*23$.*17$f";
+
+std::string
+MatrixToString(const GfMatrix4d& mat, const int indent, const int precision)
+{
+    int width[4] = {0, 0, 0, 0};
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            width[i] = std::max(width[i],
+                3 + precision + (int)log10(abs(mat[i][j])));
+        }
+    }
+
+    return TfStringPrintf(fmt,
+        mat[0][0], mat[1][0], mat[2][0], mat[3][0],
+        mat[0][1], mat[1][1], mat[2][1], mat[3][1],
+        mat[0][2], mat[1][2], mat[2][2], mat[3][2],
+        mat[0][3], mat[1][3], mat[2][3], mat[3][3], 
+        precision, indent, empty, 
+        width[0], width[1], width[2], width[3],
+        cw * width[0], cw * width[1], cw * width[2], cw * width[3],
+        line);
+}
+
+std::string
+MatrixToString(const RtMatrix4x4& mat, const int indent, const int precision)
+{
+    int width[4] = {0, 0, 0, 0};
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            width[i] = std::max(width[i],
+                3 + precision + (int)log10(abs(mat.m[i][j])));
+        }
+    }
+
+    return TfStringPrintf(fmt,
+        mat.m[0][0], mat.m[1][0], mat.m[2][0], mat.m[3][0],
+        mat.m[0][1], mat.m[1][1], mat.m[2][1], mat.m[3][1],
+        mat.m[0][2], mat.m[1][2], mat.m[2][2], mat.m[3][2],
+        mat.m[0][3], mat.m[1][3], mat.m[2][3], mat.m[3][3], 
+        precision, indent, empty, 
+        width[0], width[1], width[2], width[3],
+        cw * width[0], cw * width[1], cw * width[2], cw * width[3],
+        line);
+}
+
+std::string
+_GetParamPrefix(const RtParamList::ParamInfo& info)
+{
     std::string out;
-    std::string val;
     switch (info.detail) {
         case RtDetailType::k_constant: out += "constant "; break;
         case RtDetailType::k_uniform: out += "uniform "; break;
@@ -45,10 +99,52 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
         case RtDetailType::k_reference: out += "reference "; break;
         case RtDetailType::k_invalid: out += "invalid "; break;
     }
+    switch (info.type) {
+        case RtDataType::k_integer: out += "integer"; break;
+        case RtDataType::k_float: out += "float"; break;
+        case RtDataType::k_color: out += "color"; break;
+        case RtDataType::k_point: out += "point"; break;
+        case RtDataType::k_vector: out += "vector"; break;
+        case RtDataType::k_normal: out += "normal"; break;
+        case RtDataType::k_hpoint: out += "hpoint"; break;
+        case RtDataType::k_mpoint: out += "mpoint"; break;
+        case RtDataType::k_matrix: out += "matrix"; break;
+        case RtDataType::k_string: out += "string"; break;
+        case RtDataType::k_bxdf: out += "bxdf"; break;
+        case RtDataType::k_lightfilter: out += "lightfilter"; break;
+        case RtDataType::k_samplefilter: out += "samplefilter"; break;
+        case RtDataType::k_displayfilter: out += "displayfilter"; break;
+        case RtDataType::k_struct: out += "struct"; break;
+    }
+    if (info.array) {
+        out += TfStringPrintf("[%u]", info.length);
+    }
+    out += TfStringPrintf(" %s", info.name.CStr());
+    if (info.detail == RtDetailType::k_reference) {
+        out += ".connect";
+    }
+    if (info.motion) {
+        out += ".timesamples";
+    }
+    out += " = ";
+    return out;
+}
+
+std::string 
+_FormatParam(
+    const RtParamList::ParamInfo& info,
+    const RtParamList& _params,
+    const int indent = 0) {
+
+    static const char* Vec3Fmt = "(%f, %f, %f)";
+    static const char* Vec4Fmt = "(%f, %f, %f, %f)";
+    
+    const std::string prefix = _GetParamPrefix(info);
+    const int fullIndent = indent + (int)prefix.size();
     RtParamList& params = const_cast<RtParamList&>(_params);
+    std::string val;
     switch (info.type) {
         case RtDataType::k_integer: {
-            out += "integer";
             if (info.array && info.detail == RtDetailType::k_reference) {
                 const RtUString* value = params.GetIntegerReferenceArray(
                     info.name, info.length);
@@ -87,7 +183,6 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
         case RtDataType::k_float: {
-            out += "float";
             if (info.array && info.detail == RtDetailType::k_reference) {
                 const RtUString* value = params.GetFloatReferenceArray(
                     info.name, info.length);
@@ -126,7 +221,6 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
         case RtDataType::k_color: {
-            out += "color";
             if (info.array && info.detail == RtDetailType::k_reference) {
                 const RtUString* value = params.GetColorReferenceArray(
                     info.name, info.length);
@@ -166,7 +260,6 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
         case RtDataType::k_point: {
-            out += "point";
             if (info.array && info.detail == RtDetailType::k_reference) {
                 const RtUString* value = params.GetPointReferenceArray(
                     info.name, info.length);
@@ -206,7 +299,6 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
         case RtDataType::k_vector: {
-            out += "vector";
             if (info.array && info.detail == RtDetailType::k_reference) {
                 const RtUString* value = params.GetVectorReferenceArray(
                     info.name, info.length);
@@ -246,7 +338,6 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
         case RtDataType::k_normal: {
-            out += "normal";
             if (info.array && info.detail == RtDetailType::k_reference) {
                 const RtUString* value = params.GetNormalReferenceArray(
                     info.name, info.length);
@@ -286,7 +377,6 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
         case RtDataType::k_hpoint: {
-            out += "hpoint";
             if (info.array) {
                 const RtPoint4* value = params.GetHpointArray(
                     info.name, info.length);
@@ -311,42 +401,28 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
         case RtDataType::k_mpoint: {
-            out += "mpoint";
             if (info.array) {
                 const RtMatrix4x4* value = params.GetMpointArray(
                     info.name, info.length);
                 for (uint32_t i = 0; i < info.length; ++i) {
                     if (!val.empty()) {
-                        val += ", ";
-                    } else {
-                        val += "(";
+                        val += TfStringPrintf(",\n%*s", fullIndent, "");
                     }
                     RtMatrix4x4 mpoint = *(value+i);
-                    val += TfStringPrintf(
-                        Mat4x4Fmt,
-                        mpoint[0], mpoint[1], mpoint[2], mpoint[3],
-                        mpoint[4], mpoint[5], mpoint[6], mpoint[7],
-                        mpoint[8], mpoint[9], mpoint[10], mpoint[11],
-                        mpoint[12], mpoint[13], mpoint[14], mpoint[15]);
+                    val += MatrixToString(mpoint, fullIndent);
                 }
-                val += ")";
             } else {
                 RtMatrix4x4 value;
                 if (params.GetMpoint(info.name, value)) {
-                    val = TfStringPrintf(
-                        Mat4x4Fmt,
-                        value[0], value[1], value[2], value[3],
-                        value[4], value[5], value[6], value[7],
-                        value[8], value[9], value[10], value[11],
-                        value[12], value[13], value[14], value[15]);
+                    val += MatrixToString(value, fullIndent);
                 }
             }
             break;
         }
         case RtDataType::k_matrix: {
-            out += "matrix";
             if (info.array && info.detail == RtDetailType::k_reference) {
-                const RtUString* value = params.GetMatrixReferenceArray(info.name, info.length);
+                const RtUString* value = params.GetMatrixReferenceArray(
+                    info.name, info.length);
                 for (uint32_t i = 0; i < info.length; ++i) {
                     if (!val.empty()) {
                         val += ", ";
@@ -362,39 +438,27 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
                     val = TfStringPrintf("<%s>", value.CStr());
                 }
             } else if (info.array) {
-                const RtMatrix4x4* value = params.GetMatrixArray(info.name, info.length);
+                const RtMatrix4x4* value = params.GetMatrixArray(
+                    info.name, info.length);
                 for (uint32_t i = 0; i < info.length; ++i) {
                     if (!val.empty()) {
-                        val += ", ";
-                    } else {
-                        val += "(";
+                        val += TfStringPrintf(",\n%*s", fullIndent, "");
                     }
                     RtMatrix4x4 matrix = *(value+i);
-                    val += TfStringPrintf(
-                        Mat4x4Fmt,
-                        matrix[0], matrix[1], matrix[2], matrix[3],
-                        matrix[4], matrix[5], matrix[6], matrix[7],
-                        matrix[8], matrix[9], matrix[10], matrix[11],
-                        matrix[12], matrix[13], matrix[14], matrix[15]);
+                    val += MatrixToString(matrix, fullIndent);
                 }
-                val += ")";
             } else {
                 RtMatrix4x4 value;
                 if (params.GetMatrix(info.name, value)) {
-                    val = TfStringPrintf(
-                        Mat4x4Fmt,
-                        value[0], value[1], value[2], value[3],
-                        value[4], value[5], value[6], value[7],
-                        value[8], value[9], value[10], value[11],
-                        value[12], value[13], value[14], value[15]);
+                    val += MatrixToString(value, fullIndent);
                 }
             }
             break;
         }
         case RtDataType::k_string: {
-            out += "string";
             if (info.array && info.detail == RtDetailType::k_reference) {
-                const RtUString* value = params.GetStringReferenceArray(info.name, info.length);
+                const RtUString* value = params.GetStringReferenceArray(
+                    info.name, info.length);
                 for (uint32_t i = 0; i < info.length; ++i) {
                     if (!val.empty()) {
                         val += ", ";
@@ -410,7 +474,8 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
                     val = TfStringPrintf("<%s>", value.CStr());
                 }
             } else if (info.array) {
-                const RtUString* value = params.GetStringArray(info.name, info.length);
+                const RtUString* value = params.GetStringArray(
+                    info.name, info.length);
                 for (uint32_t i = 0; i < info.length; ++i) {
                     if (!val.empty()) {
                         val += ", ";
@@ -429,9 +494,9 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
         case RtDataType::k_bxdf: {
-            out += "bxdf";
             if (info.array && info.detail == RtDetailType::k_reference) {
-                const RtUString* value = params.GetBxdfReferenceArray(info.name, info.length);
+                const RtUString* value = params.GetBxdfReferenceArray(
+                    info.name, info.length);
                 for (uint32_t i = 0; i < info.length; ++i) {
                     if (!val.empty()) {
                         val += ", ";
@@ -450,9 +515,9 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
         case RtDataType::k_lightfilter: {
-            out += "lightfilter";
             if (info.array && info.detail == RtDetailType::k_reference) {
-                const RtUString* value = params.GetLightFilterReferenceArray(info.name, info.length);
+                const RtUString* value = params.GetLightFilterReferenceArray(
+                    info.name, info.length);
                 for (uint32_t i = 0; i < info.length; ++i) {
                     if (!val.empty()) {
                         val += ", ";
@@ -471,9 +536,9 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
         case RtDataType::k_samplefilter: {
-            out += "samplefilter";
             if (info.array && info.detail == RtDetailType::k_reference) {
-                const RtUString* value = params.GetSampleFilterReferenceArray(info.name, info.length);
+                const RtUString* value = params.GetSampleFilterReferenceArray(
+                    info.name, info.length);
                 for (uint32_t i = 0; i < info.length; ++i) {
                     if (!val.empty()) {
                         val += ", ";
@@ -492,9 +557,9 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
         case RtDataType::k_displayfilter: {
-            out += "displayfilter";
             if (info.array && info.detail == RtDetailType::k_reference) {
-                const RtUString* value = params.GetDisplayFilterReferenceArray(info.name, info.length);
+                const RtUString* value = params.GetDisplayFilterReferenceArray(
+                    info.name, info.length);
                 for (uint32_t i = 0; i < info.length; ++i) {
                     if (!val.empty()) {
                         val += ", ";
@@ -514,7 +579,6 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
         }
         case RtDataType::k_struct: 
         {
-            out += "struct";
             if (info.detail == RtDetailType::k_reference) {
                 RtUString value;
                 if (params.GetStructReference(info.name, value)) {
@@ -524,38 +588,33 @@ _FormatParam(const RtParamList::ParamInfo& info, const RtParamList& _params) {
             break;
         }
     }
-    if (info.array) {
-        out += TfStringPrintf("[%u]", info.length);
-    }
-    out += TfStringPrintf(" %s", info.name.CStr());
-    if (info.detail == RtDetailType::k_reference) {
-        out += ".connect";
-    }
-    if (info.motion) {
-        out += ".timesamples";
-    }
-    out += TfStringPrintf(" = %s", val.c_str());
-    return out;
+    return prefix + val;
 }
 
 std::string
-RtParamListToString(const RtParamList& params, const std::string& name)
+RtParamListToString(const RtParamList& params, const int indent)
 {
-    std::string out = TfStringPrintf("****** RtParamList: %s ******\n", name.c_str());
+    std::string out;
     unsigned numParams = params.GetNumParams();
     RtParamList::ParamInfo info;
     for (unsigned pi = 0; pi < numParams; ++pi) {
         if (params.GetParamInfo(pi, info)) {
-            out += TfStringPrintf("    %s\n", _FormatParam(info, params).c_str());
+            if (!out.empty()) {
+                out += "\n";
+            }
+            out += TfStringPrintf(
+                "%*s%s", (pi == 0 ? 0 : indent), "", 
+                _FormatParam(info, params, indent).c_str());
         }
     }
-    return out + std::string(27 + name.size(), '*') + "\n";
+    return out;
 }
 
 std::string
 GetCallerAsString(const TfCallContext& ctx)
 {
-    const std::string locator = TfStringPrintf("%s:%lu", ctx.GetFile(), ctx.GetLine());
+    const std::string locator = TfStringPrintf("%s:%lu",
+        ctx.GetFile(), ctx.GetLine());
     const std::vector<std::string>& lines = ArchGetStackTrace(10);
     size_t i = 0;
     while (i < 9 && lines[i].find(locator) == lines[i].npos) {
@@ -563,7 +622,8 @@ GetCallerAsString(const TfCallContext& ctx)
     }
     if (i < 9) {
         const std::string& line = lines[i+1];
-        return line.substr(28, line.find_first_of("(") - 28) + " at " + line.substr(line.find_last_of("/") + 1);
+        return line.substr(28, line.find_first_of("(") - 28) + " at " + 
+            line.substr(line.find_last_of("/") + 1);
     }
     return "*** couldn't find caller ***";
 }

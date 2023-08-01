@@ -21,11 +21,12 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_COORD_SYS_H
-#define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_COORD_SYS_H
+#ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_COORD_SYS_H
+#define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_COORD_SYS_H
 
 #include "pxr/pxr.h"
 #include "pxr/imaging/hd/coordSys.h"
+#include "pxr/imaging/hd/version.h"
 #include "Riley.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -48,10 +49,12 @@ public:
               HdRenderParam   *renderParam,
               HdDirtyBits     *dirtyBits) override;
     
+#if HD_API_VERSION < 53
     /// Returns the minimal set of dirty bits to place in the
     /// change tracker for use in the first sync of this prim.
     /// Typically this would be all dirty bits.
     HdDirtyBits GetInitialDirtyBitsMask() const override;
+#endif
 
     riley::CoordinateSystemId GetCoordSysId() const { return _coordSysId; }
 
@@ -69,4 +72,4 @@ private:
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
-#endif  // EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_COORD_SYS_H
+#endif  // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_COORD_SYS_H

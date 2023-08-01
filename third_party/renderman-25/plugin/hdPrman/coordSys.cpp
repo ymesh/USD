@@ -25,6 +25,8 @@
 #include "hdPrman/renderParam.h"
 #include "hdPrman/debugCodes.h"
 #include "hdPrman/rixStrings.h"
+#include "hdPrman/utils.h"
+
 #include "pxr/usd/sdf/types.h"
 #include "pxr/base/tf/staticTokens.h"
 #include "pxr/imaging/hd/sceneDelegate.h"
@@ -70,17 +72,21 @@ HdPrmanCoordSys::Sync(HdSceneDelegate *sceneDelegate,
         static_cast<HdPrman_RenderParam*>(renderParam);
 
     SdfPath id = GetId();
+    // Save state of dirtyBits before HdCoordSys::Sync clears them.
+    const HdDirtyBits bits = *dirtyBits;
 
     riley::Riley *riley = param->AcquireRiley();
 
-    if (*dirtyBits) {
+    HdCoordSys::Sync(sceneDelegate, renderParam, dirtyBits);
+
+    if (bits & AllDirty) {
         // Sample transform
         HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES> xf;
         sceneDelegate->SampleTransform(id, &xf);
         TfSmallVector<RtMatrix4x4, HDPRMAN_MAX_TIME_SAMPLES>
             xf_rt_values(xf.count);
         for (size_t i=0; i < xf.count; ++i) {
-            xf_rt_values[i] = HdPrman_GfMatrixToRtMatrix(xf.values[i]);
+            xf_rt_values[i] = HdPrman_Utils::GfMatrixToRtMatrix(xf.values[i]);
         }
         const riley::Transform xform = {
             unsigned(xf.count), xf_rt_values.data(), xf.times.data()};
@@ -103,12 +109,14 @@ HdPrmanCoordSys::Sync(HdSceneDelegate *sceneDelegate,
     *dirtyBits = HdChangeTracker::Clean;
 }
 
+#if HD_API_VERSION < 53
 /* virtual */
 HdDirtyBits
 HdPrmanCoordSys::GetInitialDirtyBitsMask() const
 {
     return HdChangeTracker::AllDirty;
 }
+#endif
 
 bool
 HdPrmanCoordSys::IsValid() const

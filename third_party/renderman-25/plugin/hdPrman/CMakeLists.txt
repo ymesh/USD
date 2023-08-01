@@ -23,14 +23,14 @@ endif()
 set(optionalIncludeDirs "")
 set(optionalPublicClasses "")
 if (${PXR_ENABLE_MATERIALX_SUPPORT})
-    add_definitions(-DPXR_MATERIALX_STDLIB_DIR="${MATERIALX_STDLIB_DIR}")
-    add_definitions(-DPXR_MATERIALX_BASE_DIR="${MATERIALX_BASE_DIR}")
-
-    link_directories(${MATERIALX_LIB_DIRS}) 
-
-    list(APPEND optionalLibs ${MATERIALX_LIBRARIES} hdMtlx)
-    # list(APPEND optionalLibs hdMtlx)
-    list(APPEND optionalIncludeDirs ${MATERIALX_INCLUDE_DIRS})
+    list(APPEND optionalLibs
+        MaterialXCore
+        MaterialXFormat
+        MaterialXGenShader
+        MaterialXGenOsl
+        MaterialXRender
+        hdMtlx
+    )
     list(APPEND optionalPublicClasses matfiltMaterialX)
 
     if (${PXR_ENABLE_OSL_SUPPORT})
@@ -48,7 +48,6 @@ endif()
 if (${PXR_ENABLE_OPENVDB_SUPPORT})
     list(APPEND optionalLibs hioOpenVDB)
 endif()
-message("***** optionalLibs = ${optionalLibs}")
 
 pxr_plugin(${PXR_PACKAGE}
     LIBRARIES
@@ -70,8 +69,6 @@ pxr_plugin(${PXR_PACKAGE}
     INCLUDE_DIRS
         ${RENDERMAN_INCLUDE_DIR}
         ${optionalIncludeDirs}
-        ${OPENEXR_INCLUDE_DIR}
-        ${OIIO_INCLUDE_DIR}
 
     PUBLIC_CLASSES
         basisCurves
@@ -79,22 +76,22 @@ pxr_plugin(${PXR_PACKAGE}
         cone
         cylinder
         coordSys
+        coordSysPrimSceneIndexPlugin
         debugCodes
-        debugUtil
         dependencyForwardingSceneIndexPlugin
         displayFilter
         gprim
         gprimbase
         instancer
+        integrator
         light
         lightFilter
         lightFilterUtils
         material
         matfiltConvertPreviewMaterial
-        matfiltResolveTerminals
         matfiltResolveVstructs
         mesh
-        outputFilterInvalidatingSceneIndexPlugin
+        renderTerminalOutputInvalidatingSceneIndexPlugin
         paramsSetter
         points
         renderDelegate
@@ -109,16 +106,20 @@ pxr_plugin(${PXR_PACKAGE}
 
     PRIVATE_CLASSES
         cameraContext
-        renderPass
+        debugUtil
         extComputationPrimvarPruningSceneIndexPlugin
         framebuffer
         implicitSurfaceSceneIndexPlugin
+        materialPrimvarTransferSceneIndexPlugin
         matfiltSceneIndexPlugins
         pinnedCurveExpandingSceneIndexPlugin
         renderBuffer
         renderParam
+        renderPass
+        renderSettingsFilteringSceneIndexPlugin
         renderViewContext
         resourceRegistry
+        utils
         velocityMotionBlurSceneIndexPlugin
         virtualStructResolvingSceneIndex
 

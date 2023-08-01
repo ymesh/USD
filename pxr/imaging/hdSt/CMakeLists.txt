@@ -29,6 +29,11 @@ if (${PXR_ENABLE_MATERIALX_SUPPORT})
          materialXFilter
          materialXShaderGen
     )
+    if (MaterialX_VERSION VERSION_GREATER_EQUAL "1.38.7")
+        list(APPEND optionalLibs
+            MaterialXGenMsl
+        )
+    endif()
 endif()
 if (PXR_ENABLE_PTEX_SUPPORT)
     list(APPEND optionalLibs ${PTEX_LIBRARY})
@@ -60,7 +65,9 @@ pxr_library(hdSt
         binding
         bufferArrayRange
         bufferResource
+        bufferArrayRegistry
         commandBuffer
+        computation
         copyComputation
         debugCodes
         dependencyForwardingSceneIndexPlugin
@@ -73,9 +80,11 @@ pxr_library(hdSt
         drawTargetRenderPassState
         dynamicUvTextureObject
         extComputation
+        extCompCpuComputation
         extCompGpuComputation
         extCompGpuComputationResource
         extCompGpuPrimvarBufferSource
+        extCompPrimvarBufferSource
         fallbackLightingShader
         field
         fieldSubtextureIdentifier
@@ -89,6 +98,7 @@ pxr_library(hdSt
         hioConversions
         imageShaderRenderPass
         implicitSurfaceSceneIndexPlugin
+        nurbsApproximatingSceneIndexPlugin
         instancer
         interleavedMemoryManager
         light      
@@ -113,6 +123,7 @@ pxr_library(hdSt
         simpleLightingShader
         smoothNormals
         stagingBuffer
+        strategyBase
         subtextureIdentifier
         textureBinder
         textureCpuData
@@ -144,11 +155,15 @@ pxr_library(hdSt
         drawBatch
         drawItemsCache
         extCompComputeShader
+        extCompComputedInputSource
+        extCompInputSource
+        extCompSceneInputSource
         fieldTextureCpuData
         imageShaderShaderKey
         indirectDrawBatch
         materialNetworkShader
         materialBindingResolvingSceneIndexPlugin
+        materialPrimvarTransferSceneIndexPlugin
         materialParam
         meshShaderKey
         meshTopology 
@@ -161,9 +176,9 @@ pxr_library(hdSt
         resourceLayout
         shaderKey
         subdivision
-        terminalsResolvingSceneIndexPlugin
         triangulate
         unitTestHelper
+        vertexAdjacency
         volumeShader
         volumeShaderKey
         ${optionalPrivateClasses}

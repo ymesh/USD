@@ -29,6 +29,7 @@
 #include "hdPrman/light.h"
 #include "hdPrman/material.h"
 #include "hdPrman/rixStrings.h"
+#include "hdPrman/utils.h"
 
 #include "pxr/imaging/hd/material.h"
 #include "pxr/imaging/hd/sceneDelegate.h"
@@ -56,7 +57,7 @@ void HdPrmanLightFilterGenerateCoordSysAndLinks(
     TfSmallVector<RtMatrix4x4, HDPRMAN_MAX_TIME_SAMPLES> 
         xf_rt_values(xf.count);
     for (size_t i=0; i < xf.count; ++i) {
-        xf_rt_values[i] = HdPrman_GfMatrixToRtMatrix(xf.values[i]);
+        xf_rt_values[i] = HdPrman_Utils::GfMatrixToRtMatrix(xf.values[i]);
     }
     const riley::Transform xform = {
         unsigned(xf.count), xf_rt_values.data(), xf.times.data()};

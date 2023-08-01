@@ -21,8 +21,13 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
+<<<<<<< HEAD
 #ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_VOLUME_H
 #define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_VOLUME_H
+=======
+#ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_VOLUME_H
+#define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_VOLUME_H
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
 #include "pxr/pxr.h"
 #include "hdPrman/gprim.h"
@@ -54,7 +59,11 @@ public:
 
     HF_MALLOC_TAG_NEW("new HdPrman_Volume");
 
+<<<<<<< HEAD
     HdPrman_Volume(SdfPath const& id);
+=======
+    HdPrman_Volume(SdfPath const& id, const bool isMeshLight);
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 
     HdDirtyBits GetInitialDirtyBitsMask() const override;
 
@@ -123,10 +132,24 @@ protected:
         return renderParam->GetFallbackVolumeMaterialId();
     }
 
+<<<<<<< HEAD
     using _VolumeEmitterMap = std::map<TfToken, HdPrman_VolumeTypeEmitter>;
     static _VolumeEmitterMap& _GetVolumeEmitterMap();
+=======
+    bool _PrototypeOnly() override;
+
+    using _VolumeEmitterMap = std::map<TfToken, HdPrman_VolumeTypeEmitter>;
+    static _VolumeEmitterMap& _GetVolumeEmitterMap();
+
+private:
+    bool _isMeshLight;
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
+<<<<<<< HEAD
 #endif // EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_VOLUME_H
+=======
+#endif // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_VOLUME_H
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0

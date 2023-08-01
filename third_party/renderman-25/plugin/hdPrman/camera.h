@@ -21,8 +21,8 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-#ifndef EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_H
-#define EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_H
+#ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_H
+#define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_H
 
 #include "pxr/pxr.h"
 #include "hdPrman/api.h"
@@ -64,6 +64,7 @@ public:
         return _sampleXforms;
     }
 
+#if HD_API_VERSION < 52
     float GetLensDistortionK1() const {
         return _lensDistortionK1;
     }
@@ -87,20 +88,20 @@ public:
     float GetLensDistortionScale() const {
         return _lensDistortionScale;
     }
-    
+#endif
 
 private:
     HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES> _sampleXforms;
 
+#if HD_API_VERSION < 52
     float _lensDistortionK1;
     float _lensDistortionK2;
     GfVec2f _lensDistortionCenter;
     float _lensDistortionAnaSq;
     GfVec2f _lensDistortionAsym;
     float _lensDistortionScale;
-};
 
-
+#endif
 PXR_NAMESPACE_CLOSE_SCOPE
+#endif  // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_H
 
-#endif  // EXT_RMANPKG_24_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_H

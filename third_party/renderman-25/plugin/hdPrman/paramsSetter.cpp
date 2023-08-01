@@ -23,9 +23,17 @@
 //
 
 #include "hdPrman/paramsSetter.h"
+<<<<<<< HEAD
 #include "hdPrman/renderParam.h"
 #include "hdPrman/debugCodes.h"
 #include "hdPrman/rixStrings.h"
+=======
+#include "hdPrman/debugCodes.h"
+#include "hdPrman/renderParam.h"
+#include "hdPrman/rixStrings.h"
+#include "hdPrman/utils.h"
+
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
 #include "pxr/usd/sdf/types.h"
 #include "pxr/base/tf/staticTokens.h"
 #include "pxr/imaging/hd/sceneDelegate.h"
@@ -68,9 +76,15 @@ HdPrmanParamsSetter::Sync(HdSceneDelegate *sceneDelegate,
         if (!valueDict.empty()) {
             RtParamList &options = param->GetOptions();
             for (const auto &tokenvalpair : valueDict) {
+<<<<<<< HEAD
                 param->SetParamFromVtValue(
                     RtUString(tokenvalpair.first.data()), tokenvalpair.second,
                         TfToken(), options);
+=======
+                HdPrman_Utils::SetParamFromVtValue(
+                    RtUString(tokenvalpair.first.data()), tokenvalpair.second,
+                        TfToken(), &options);
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
             }
 
             riley->SetOptions(options);
@@ -85,9 +99,15 @@ HdPrmanParamsSetter::Sync(HdSceneDelegate *sceneDelegate,
 
         if (!valueDict.empty()) {
             for (const auto &tokenvalpair : valueDict) {
+<<<<<<< HEAD
                 param->SetParamFromVtValue(
                     RtUString(tokenvalpair.first.data()), tokenvalpair.second,
                     TfToken(), param->GetIntegratorParams());
+=======
+                HdPrman_Utils::SetParamFromVtValue(
+                    RtUString(tokenvalpair.first.data()), tokenvalpair.second,
+                    TfToken(), &(param->GetIntegratorParams()));
+>>>>>>> 10b62439e9242a55101cf8b200f2c7e02420e1b0
             }
 
             param->UpdateIntegrator(&sceneDelegate->GetRenderIndex());
