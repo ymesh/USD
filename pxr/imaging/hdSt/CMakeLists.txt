@@ -34,6 +34,8 @@ if (${PXR_ENABLE_MATERIALX_SUPPORT})
             MaterialXGenMsl
         )
     endif()
+    message(">>> MaterialX_VERSION = ${MaterialX_VERSION}")
+    message(">>> optionalLibs = ${optionalLibs}")
 endif()
 if (PXR_ENABLE_PTEX_SUPPORT)
     list(APPEND optionalLibs ${PTEX_LIBRARY})

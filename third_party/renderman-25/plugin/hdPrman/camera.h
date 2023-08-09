@@ -100,8 +100,10 @@ private:
     float _lensDistortionAnaSq;
     GfVec2f _lensDistortionAsym;
     float _lensDistortionScale;
-
 #endif
-PXR_NAMESPACE_CLOSE_SCOPE
-#endif  // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_H
+};
 
+
+PXR_NAMESPACE_CLOSE_SCOPE
+
+#endif  // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_CAMERA_H

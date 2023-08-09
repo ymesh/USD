@@ -879,6 +879,7 @@ _UpdatePrimvarNodes(
     }
 }
 
+
 void
 MatfiltMaterialX(
     HdMaterialNetworkInterface *netInterface,

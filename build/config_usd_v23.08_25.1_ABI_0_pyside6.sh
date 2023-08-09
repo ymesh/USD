@@ -1,18 +1,21 @@
 #
-# Config USD
+# Config USD _ABI_0
 #
 USD_VER="23.08"
 RMAN_VER="25.1"
 
 PYTHON_VERSION="3"
 
-source ./env_python${PYTHON_VERSION}/bin/activate
-
 cur_dir=`pwd`
-tmp_dir="tmp_usd_v${USD_VER}_rman${RMAN_VER}"
+tmp_dir="tmp_usd_v${USD_VER}_rman${RMAN_VER}_ABI_0_pyside6"
 
 deploy_root="/data/tools"
-deploy_dir="${deploy_root}/USD/pixar/USD-v${USD_VER}_rman${RMAN_VER}"
+deploy_dir="${deploy_root}/USD/pixar/USD-v${USD_VER}_rman${RMAN_VER}_ABI_0_pyside6"
+usd_dir="${deploy_root}/USD/pixar"
+
+# source ./env_python${PYTHON_VERSION}/bin/activate
+source ${usd_dir}/env_py310/bin/activate
+
 
 if [ ! -d $tmp_dir ]; then
   mkdir $tmp_dir
@@ -28,25 +31,28 @@ pushd $tmp_dir
 
 export RENDERMAN_LOCATION="/opt/pixar/RenderManProServer-${RMAN_VER}"
 
-# export BOOST_ROOT="${deploy_root}/boost/boost_1_75_0_ABI_0"
-export BOOST_ROOT="/usr"
-export Boost_LIBRARY_DIR="${BOOST_ROOT}/lib64"
-export BOOST_LIBRARYDIR="${BOOST_ROOT}/lib64"
+# export BOOST_ROOT="/usr"
+# export Boost_LIBRARY_DIR="${BOOST_ROOT}/lib64"
+# export BOOST_LIBRARYDIR="${BOOST_ROOT}/lib64"
+# _ABI_0
+export BOOST_ROOT="${deploy_root}/boost/boost_1_75_0_ABI_0"
+export Boost_LIBRARY_DIR="${BOOST_ROOT}/lib"
+export BOOST_LIBRARYDIR="${BOOST_ROOT}/lib"
 
 #export EMBREE_INCLUDE_DIR="/usr/include"
 #export EMBREE_LIBRARY="/usr/lib64/libembree.so"
 #export JEMALLOC="${deploy_root}/jemalloc/jemalloc-5.2.1"
-export MATERIALX_ROOT="${deploy_root}/MaterialX/MaterialX-v1.38.7"
+export MATERIALX_ROOT="${deploy_root}/MaterialX/MaterialX-v1.38.7_ABI_0"
 export MATERIALX_STDLIB_DIR="${MATERIALX_ROOT}/libraries/stdlib"
-export PTEX_LOCATION="${deploy_root}/wdas/ptex-v2.4.1"
-export OSL_LOCATION="${deploy_root}/OSL/OSL-v1.11.14.0"
-export OIIO_LOCATION="${deploy_root}/OIIO/OIIO-v2.2.14"
+export PTEX_LOCATION="${deploy_root}/wdas/ptex-v2.4.1_ABI_0"
+export OSL_LOCATION="${deploy_root}/OSL/OSL-v1.11.14.0_ABI_0"
+export OIIO_LOCATION="${deploy_root}/OIIO/OIIO-v2.2.14_ABI_0"
 # export OCIO_LOCATION="/home/data/tools/OCIO/OCIO-v2.0.0"
-export OCIO_LOCATION="${deploy_root}/OCIO/OCIO-v1.1.1"
-export OPENEXR_LOCATION="${deploy_root}/OpenEXR/OpenEXR-v2.4.0"
-export OPENSUBDIV_ROOT_DIR="${deploy_root}/OSD/OpenSubdiv-v3.5.0"
-export OPENVDB_LOCATION="${deploy_root}/OpenVDB/openvdb-v8.2.0"
-export ALEMBIC_DIR="/${deploy_root}/alembic/alembic-v1.8.4"
+export OCIO_LOCATION="${deploy_root}/OCIO/OCIO-v1.1.1_ABI_0"
+export OPENEXR_LOCATION="${deploy_root}/OpenEXR/OpenEXR-v2.4.0_ABI_0"
+export OPENSUBDIV_ROOT_DIR="${deploy_root}/OSD/OpenSubdiv-v3.5.0_ABI_0"
+export OPENVDB_LOCATION="${deploy_root}/OpenVDB/openvdb-v8.2.0_ABI_0"
+export ALEMBIC_DIR="/${deploy_root}/alembic/alembic-v1.8.4_ABI_0"
 
 export VULKAN_SDK="/home/data/code/LIBS/Vulkan/SDK/1.3.236.0/x86_64" 
 # export VULKAN_SDK="/home/data/code/LIBS/Vulkan/SDK/1.2.162.1/x86_64" 
@@ -85,8 +91,9 @@ cmake3 -LA -G "Unix Makefiles" \
 -DPXR_ENABLE_VULKAN_SUPPORT=OFF \
 -DPXR_BUILD_GPU_SUPPORT=ON \
 -DPXR_ENABLE_PYTHON_SUPPORT=ON \
--DPXR_BUILD_PYTHON_DOCUMENTATION=OFF \
+-DPXR_PY_UNDEFINED_DYNAMIC_LOOKUP=OFF \
 -DPXR_USE_DEBUG_PYTHON=OFF \
+-DPXR_BUILD_PYTHON_DOCUMENTATION=OFF \
 -DPXR_ENABLE_OSL_SUPPORT=ON \
 -DPXR_ENABLE_PTEX_SUPPORT=ON \
 -DPXR_ENABLE_OPENVDB_SUPPORT=ON \
@@ -101,6 +108,7 @@ cmake3 -LA -G "Unix Makefiles" \
 -DMATERIALX_BASE_DIR=${MATERIALX_ROOT} \
 -DOPENVDB_LOCATION=${OPENVDB_LOCATION} \
 -DCMAKE_CXX_STANDARD="14" \
+-DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" \
 -DBOOST_ROOT=${BOOST_ROOT} \
 -DBoost_LIBRARY_DIR=${Boost_LIBRARY_DIR} \
 -DBoost_NO_BOOST_CMAKE=ON \

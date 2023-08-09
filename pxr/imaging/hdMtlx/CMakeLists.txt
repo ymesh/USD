@@ -7,6 +7,7 @@ link_directories(
     ${OIIO_LIBRARY_DIR}
 ) 
 
+message(">>> MATERIALX_INCLUDE_DIRS = ${MATERIALX_INCLUDE_DIRS}")
 
 pxr_library(hdMtlx
     LIBRARIES

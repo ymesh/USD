@@ -46,7 +46,6 @@
 #include "pxr/base/tf/registryManager.h"
 #include "pxr/base/tf/type.h"
 
-
 PXR_NAMESPACE_OPEN_SCOPE
 
 

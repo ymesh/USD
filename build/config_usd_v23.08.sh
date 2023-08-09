@@ -1,5 +1,5 @@
 #
-# Config USD
+# Config USD PXR_BUILD_PRMAN_PLUGIN=OFF
 #
 USD_VER="23.08"
 RMAN_VER="25.1"
@@ -9,10 +9,10 @@ PYTHON_VERSION="3"
 source ./env_python${PYTHON_VERSION}/bin/activate
 
 cur_dir=`pwd`
-tmp_dir="tmp_usd_v${USD_VER}_rman${RMAN_VER}"
+tmp_dir="tmp_usd_v${USD_VER}"
 
 deploy_root="/data/tools"
-deploy_dir="${deploy_root}/USD/pixar/USD-v${USD_VER}_rman${RMAN_VER}"
+deploy_dir="${deploy_root}/USD/pixar/USD-v${USD_VER}"
 
 if [ ! -d $tmp_dir ]; then
   mkdir $tmp_dir
@@ -79,7 +79,7 @@ cmake3 -LA -G "Unix Makefiles" \
 -DPXR_BUILD_ALEMBIC_PLUGIN=ON \
 -DPXR_ENABLE_HDF5_SUPPORT=ON \
 -DPXR_BUILD_DRACO_PLUGIN=OFF \
--DPXR_BUILD_PRMAN_PLUGIN=ON \
+-DPXR_BUILD_PRMAN_PLUGIN=OFF \
 -DPXR_BUILD_DOCUMENTATION=OFF \
 -DPXR_ENABLE_GL_SUPPORT=ON \
 -DPXR_ENABLE_VULKAN_SUPPORT=OFF \

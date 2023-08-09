@@ -85,11 +85,15 @@ if(PXR_ENABLE_PYTHON_SUPPORT)
         # If the variable does not exist, PXR_PY_UNDEFINED_DYNAMIC_LOOKUP will
         # default to OFF. On Windows, LDLIBRARY does not exist, as the default
         # will always be OFF.
+        message("*** PYTHON_VERSION_MAJOR = ${PYTHON_VERSION_MAJOR}")
+        message("*** PYTHON_VERSION_MINOR = ${PYTHON_VERSION_MINOR}")
+        message("*** PXR_PY_UNDEFINED_DYNAMIC_LOOKUP = ${PXR_PY_UNDEFINED_DYNAMIC_LOOKUP}")
         if((NOT WIN32) AND (NOT DEFINED PXR_PY_UNDEFINED_DYNAMIC_LOOKUP))
-            execute_process(COMMAND ${PYTHON_EXECUTABLE} "-c" "import sysconfig;print(sysconfig.get_config_var('LDLIBRARY'))"
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-                OUTPUT_VARIABLE PXR_PYTHON_LINKED_LIBRARY
+        execute_process(COMMAND ${PYTHON_EXECUTABLE} "-c" "import sysconfig;print(sysconfig.get_config_var('LDLIBRARY'))"
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            OUTPUT_VARIABLE PXR_PYTHON_LINKED_LIBRARY
             )
+            message("*** PXR_PYTHON_LINKED_LIBRARY = ${PXR_PYTHON_LINKED_LIBRARY}")
             get_filename_component(PXR_PYTHON_LINKED_LIBRARY_EXT ${PXR_PYTHON_LINKED_LIBRARY} LAST_EXT)
             if(PXR_PYTHON_LINKED_LIBRARY_EXT STREQUAL ".a")
                 set(PXR_PY_UNDEFINED_DYNAMIC_LOOKUP ON)
@@ -105,6 +109,8 @@ if(PXR_ENABLE_PYTHON_SUPPORT)
         else()
             set(PYTHON_LIBRARIES "${package}::Python")
         endif()
+        
+        message("*** PYTHON_LIBRARIES = ${PYTHON_LIBRARIES}")
     endmacro()
 
     # USD builds only work with Python3

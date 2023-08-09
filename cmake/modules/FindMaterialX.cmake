@@ -109,6 +109,7 @@ foreach(MATERIALX_LIB
     Format
     GenGlsl
     GenOsl
+    GenMsl
     GenShader
     Render
     RenderGlsl
