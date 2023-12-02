@@ -175,7 +175,6 @@ pxr_library(hdSt
         pointsShaderKey
         quadrangulate
         resourceBinder
-        resourceLayout
         shaderKey
         subdivision
         triangulate

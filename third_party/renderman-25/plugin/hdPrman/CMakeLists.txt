@@ -98,7 +98,6 @@ pxr_plugin(${PXR_PACKAGE}
         matfiltResolveVstructs
         mesh
         renderTerminalOutputInvalidatingSceneIndexPlugin
-        paramsSetter
         points
         renderDelegate
         renderSettings
@@ -125,6 +124,7 @@ pxr_plugin(${PXR_PACKAGE}
         renderSettingsFilteringSceneIndexPlugin
         renderViewContext
         resourceRegistry
+        terminalSceneIndexObserver
         utils
         velocityMotionBlurSceneIndexPlugin
         virtualStructResolvingSceneIndex
