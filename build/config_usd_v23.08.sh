@@ -6,17 +6,15 @@ RMAN_VER="25.1"
 
 PYTHON_VERSION="3"
 
-source ./env_python${PYTHON_VERSION}/bin/activate
-
 cur_dir=`pwd`
 tmp_dir="tmp_usd_v${USD_VER}"
 
 deploy_root="/data/tools"
 deploy_dir="${deploy_root}/USD/pixar/USD-v${USD_VER}"
 
-if [ ! -d $tmp_dir ]; then
-  mkdir $tmp_dir
-fi
+#source ./env_python${PYTHON_VERSION}/bin/activate
+source ${deploy_root}/USD/pixar/env_python3/bin/activate
+
 mkdir -p $tmp_dir
 pushd $tmp_dir
 
