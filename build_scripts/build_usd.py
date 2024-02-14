@@ -356,6 +356,11 @@ def FormatMultiProcs(numJobs, generator):
             tag = "/M:" # This will build multiple projects at once.
         elif "Xcode" in generator:
             tag = "-j "
+        # XXX
+        # cmake --build . --config Release --target install -- -j15
+        # NMAKE : fatal error U1065: invalid option 'j'
+        elif "NMake" in generator:
+            return ""
 
     return "{tag}{procs}".format(tag=tag, procs=numJobs)
 
@@ -1223,6 +1228,16 @@ def InstallOpenVDB(context, force, buildArgs):
 
         # Make sure to use boost installed by the build script and not any
         # system installed boost
+        # XXX: ON
+        pyInfo = GetPythonInfo(context)
+        pyVer = (int(pyInfo[3].split(".")[0]), int(pyInfo[3].split(".")[1]))
+        boostInclude = os.path.join(
+            context.instDir,
+            "include/boost-{}".format("1_78" if pyVer >= (3, 10) else "1_76"),
+        ).replace("\\", "/")
+        print(f">>> {boostInclude = }")
+        extraArgs.append('-DBoost_INCLUDE_DIR="{}"'.format(boostInclude))
+        # XXX: OFF
         extraArgs.append('-DBoost_NO_BOOST_CMAKE=On')
         extraArgs.append('-DBoost_NO_SYSTEM_PATHS=True')
 
@@ -1277,6 +1292,17 @@ def InstallOpenImageIO(context, force, buildArgs):
 
         # Make sure to use boost installed by the build script and not any
         # system installed boost
+        # XXX: ON
+        pyInfo = GetPythonInfo(context)
+        pyVer = (int(pyInfo[3].split(".")[0]), int(pyInfo[3].split(".")[1]))
+        boostInclude = os.path.join(
+            context.instDir,
+            "include/boost-{}".format("1_78" if pyVer >= (3, 10) else "1_76"),
+        ).replace("\\", "/")
+        print(f">>> {boostInclude = }")
+        extraArgs.append('-DBoost_INCLUDE_DIR="{}"'.format(boostInclude))
+        extraArgs.append('-DBoost_ROOT="{}"'.format(context.instDir))
+        # XXX: OFF
         extraArgs.append('-DBoost_NO_BOOST_CMAKE=On')
         extraArgs.append('-DBoost_NO_SYSTEM_PATHS=True')
 
@@ -1300,13 +1326,29 @@ OPENIMAGEIO = Dependency("OpenImageIO", InstallOpenImageIO,
 OCIO_URL = "https://github.com/AcademySoftwareFoundation/OpenColorIO/archive/refs/tags/v2.1.3.zip"
 
 def InstallOpenColorIO(context, force, buildArgs):
+    # XXX: ON
+    print(f">>> InstallOpenColorIO { buildArgs = }")
+    pyInfo = GetPythonInfo(context)
+    pyVerStr = pyInfo[3].split(".")[0] + "." + pyInfo[3].split(".")[1]
+    pyRoot = "C:/Python" + pyInfo[3].split(".")[0] + pyInfo[3].split(".")[1]
+    pyExe =  os.path.join(pyRoot, "python.exe").replace("\\", "/")
+    print(f">>> OCIO_PYTHON_VERSION = {pyVerStr}")
+    print(f">>> Python_ROOT_DIR = {pyRoot}")
+    print(f">>> Python_EXECUTABLE = {pyExe}")
+    # XXX: OFF
     with CurrentWorkingDirectory(DownloadURL(OCIO_URL, context, force)):
         extraArgs = ['-DOCIO_BUILD_APPS=OFF',
                      '-DOCIO_BUILD_NUKE=OFF',
                      '-DOCIO_BUILD_DOCS=OFF',
                      '-DOCIO_BUILD_TESTS=OFF',
                      '-DOCIO_BUILD_GPU_TESTS=OFF',
-                     '-DOCIO_BUILD_PYTHON=OFF']
+                     # XXX: ON
+                     '-DOCIO_BUILD_PYTHON=ON', 
+                     '-DOCIO_PYTHON_VERSION={}'.format(pyVerStr),
+                     '-DPython_ROOT_DIR={}'.format(pyRoot),
+                     '-DPython_EXECUTABLE={}'.format(pyExe),
+                     # XXX: OFF
+                    ]
 
         if MacOS():
             if apple_utils.IsTargetArm(context):
@@ -1692,6 +1734,17 @@ def InstallUSD(context, force, buildArgs):
 
         # Make sure to use boost installed by the build script and not any
         # system installed boost
+        # XXX: ON
+        pyInfo = GetPythonInfo(context)
+        pyVer = (int(pyInfo[3].split(".")[0]), int(pyInfo[3].split(".")[1]))
+        boostInclude = os.path.join(
+            context.instDir,
+            "include/boost-{}".format("1_78" if pyVer >= (3, 10) else "1_76"),
+        ).replace("\\", "/")
+        print(f">>> {boostInclude = }")
+        extraArgs.append('-DBoost_INCLUDE_DIR="{}"'.format(boostInclude))
+        extraArgs.append('-DBoost_ROOT="{}"'.format(context.instDir))
+        # XXX: OFF
         extraArgs.append('-DBoost_NO_BOOST_CMAKE=On')
         extraArgs.append('-DBoost_NO_SYSTEM_PATHS=True')
         extraArgs += buildArgs
