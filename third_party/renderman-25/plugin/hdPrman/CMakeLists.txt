@@ -27,7 +27,8 @@ if (${PXR_ENABLE_MATERIALX_SUPPORT})
     link_directories(
         ${MATERIALX_LIB_DIRS}
         ${OIIO_LIBRARY_DIR}
-    ) 
+    )
+    message("--> third_party/renderman-25/plugin/hdPrman/CMakeLists.txt")
     message("=== MATERIALX_INCLUDE_DIRS = ${MATERIALX_INCLUDE_DIRS}")
     list(APPEND optionalLibs
         MaterialXCore

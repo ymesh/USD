@@ -15,7 +15,7 @@ set(optionalPublicClasses "")
 set(optionalPrivateClasses "")
 if (${PXR_ENABLE_MATERIALX_SUPPORT})
     include_directories(${MATERIALX_INCLUDE_DIRS})
-    link_directories(${MATERIALX_LIB_DIRS}) 
+    # link_directories(${MATERIALX_LIB_DIRS}) 
     
     list(APPEND optionalLibs
         MaterialXGenShader
@@ -34,8 +34,10 @@ if (${PXR_ENABLE_MATERIALX_SUPPORT})
             MaterialXGenMsl
         )
     endif()
+    message("--> pxr/imaging/hdSt/CMakeLists.txt")
     message(">>> MaterialX_VERSION = ${MaterialX_VERSION}")
     message(">>> optionalLibs = ${optionalLibs}")
+    message(">>> OPENSUBDIV_LIBRARIES = ${OPENSUBDIV_LIBRARIES}")
 endif()
 if (PXR_ENABLE_PTEX_SUPPORT)
     list(APPEND optionalLibs ${PTEX_LIBRARY})

@@ -1,12 +1,9 @@
 @echo OFF
 
 set USD_VER=23.11
-set RMAN_VER=25.2
-set PY_VER=39
+set PY_VER=310
 
 call ..\..\venv%PY_VER%\Scripts\activate.bat
-
-set PRMAN_LOCATION=C:/Program Files/Pixar/RenderManProServer-%RMAN_VER%
 
 set deploy_dir=D:/data/libs/Pixar/USD.v%USD_VER%_py%PY_VER%
 set src_dir=D:/data/libs/Pixar/src

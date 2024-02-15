@@ -1720,6 +1720,8 @@ def InstallUSD(context, force, buildArgs):
 
         if context.buildMaterialX:
             extraArgs.append('-DPXR_ENABLE_MATERIALX_SUPPORT=ON')
+            # XXX
+            extraArgs.append('-DMaterialX_VERSION=1.38.7')
         else:
             extraArgs.append('-DPXR_ENABLE_MATERIALX_SUPPORT=OFF')
 

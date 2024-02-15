@@ -26,14 +26,9 @@ from .qt import QtCore
 from pxr import UsdGeom, Sdf
 from pxr.UsdAppUtils.complexityArgs import RefinementComplexities
 
-from .common import (
-    RenderModes,
-    ColorCorrectionModes,
-    PickModes,
-    SelectionHighlightModes,
-    CameraMaskModes,
-    PrintWarning,
-)
+from .common import (RenderModes, ColorCorrectionModes, PickModes, 
+                     SelectionHighlightModes, CameraMaskModes, 
+                     PrintWarning)
 
 from . import settings
 from .settings import StateSource
@@ -44,19 +39,17 @@ from .common import ClearColors, HighlightColors
 
 # Map of clear color names to rgba color tuples in linear space.
 _CLEAR_COLORS_DICT = {
-    ClearColors.BLACK: (0.0, 0.0, 0.0, 1.0),
-    ClearColors.DARK_GREY: (0.07074, 0.07074, 0.07074, 1.0),
-    ClearColors.LIGHT_GREY: (0.45626, 0.45626, 0.45626, 1.0),
-    ClearColors.WHITE: (1.0, 1.0, 1.0, 1.0),
-}
+    ClearColors.BLACK:       (0.0, 0.0, 0.0, 1.0),
+    ClearColors.DARK_GREY:   (0.07074, 0.07074, 0.07074, 1.0),
+    ClearColors.LIGHT_GREY:  (0.45626, 0.45626, 0.45626, 1.0),
+    ClearColors.WHITE:       (1.0, 1.0, 1.0, 1.0)}
 
 
 # Map of highlight color names to rgba color tuples in linear space.
 _HIGHLIGHT_COLORS_DICT = {
-    HighlightColors.WHITE: (1.0, 1.0, 1.0, 0.5),
-    HighlightColors.YELLOW: (1.0, 1.0, 0.0, 0.5),
-    HighlightColors.CYAN: (0.0, 1.0, 1.0, 0.5),
-}
+    HighlightColors.WHITE:   (1.0, 1.0, 1.0, 0.5),
+    HighlightColors.YELLOW:  (1.0, 1.0, 0.0, 0.5),
+    HighlightColors.CYAN:    (0.0, 1.0, 1.0, 0.5)}
 
 
 # Default values for default material components.
@@ -70,7 +63,6 @@ def visibleViewSetting(f):
         # If f raises an exception, the signal is not emitted.
         self.signalVisibleSettingChanged.emit()
         self.signalSettingChanged.emit()
-
     return wrapper
 
 
@@ -79,7 +71,6 @@ def invisibleViewSetting(f):
         f(self, *args, **kwargs)
         # If f raises an exception, the signal is not emitted.
         self.signalSettingChanged.emit()
-
     return wrapper
 
 
@@ -89,11 +80,10 @@ def freeCameraViewSetting(f):
         # If f raises an exception, the signal is not emitted.
         self.signalFreeCameraSettingChanged.emit()
         self.signalSettingChanged.emit()
-
     return wrapper
 
 
-class OCIOSettings:
+class OCIOSettings():
     """Class to hold OCIO display, view, and colorSpace config settings
     as strings."""
 
@@ -114,7 +104,6 @@ class OCIOSettings:
     def colorSpace(self):
         return self._colorSpace
 
-
 class ViewSettingsDataModel(StateSource, QtCore.QObject):
     """Data model containing settings related to the rendered view of a USD
     file.
@@ -133,7 +122,7 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
     signalFreeCameraSettingChanged = QtCore.Signal()
 
     # emitted when autoClipping changes value, so that clients can initialize
-    # it efficiently.  This signal will be emitted *before*
+    # it efficiently.  This signal will be emitted *before* 
     # signalVisibleSettingChanged when autoClipping changes.
     signalAutoComputeClippingPlanesChanged = QtCore.Signal()
 
@@ -146,78 +135,48 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
     def __init__(self, rootDataModel, parent):
         # XXX
         # QtCore.QObject.__init__(self)
-        QtCore.QObject.__init__(self, parent=None)  # , name=None)
+        QtCore.QObject.__init__(self, parent=None)
         StateSource.__init__(self, parent, "model")
 
         self._rootDataModel = rootDataModel
 
-        self._cameraMaskColor = tuple(
-            self.stateProperty("cameraMaskColor", default=[0.1, 0.1, 0.1, 1.0])
-        )
-        self._cameraReticlesColor = tuple(
-            self.stateProperty("cameraReticlesColor", default=[0.0, 0.7, 1.0, 1.0])
-        )
-        self._defaultMaterialAmbient = self.stateProperty(
-            "defaultMaterialAmbient", default=DEFAULT_AMBIENT
-        )
-        self._defaultMaterialSpecular = self.stateProperty(
-            "defaultMaterialSpecular", default=DEFAULT_SPECULAR
-        )
+        self._cameraMaskColor = tuple(self.stateProperty("cameraMaskColor", default=[0.1, 0.1, 0.1, 1.0]))
+        self._cameraReticlesColor = tuple(self.stateProperty("cameraReticlesColor", default=[0.0, 0.7, 1.0, 1.0]))
+        self._defaultMaterialAmbient = self.stateProperty("defaultMaterialAmbient", default=DEFAULT_AMBIENT)
+        self._defaultMaterialSpecular = self.stateProperty("defaultMaterialSpecular", default=DEFAULT_SPECULAR)
         self._redrawOnScrub = self.stateProperty("redrawOnScrub", default=True)
-        self._renderMode = self.stateProperty(
-            "renderMode", default=RenderModes.SMOOTH_SHADED
-        )
+        self._renderMode = self.stateProperty("renderMode", default=RenderModes.SMOOTH_SHADED)
         self._freeCameraFOV = self.stateProperty("freeCameraFOV", default=60.0)
         self._freeCameraAspect = self.stateProperty("freeCameraAspect", default=1.0)
         # For freeCameraOverrideNear/Far, Use -inf as a sentinel value to mean
         # None. (We cannot use None directly because that would cause a type-
         # checking error in Settings.)
-        self._clippingPlaneNoneValue = float("-inf")
-        self._freeCameraOverrideNear = self.stateProperty(
-            "freeCameraOverrideNear", default=self._clippingPlaneNoneValue
-        )
-        self._freeCameraOverrideFar = self.stateProperty(
-            "freeCameraOverrideFar", default=self._clippingPlaneNoneValue
-        )
+        self._clippingPlaneNoneValue = float('-inf')
+        self._freeCameraOverrideNear = self.stateProperty("freeCameraOverrideNear", default=self._clippingPlaneNoneValue)
+        self._freeCameraOverrideFar = self.stateProperty("freeCameraOverrideFar", default=self._clippingPlaneNoneValue)
         if self._freeCameraOverrideNear == self._clippingPlaneNoneValue:
             self._freeCameraOverrideNear = None
         if self._freeCameraOverrideFar == self._clippingPlaneNoneValue:
             self._freeCameraOverrideFar = None
-        self._lockFreeCameraAspect = self.stateProperty(
-            "lockFreeCameraAspect", default=False
-        )
-        self._colorCorrectionMode = self.stateProperty(
-            "colorCorrectionMode", default=ColorCorrectionModes.SRGB
-        )
+        self._lockFreeCameraAspect = self.stateProperty("lockFreeCameraAspect", default=False)
+        self._colorCorrectionMode = self.stateProperty("colorCorrectionMode", default=ColorCorrectionModes.SRGB)
         self._ocioSettings = OCIOSettings()
         self._pickMode = self.stateProperty("pickMode", default=PickModes.PRIMS)
 
         # We need to store the trinary selHighlightMode state here,
         # because the stageView only deals in True/False (because it
         # cannot know anything about playback state).
-        self._selHighlightMode = self.stateProperty(
-            "selectionHighlightMode", default=SelectionHighlightModes.ONLY_WHEN_PAUSED
-        )
+        self._selHighlightMode = self.stateProperty("selectionHighlightMode", default=SelectionHighlightModes.ONLY_WHEN_PAUSED)
 
         # We store the highlightColorName so that we can compare state during
         # initialization without inverting the name->value logic
-        self._highlightColorName = self.stateProperty(
-            "highlightColor", default="Yellow"
-        )
+        self._highlightColorName = self.stateProperty("highlightColor", default="Yellow")
         self._ambientLightOnly = self.stateProperty("cameraLightEnabled", default=True)
         self._domeLightEnabled = self.stateProperty("domeLightEnabled", default=False)
-        self._domeLightTexturesVisible = self.stateProperty(
-            "domeLightTexturesVisible", default=True
-        )
-        self._clearColorText = self.stateProperty(
-            "backgroundColor", default="Grey (Dark)"
-        )
-        self._autoComputeClippingPlanes = self.stateProperty(
-            "autoComputeClippingPlanes", default=False
-        )
-        self._showBBoxPlayback = self.stateProperty(
-            "showBBoxesDuringPlayback", default=False
-        )
+        self._domeLightTexturesVisible = self.stateProperty("domeLightTexturesVisible", default=True)
+        self._clearColorText = self.stateProperty("backgroundColor", default="Grey (Dark)")
+        self._autoComputeClippingPlanes = self.stateProperty("autoComputeClippingPlanes", default=False)
+        self._showBBoxPlayback = self.stateProperty("showBBoxesDuringPlayback", default=False)
         self._showBBoxes = self.stateProperty("showBBoxes", default=True)
         self._showAABBox = self.stateProperty("showAABBox", default=True)
         self._showOBBox = self.stateProperty("showOBBox", default=True)
@@ -225,41 +184,27 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
         self._displayProxy = self.stateProperty("displayProxy", default=True)
         self._displayRender = self.stateProperty("displayRender", default=False)
         self._displayPrimId = self.stateProperty("displayPrimId", default=False)
-        self._enableSceneMaterials = self.stateProperty(
-            "enableSceneMaterials", default=True
-        )
+        self._enableSceneMaterials = self.stateProperty("enableSceneMaterials", default=True)
         self._enableSceneLights = self.stateProperty("enableSceneLights", default=True)
         self._cullBackfaces = self.stateProperty("cullBackfaces", default=False)
         self._showInactivePrims = self.stateProperty("showInactivePrims", default=True)
 
         showAllMasterPrims = self.stateProperty("showAllMasterPrims", default=False)
-        self._showAllPrototypePrims = self.stateProperty(
-            "showAllPrototypePrims", default=False
-        )
+        self._showAllPrototypePrims = self.stateProperty("showAllPrototypePrims", default=False)
         # XXX: For backwards compatibility, we use the "showAllMasterPrims"
         # saved state to drive the new "showAllPrototypePrims" state. We
         # can remove "showAllMasterPrims" in a later release.
         self._showAllPrototypePrims = showAllMasterPrims
 
-        self._showUndefinedPrims = self.stateProperty(
-            "showUndefinedPrims", default=False
-        )
+        self._showUndefinedPrims = self.stateProperty("showUndefinedPrims", default=False)
         self._showAbstractPrims = self.stateProperty("showAbstractPrims", default=False)
-        self._showPrimDisplayNames = self.stateProperty(
-            "showPrimDisplayNames", default=True
-        )
+        self._showPrimDisplayNames = self.stateProperty("showPrimDisplayNames", default=True)
         self._rolloverPrimInfo = self.stateProperty("rolloverPrimInfo", default=False)
         self._displayCameraOracles = self.stateProperty("cameraOracles", default=False)
-        self._cameraMaskMode = self.stateProperty(
-            "cameraMaskMode", default=CameraMaskModes.NONE
-        )
+        self._cameraMaskMode = self.stateProperty("cameraMaskMode", default=CameraMaskModes.NONE)
         self._showMask_Outline = self.stateProperty("cameraMaskOutline", default=False)
-        self._showReticles_Inside = self.stateProperty(
-            "cameraReticlesInside", default=False
-        )
-        self._showReticles_Outside = self.stateProperty(
-            "cameraReticlesOutside", default=False
-        )
+        self._showReticles_Inside = self.stateProperty("cameraReticlesInside", default=False)
+        self._showReticles_Outside = self.stateProperty("cameraReticlesOutside", default=False)
         self._showHUD = self.stateProperty("showHUD", default=True)
 
         self._showHUD_Info = self.stateProperty("showHUDInfo", default=False)
@@ -268,9 +213,7 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
         self._showHUD_Info = False
 
         self._showHUD_Complexity = self.stateProperty("showHUDComplexity", default=True)
-        self._showHUD_Performance = self.stateProperty(
-            "showHUDPerformance", default=True
-        )
+        self._showHUD_Performance = self.stateProperty("showHUDPerformance", default=True)
         self._showHUD_GPUstats = self.stateProperty("showHUDGPUStats", default=False)
 
         self._complexity = RefinementComplexities.LOW
@@ -377,10 +320,8 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
 
     @visibleViewSetting
     def setDefaultMaterial(self, ambient, specular):
-        if (
-            ambient != self._defaultMaterialAmbient
-            or specular != self._defaultMaterialSpecular
-        ):
+        if (ambient != self._defaultMaterialAmbient
+                or specular != self._defaultMaterialSpecular):
             self._defaultMaterialAmbient = ambient
             self._defaultMaterialSpecular = specular
             self.signalDefaultMaterialChanged.emit()
@@ -456,7 +397,7 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
     @property
     def freeCameraAspect(self):
         return self._freeCameraAspect
-
+    
     @freeCameraAspect.setter
     @freeCameraViewSetting
     def freeCameraAspect(self, value):
@@ -483,7 +424,8 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
         self.signalSettingChanged.emit()
 
     def _updateFreeCameraData(self):
-        """Updates member variables with the current free camera view settings."""
+        '''Updates member variables with the current free camera view settings.
+        '''
         if self._freeCamera:
             self._freeCameraFOV = self.freeCamera.fov
             self._freeCameraOverrideNear = self.freeCamera.overrideNear
@@ -494,7 +436,7 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
     @property
     def lockFreeCameraAspect(self):
         return self._lockFreeCameraAspect
-
+    
     @lockFreeCameraAspect.setter
     @visibleViewSetting
     def lockFreeCameraAspect(self, value):
@@ -521,7 +463,7 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
     @visibleViewSetting
     def setOcioSettings(self, colorSpace="", display="", view=""):
         """Specifies the OCIO settings to be used. Setting the OCIO 'display'
-        requires a 'view' to be specified."""
+           requires a 'view' to be specified."""
 
         if colorSpace:
             self._ocioSettings._colorSpace = colorSpace
@@ -531,10 +473,8 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
                 self._ocioSettings._display = display
                 self._ocioSettings._view = view
             else:
-                PrintWarning(
-                    "Cannot set a OCIO display without a view."
-                    "Using default settings instead."
-                )
+                PrintWarning("Cannot set a OCIO display without a view."\
+                             "Using default settings instead.")
                 self._ocioSettings._display = ""
                 self._ocioSettings._view = ""
 
@@ -900,16 +840,16 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
         if not isinstance(value, FreeCamera) and value != None:
             raise TypeError("Free camera must be a FreeCamera object.")
         if self._freeCamera:
-            self._freeCamera.signalFrustumChanged.disconnect(self._frustumChanged)
+            self._freeCamera.signalFrustumChanged.disconnect(
+                self._frustumChanged)
             self._freeCamera.signalFrustumSettingsChanged.disconnect(
-                self._frustumSettingsChanged
-            )
+                self._frustumSettingsChanged)
         self._freeCamera = value
         if self._freeCamera:
-            self._freeCamera.signalFrustumChanged.connect(self._frustumChanged)
+            self._freeCamera.signalFrustumChanged.connect(
+                self._frustumChanged)
             self._freeCamera.signalFrustumSettingsChanged.connect(
-                self._frustumSettingsChanged
-            )
+                self._frustumSettingsChanged)
             self._updateFreeCameraData()
 
     @property
@@ -919,9 +859,8 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
     @cameraPath.setter
     @visibleViewSetting
     def cameraPath(self, value):
-        if (
-            not isinstance(value, Sdf.Path) or not value.IsPrimPath()
-        ) and value is not None:
+        if ((not isinstance(value, Sdf.Path) or not value.IsPrimPath())
+                and value is not None):
             raise TypeError("Expected prim path, got: {}".format(value))
         self._cameraPath = value
 
@@ -938,11 +877,9 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
             if value.IsA(UsdGeom.Camera):
                 self.cameraPath = value.GetPrimPath()
             else:
-                PrintWarning(
-                    "Incorrect Prim Type",
+                PrintWarning("Incorrect Prim Type",
                     "Attempted to view the scene using the prim '%s', but "
-                    "the prim is not a UsdGeom.Camera." % (value.GetName()),
-                )
+                    "the prim is not a UsdGeom.Camera." % (value.GetName()))
         else:
             self.cameraPath = None
 
@@ -956,3 +893,4 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
         if value != self._fontSize:
             self._fontSize = value
             self.signalStyleSettingsChanged.emit()
+

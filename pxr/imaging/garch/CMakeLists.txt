@@ -29,6 +29,7 @@ pxr_library(garch
         ${X11_LIBRARIES}
         ${OPENGL_glx_LIBRARY}
         ${OPENGL_opengl_LIBRARY}
+        ${OPENGL_gl_LIBRARY}
         ${APPKIT_LIBRARY}
 
     INCLUDE_DIRS

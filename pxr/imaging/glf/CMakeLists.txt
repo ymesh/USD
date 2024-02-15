@@ -30,6 +30,7 @@ pxr_library(glf
         ${Boost_PYTHON_LIBRARY}
         ${OPENGL_glx_LIBRARY}
         ${OPENGL_opengl_LIBRARY}
+        ${OPENGL_gl_LIBRARY}
         ${X11_LIBRARIES}
         ${optionalLibs}
 
