@@ -1,6 +1,10 @@
 set(PXR_PREFIX pxr/usd)
 set(PXR_PACKAGE sdf)
 
+message("--> pxr/usd/sdf")
+message("* PYTHON_LIBRARY = ${PYTHON_LIBRARY}")
+message("* Python3_LIBRARY = ${Python3_LIBRARY}")
+message("* PYTHON_LIBRARIES = ${PYTHON_LIBRARIES}")
 pxr_library(sdf
     LIBRARIES
         arch
@@ -11,6 +15,7 @@ pxr_library(sdf
         work
         ar
         ${Boost_PYTHON_LIBRARY}
+        ${PYTHON_LIBRARIES}
 
     INCLUDE_DIRS
         ${Boost_INCLUDE_DIRS}
