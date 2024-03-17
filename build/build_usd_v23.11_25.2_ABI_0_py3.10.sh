@@ -39,8 +39,8 @@ python ./build_usd.py \
 --openvdb \
 --prman \
 --prman-location ${PRMAN_LOCATION} \
---opencolorio \
 --openimageio \
+--opencolorio \
 --alembic \
 --hdf5 \
 --materialx \

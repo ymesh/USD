@@ -1483,11 +1483,18 @@ OPENIMAGEIO = Dependency(
 ############################################################
 # OpenColorIO
 
-OCIO_URL = "https://github.com/AcademySoftwareFoundation/OpenColorIO/archive/refs/tags/v2.1.3.zip"
+OCIO_URL = "https://github.com/AcademySoftwareFoundation/OpenColorIO/archive/refs/tags/v1.1.1.zip"
+# OCIO_URL = "https://github.com/AcademySoftwareFoundation/OpenColorIO/archive/refs/tags/v2.1.3.zip"
+# OpenColorIO-2.1.3
+# Error in 'pxrInternal_v0_23__pxrReserved__::HdxColorCorrectionTask::_CreateOpenColorIOShaderCode'
+# at line 561 in file /mnt/STORE0/data/code/me/USD/pxr/imaging/hdx/colorCorrectionTask.cpp :
+#'Failed verification: ' !texInfo.texName.empty() && !texInfo.samplerName.empty() ''
 
 
 def InstallOpenColorIO(context, force, buildArgs):
     # XXX: ON
+    from pprint import pprint
+
     print(f">>> InstallOpenColorIO { buildArgs = }")
     pyInfo = GetPythonInfo(context)
     pyVerStr = pyInfo[3].split(".")[0] + "." + pyInfo[3].split(".")[1]
@@ -1508,8 +1515,33 @@ def InstallOpenColorIO(context, force, buildArgs):
             # XXX: ON
             "-DOCIO_BUILD_PYTHON=ON",
             "-DOCIO_PYTHON_VERSION={}".format(pyVerStr),
+            "-DYAML_CPP_OBJECT_LIB_EMBEDDED=ON",
             # XXX: OFF
         ]
+        if Linux():
+            print(f"{context.useCXX11ABI = }")
+            if context.useCXX11ABI is not None:
+                # extraArgs.append("-DOCIO_INSTALL_EXT_PACKAGES=ALL")
+                pystring_cxx_flags = (
+                    "-Dpystring_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI={}".format(
+                        context.useCXX11ABI
+                    )
+                )
+                yaml_cxx_flags = (
+                    "-Dyaml-cpp_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI={}".format(
+                        context.useCXX11ABI
+                    )
+                )
+                print(f"{pystring_cxx_flags = }")
+                print(f"{yaml_cxx_flags = }")
+                extraArgs.append(pystring_cxx_flags)
+                extraArgs.append(yaml_cxx_flags)
+            extraArgs.append(
+                '-DCMAKE_CXX_FLAGS="-Wno-error=nonnull '
+                "-Wno-error=deprecated-declarations "
+                "-Wno-error=unused-function "
+                '-Wno-error=cast-function-type -fPIC"'
+            )
         # XXX: ON
         if Windows():
             extraArgs.append("-DPython_ROOT_DIR={}".format(pyRoot))
@@ -2778,7 +2810,11 @@ if context.buildImaging:
         requiredDependencies += [BLOSC, BOOST, OPENEXR, OPENVDB, TBB]
 
     if context.buildOIIO:
-        requiredDependencies += [BOOST, JPEG, TIFF, PNG, OPENEXR, OPENIMAGEIO]
+        # XXX
+        if Linux():
+            requiredDependencies += [BOOST, OPENEXR, OPENIMAGEIO]
+        else:
+            requiredDependencies += [BOOST, JPEG, TIFF, PNG, OPENEXR, OPENIMAGEIO]
 
     if context.buildOCIO:
         requiredDependencies += [OPENCOLORIO]

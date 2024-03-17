@@ -1,5 +1,6 @@
 #
 # Config USD linux
+#
 USD_VER="23.11"
 RMAN_VER="25.2"
 PY_VER="310"
@@ -38,8 +39,8 @@ python ./build_usd.py \
 --generator "Unix Makefiles" \
 --ptex \
 --openvdb \
---opencolorio \
 --openimageio \
+--opencolorio \
 --alembic \
 --hdf5 \
 --materialx \
