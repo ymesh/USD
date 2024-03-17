@@ -1,3 +1,14 @@
+# To be sure our VtVisitValue polyfill works correctly, the preprocessor must 
+# resolve the #include <pxr/base/vt/visitValue.h> in our identically-named
+# polyfill to the real one in libpxr. But CMAKE_INCLUDE_CURRENT_DIR injects the
+# cpp source directory as the first include search path. The preprocessor
+# therefore finds only our polyfill and stops looking, never getting the chance
+# to find the libpxr one. Setting this to OFF allows the preprocessor to resolve
+# the angle-include to libpxr instead, and does not affect any other part of the
+# hdPrman build. The polyfill will be removed once hdPrman drops support for
+# USD versions older than 22.11.
+set(CMAKE_INCLUDE_CURRENT_DIR OFF)
+
 # Install hdPrman's headers in pxr/imaging alongside other shared
 # libraries for Hydra backends, like hdSt.
 set(PXR_PREFIX pxr/imaging)
@@ -81,9 +92,9 @@ pxr_plugin(${PXR_PACKAGE}
         basisCurves
         camera
         cone
-        cylinder
         coordSys
         coordSysPrimSceneIndexPlugin
+        cylinder
         debugCodes
         dependencyForwardingSceneIndexPlugin
         displayFilter
@@ -93,7 +104,6 @@ pxr_plugin(${PXR_PACKAGE}
         integrator
         light
         lightFilter
-        lightFilterUtils
         material
         matfiltConvertPreviewMaterial
         matfiltResolveVstructs
@@ -102,6 +112,8 @@ pxr_plugin(${PXR_PACKAGE}
         points
         renderDelegate
         renderSettings
+        rileyRenderOutputSchema
+        rileyRenderTargetSchema
         rixStrings
         sampleFilter
         sphere
@@ -118,6 +130,7 @@ pxr_plugin(${PXR_PACKAGE}
         implicitSurfaceSceneIndexPlugin
         materialPrimvarTransferSceneIndexPlugin
         matfiltSceneIndexPlugins
+        motionBlurSceneIndexPlugin
         pinnedCurveExpandingSceneIndexPlugin
         renderBuffer
         renderParam
@@ -125,9 +138,14 @@ pxr_plugin(${PXR_PACKAGE}
         renderSettingsFilteringSceneIndexPlugin
         renderViewContext
         resourceRegistry
+        rileyPrimBase
+        rileyPrimFactory
+        rileyRenderOutputPrim
+        rileyRenderTargetPrim
         terminalSceneIndexObserver
+        updateObjectSettingsSceneIndex
+        updateObjectSettingsSceneIndexPlugin
         utils
-        velocityMotionBlurSceneIndexPlugin
         virtualStructResolvingSceneIndex
 
     PUBLIC_HEADERS
@@ -135,12 +153,16 @@ pxr_plugin(${PXR_PACKAGE}
 
     PRIVATE_HEADERS
         prmanArchDefs.h
+        pxr/base/vt/typeHeaders.h # polyfill until USD 22.08
+        pxr/base/vt/visitValue.h  # polyfill until USD 22.11
+        rileyPrimUtil.h
+        sceneIndexObserverApi.h
         virtualStructConditionalGrammar.tab.h
 
     CPPFILES
-        virtualStructConditionalGrammar.tab.cpp
-        virtualStructConditionalGrammar.lex.cpp
         rendererPlugin.cpp
+        virtualStructConditionalGrammar.lex.cpp
+        virtualStructConditionalGrammar.tab.cpp
 
     RESOURCE_FILES
         plugInfo.json
