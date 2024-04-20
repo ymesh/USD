@@ -1,9 +1,9 @@
 #
 # Config USD linux
 #
-USD_VER="23.11"
+USD_VER="24.03"
 RMAN_VER="25.2"
-PY_VER="310"
+PY_VER="3.10"
 
 PRMAN_LOCATION="/opt/pixar/RenderManProServer-${RMAN_VER}"
 

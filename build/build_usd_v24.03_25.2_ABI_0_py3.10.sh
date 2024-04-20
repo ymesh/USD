@@ -1,9 +1,9 @@
 #
 # Config USD linux ABI_0 Renderman
 #
-USD_VER="23.11"
+USD_VER="24.03"
 RMAN_VER="25.2"
-PY_VER="310"
+PY_VER="3.10"
 
 PRMAN_LOCATION="/opt/pixar/RenderManProServer-${RMAN_VER}"
 
@@ -27,7 +27,6 @@ pushd ../build_scripts
 # --build-args openimageio, -DUSE_QT=OFF \
 # --build-args USD, -DPXR_PY_UNDEFINED_DYNAMIC_LOOKUP=OFF \
 # --force boost \
-# --opencolorio \
 # -fno-lto ???
 export LDFLAGS=-fno-lto
 python ./build_usd.py \
