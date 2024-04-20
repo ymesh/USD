@@ -23,6 +23,7 @@ if (${PXR_ENABLE_MATERIALX_SUPPORT})
         MaterialXCore
         MaterialXFormat
         MaterialXGenGlsl
+        MaterialXGenMsl
         hdMtlx
     )
     list(APPEND optionalPrivateClasses
@@ -129,6 +130,7 @@ pxr_library(hdSt
         stagingBuffer
         strategyBase
         subtextureIdentifier
+        tetMeshConversionSceneIndexPlugin
         textureBinder
         textureCpuData
         textureHandle
@@ -218,6 +220,16 @@ pxr_library(hdSt
 
     DOXYGEN_FILES
         overview.dox
+)
+
+pxr_build_test(testHdStQualifiers
+    LIBRARIES
+        hdSt
+        hgi
+        hio
+        hd
+    CPPFILES
+        testenv/testHdStQualifiers.cpp
 )
 
 if (X11_FOUND OR APPLE)
@@ -575,18 +587,21 @@ pxr_build_test(testHdStTransition
     CPPFILES
         testenv/testHdStTransition.cpp
 )
+pxr_build_test(testHdStSubResourceRegistry
+    LIBRARIES
+        garch
+        gf
+        hd
+        hdSt
+        hgi
+        tf
+        vt
+    CPPFILES
+        testenv/testHdStSubResourceRegistry.cpp
+)
 endif()
 
-if (APPLE)
-    message(STATUS "Skipping ${PXR_PACKAGE} tests because they are currently unsupported on macOS")
-    return()
-endif()
-
-if (WIN32)
-    message(STATUS "Skipping ${PXR_PACKAGE} tests because they are currently unsupported on Windows")
-    return()
-endif()
-
+if (X11_FOUND)
 # Most HdSt tests require setup of a GL context and window. This is the 
 # exception.
 pxr_register_test(testHdStBufferSource
@@ -596,9 +611,34 @@ pxr_register_test(testHdStBufferSource
     ENV
         TF_DEBUG=HD_SAFE_MODE
 )
+endif()
 
 if (${PXR_HEADLESS_TEST_MODE})
     message(STATUS "Skipping ${PXR_PACKAGE} tests because PXR_HEADLESS_TEST_MODE is ON")
+    return()
+endif()
+
+# Unlike most hdSt tests currently, testHdStQualifiers can run on all platforms.
+pxr_install_test_dir(
+    SRC testenv/testHdStQualifiers
+    DEST testHdStQualifiers
+)
+
+pxr_register_test(testHdStQualifiers
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdStQualifiers --offscreen --flatQF FlatMember --nopersQF NoPerspectiveMember --centroidQF CentroidMember --sampleQF SampleMember"
+    EXPECTED_RETURN_CODE 0
+    TESTENV testHdStQualifiers
+    ENV
+        TF_DEBUG=HD_SAFE_MODE
+)
+
+if (APPLE)
+    message(STATUS "Skipping rest of ${PXR_PACKAGE} tests because they are currently unsupported on macOS")
+    return()
+endif()
+
+if (WIN32)
+    message(STATUS "Skipping rest of ${PXR_PACKAGE} tests because they are currently unsupported on Windows")
     return()
 endif()
 
@@ -3138,6 +3178,13 @@ pxr_register_test(testHdStTransitionRefinedCurves
     TESTENV testHdStTransitionRefinedCurves
     ENV
         HD_ENABLE_REFINED_CURVES=1
+        TF_DEBUG=HD_SAFE_MODE
+)
+pxr_register_test(testHdStSubResourceRegistry
+    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testHdStSubResourceRegistry"
+    EXPECTED_RETURN_CODE 0
+    TESTENV testHdStSubResourceRegistry
+    ENV
         TF_DEBUG=HD_SAFE_MODE
 )
 
