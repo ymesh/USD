@@ -6,8 +6,9 @@ link_directories(
     ${MATERIALX_LIB_DIRS}
     ${OIIO_LIBRARY_DIR}
 ) 
-message("--> pxr/imaging/hdMtlx/CMakeLists.txt")
-message(">>> MATERIALX_INCLUDE_DIRS = ${MATERIALX_INCLUDE_DIRS}")
+
+message(">>> hdMtlx:: MATERIALX_INCLUDE_DIRS = ${MATERIALX_INCLUDE_DIRS}")
+message(">>> hdMtlx:: MATERIALX_LIB_DIRS = ${MATERIALX_LIB_DIRS}")
 
 pxr_library(hdMtlx
     LIBRARIES

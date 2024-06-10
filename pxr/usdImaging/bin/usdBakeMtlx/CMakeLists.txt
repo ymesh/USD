@@ -3,6 +3,9 @@ set(PXR_PACKAGE usdBakeMtlx)
 
 # MaterialX's MaterialXRenderGlsl library, which is used by usdBakeMtlx,
 # requires OpenGL.
+message(">>> usdBakeMtlx: PXR_ENABLE_GL_SUPPORT = ${PXR_ENABLE_GL_SUPPORT}")
+message(">>> usdBakeMtlx: MATERIALX_LIBRARIES = ${MATERIALX_LIBRARIES}")
+
 if (NOT ${PXR_ENABLE_GL_SUPPORT})
     message(STATUS
         "Skipping ${PXR_PACKAGE} because PXR_ENABLE_GL_SUPPORT is OFF")
@@ -18,9 +21,10 @@ pxr_library(usdBakeMtlx
         hd
         hdMtlx
         usdImaging
-        MaterialXCore
-        MaterialXFormat
-        MaterialXRenderGlsl
+        # MaterialXCore
+        # MaterialXFormat
+        # MaterialXRenderGlsl
+        ${MATERIALX_LIBRARIES}
 
     INCLUDE_DIRS
         ${Boost_INCLUDE_DIRS}

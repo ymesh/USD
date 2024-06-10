@@ -31,6 +31,10 @@ if(UNIX)
             "/opt/oiio"
     )
     set(LIBNAME libOpenImageIO.so)
+    if (APPLE)
+        set(LIBNAME libOpenImageIO.dylib)
+    endif()
+    message(">>> OIIO LIBNAME = ${LIBNAME}")
     if(DEFINED PXR_USE_DEBUG_BUILD)
         if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${PXR_USE_DEBUG_BUILD} MATCHES ON)
             set(LIBNAME libOpenImageIO_d.dylib)
@@ -47,6 +51,7 @@ if(UNIX)
         DOC
             "OpenImageIO library path"
     )
+    message(">>> OIIO_LIBRARY_DIR = ${OIIO_LIBRARY_DIR}")
 elseif(WIN32)
     find_path(OIIO_BASE_DIR
             include/OpenImageIO/oiioversion.h

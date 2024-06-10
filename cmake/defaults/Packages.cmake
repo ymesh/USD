@@ -335,11 +335,25 @@ if (PXR_BUILD_ALEMBIC_PLUGIN)
     find_package(Alembic REQUIRED)
     set(REQUIRES_Imath TRUE)
     if (PXR_ENABLE_HDF5_SUPPORT)
-        find_package(HDF5 REQUIRED
-            COMPONENTS
-                HL
-            REQUIRED
-        )
+        message("!!!! Find HDF5..")
+        message("!!!! HDF5_ROOT = ${HDF5_ROOT}")
+        message("!!!! HDF5_DIR = ${HDF5_DIR}")
+        message("!!!! HDF5_INCLUDE_DIRS = ${HDF5_INCLUDE_DIRS}")
+        # if (APPLE)
+        #     find_package(HDF5 REQUIRED
+        #         COMPONENTS
+        #             C HL
+        #         REQUIRED
+        #     )
+        # else ()
+            find_package(HDF5 REQUIRED
+                COMPONENTS
+                    HL
+                REQUIRED
+            )
+        # endif()
+        message("!!!! HDF5_LIBRARIES = ${HDF5_LIBRARIES}")
+        message("!!!! HDF5_HL_LIBRARIES = ${HDF5_HL_LIBRARIES}")
     endif()
 endif()
 

@@ -1562,6 +1562,10 @@ def InstallOpenColorIO(context, force, buildArgs):
         if MacOS():
             if apple_utils.IsTargetArm(context):
                 extraArgs.append("-DOCIO_USE_SSE=OFF")
+            # XXX error: assigning field to itself [-Werror,-Wself-assign-field]
+            extraArgs.append(
+                '-DCMAKE_CXX_FLAGS="-Wno-error=self-assign-field "'
+            )
 
         # Add on any user-specified extra arguments.
         extraArgs += buildArgs
@@ -1601,7 +1605,12 @@ def InstallOpenSubdiv(context, force, buildArgs):
 
         # Use Metal for macOS and all Apple embedded systems.
         if MacOS():
-            extraArgs.append('-DNO_OPENGL=ON')
+            extraArgs.append('-DNO_OPENGL=ON') 
+            print(f">>> HDF5_ROOT = {os.environ.get("HDF5_ROOT")}")
+            print(f">>> HDF5_DIR = {os.environ.get("HDF5_DIR")}")
+            # print(f">>> HDF5_INCLUDE_DIRS = {os.environ.get("HDF5_INCLUDE_DIRS")}")
+            # extraArgs.append('-DHDF5_ROOT=/Users/mesh/data/tools/USD/Pixar/src/hdf5-1.14.4-3')
+            # extraArgs.append('-DHDF5_DIR=/Users/mesh/data/tools/USD/Pixar/src/hdf5-1.14.4-3')
 
         # Add on any user-specified extra arguments.
         extraArgs += buildArgs
@@ -1663,36 +1672,45 @@ PYSIDE = PythonDependency(
 ############################################################
 # HDF5
 
-HDF5_URL = "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.0-patch1/src/hdf5-1.10.0-patch1.zip"
-
+# HDF5_URL = "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-1.10.0-patch1/src/hdf5-1.10.0-patch1.zip"
+# if MacOS():
+HDF5_URL = "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.14/hdf5-1.14.4/src/hdf5-1.14.4-3.zip"
 
 def InstallHDF5(context, force, buildArgs):
     with CurrentWorkingDirectory(DownloadURL(HDF5_URL, context, force)):
+        extraArgs = [
+            "-DBUILD_TESTING=OFF",
+            "-DHDF5_BUILD_TOOLS=OFF",
+            "-DHDF5_BUILD_EXAMPLES=OFF",
+        ]
         if MacOS():
-            PatchFile(
-                "config/cmake_ext_mod/ConfigureChecks.cmake",
-                [("if (ARCH_LENGTH GREATER 1)", "if (FALSE)")],
+            # PatchFile(
+            #     "config/cmake_ext_mod/ConfigureChecks.cmake",
+            #     [("if (ARCH_LENGTH GREATER 1)", "if (FALSE)")],
+            # )
+            # if context.targetUniversal:
+            #     PatchFile(
+            #         "config/cmake/H5pubconf.h.in",
+            #         [
+            #             (
+            #                 " #define H5_SIZEOF_LONG_LONG 8",
+            #                 " #define H5_SIZEOF_LONG_LONG 8\n"
+            #                 + " #define H5_SIZEOF_LONG_DOUBLE 16",
+            #             )
+            #         ],
+            #     )
+            extraArgs.append("-DHDF5_BUILD_CPP_LIB=ON")
+            # Wint-conversion
+            extraArgs.append(
+                '-DCMAKE_CXX_FLAGS="-Wno-error=nonnull '
+                '-Wno-error=int-conversion "'
             )
-            if context.targetUniversal:
-                PatchFile(
-                    "config/cmake/H5pubconf.h.in",
-                    [
-                        (
-                            " #define H5_SIZEOF_LONG_LONG 8",
-                            " #define H5_SIZEOF_LONG_LONG 8\n"
-                            + " #define H5_SIZEOF_LONG_DOUBLE 16",
-                        )
-                    ],
-                )
+        # Add on any user-specified extra arguments.
+        extraArgs += buildArgs
         RunCMake(
             context,
             force,
-            [
-                "-DBUILD_TESTING=OFF",
-                "-DHDF5_BUILD_TOOLS=OFF",
-                "-DHDF5_BUILD_EXAMPLES=OFF",
-            ]
-            + buildArgs,
+            extraArgs,
         )
 
 
@@ -1746,13 +1764,18 @@ DRACO = Dependency("Draco", InstallDraco, "include/draco/compression/decode.h")
 # MaterialX
 
 MATERIALX_URL = "https://github.com/materialx/MaterialX/archive/v1.38.8.zip"
-
+# if MacOS():
+#     MATERIALX_URL = "https://github.com/materialx/MaterialX/archive/v1.38.7.zip"
 
 def InstallMaterialX(context, force, buildArgs):
     with CurrentWorkingDirectory(DownloadURL(MATERIALX_URL, context, force)):
         cmakeOptions = ['-DMATERIALX_BUILD_SHARED_LIBS=ON',
-                        '-DMATERIALX_BUILD_TESTS=OFF'
+                        '-DMATERIALX_BUILD_TESTS=OFF',
+                        # XXX
+                        # '-DMATERIALX_BUILD_OIIO=ON'
         ]
+        if MacOS():
+            cmakeOptions.append('-DOPENIMAGEIO_ROOT_DIR="{}"'.format(context.instDir))
         cmakeOptions += buildArgs
         RunCMake(context, force, cmakeOptions)
 
@@ -1986,6 +2009,15 @@ def InstallUSD(context, force, buildArgs):
                 extraArgs.append(
                     '-DHDF5_ROOT="{instDir}"'.format(instDir=context.instDir)
                 )
+                extraArgs.append(
+                    '-DHDF5_DIR="{instDir}/config/cmake"'.format(instDir=context.instDir)
+                )
+                extraArgs.append(
+                    '-DHDF5_INCLUDE_DIRS="{instDir}/include"'.format(instDir=context.instDir)
+                )
+                extraArgs.append(
+                    '-DHDF5_CXX_INCLUDE_DIR="{instDir}/include"'.format(instDir=context.instDir)
+                )
             else:
                 extraArgs.append("-DPXR_ENABLE_HDF5_SUPPORT=OFF")
         else:
@@ -2003,7 +2035,7 @@ def InstallUSD(context, force, buildArgs):
         if context.buildMaterialX:
             extraArgs.append("-DPXR_ENABLE_MATERIALX_SUPPORT=ON")
             # XXX: ON
-            extraArgs.append("-DMaterialX_VERSION=1.38.7")
+            extraArgs.append("-DMaterialX_VERSION=1.38.8")
             # XXX: OFF
         else:
             extraArgs.append("-DPXR_ENABLE_MATERIALX_SUPPORT=OFF")
@@ -2879,9 +2911,6 @@ if context.buildAlembic:
 if context.buildDraco:
     requiredDependencies += [DRACO]
 
-if context.buildMaterialX:
-    requiredDependencies += [MATERIALX]
-
 if context.buildImaging:
     if context.enablePtex:
         requiredDependencies += [PTEX]
@@ -2892,8 +2921,10 @@ if context.buildImaging:
         requiredDependencies += [BLOSC, BOOST, OPENEXR, OPENVDB, TBB]
 
     if context.buildOIIO:
+        print("**** context.buildOIIO")
         # XXX
         if Linux():
+            print("**** context.buildOIIO -> Linux()")
             requiredDependencies += [BOOST, OPENEXR, OPENIMAGEIO]
         else:
             requiredDependencies += [BOOST, JPEG, TIFF, PNG, OPENEXR, OPENIMAGEIO]
@@ -2903,6 +2934,9 @@ if context.buildImaging:
 
     if context.buildEmbree:
         requiredDependencies += [TBB, EMBREE]
+
+if context.buildMaterialX:
+    requiredDependencies += [OPENIMAGEIO, MATERIALX]
 
 if context.buildUsdview:
     requiredDependencies += [PYOPENGL, PYSIDE]
