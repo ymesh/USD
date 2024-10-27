@@ -159,9 +159,7 @@ def GetVisualStudioCompilerAndVersion():
     if msvcCompiler:
         # VCToolsVersion environment variable should be set by the
         # Visual Studio Command Prompt.
-        match = re.search(
-            r"(\d+)\.(\d+)",
-            os.environ.get("VCToolsVersion", ""))
+        match = re.search(r"(\d+)\.(\d+)", os.environ.get("VCToolsVersion", ""))
         if match:
             return (msvcCompiler, tuple(int(v) for v in match.groups()))
     return None
@@ -177,15 +175,20 @@ def IsVisualStudioVersionOrGreater(desiredVersion):
         return version >= desiredVersion
     return False
 
+
 # Helpers to determine the version of "Visual Studio" (also support the Build Tools) based
 # on the version of the MSVC compiler.
 # See MSVC++ versions table on https://en.wikipedia.org/wiki/Microsoft_Visual_C%2B%2B
 def IsVisualStudio2022OrGreater():
     VISUAL_STUDIO_2022_VERSION = (14, 30)
     return IsVisualStudioVersionOrGreater(VISUAL_STUDIO_2022_VERSION)
+
+
 def IsVisualStudio2019OrGreater():
     VISUAL_STUDIO_2019_VERSION = (14, 20)
     return IsVisualStudioVersionOrGreater(VISUAL_STUDIO_2019_VERSION)
+
+
 def IsVisualStudio2017OrGreater():
     VISUAL_STUDIO_2017_VERSION = (14, 1)
     return IsVisualStudioVersionOrGreater(VISUAL_STUDIO_2017_VERSION)
@@ -333,8 +336,12 @@ def Run(cmd, logCommandOutput=True):
         if verbosity < 3:
             with open("log.txt", "r") as logfile:
                 Print(logfile.read())
-        raise RuntimeError("Failed to run '{cmd}' in {path}.\nSee {log} for more details."
-                           .format(cmd=cmd, path=os.getcwd(), log=os.path.abspath("log.txt")))
+        raise RuntimeError(
+            "Failed to run '{cmd}' in {path}.\nSee {log} for more details.".format(
+                cmd=cmd, path=os.getcwd(), log=os.path.abspath("log.txt")
+            )
+        )
+
 
 @contextlib.contextmanager
 def CurrentWorkingDirectory(dir):
@@ -831,8 +838,8 @@ def InstallBoost_Helper(context, force, buildArgs):
     # However, there are some cases where a newer version is required.
     # - Building with Python 3.11 requires boost 1.82.0 or newer
     #   (https://github.com/boostorg/python/commit/a218ba)
-    # - Building on MacOS requires v1.82.0 or later for C++17 support starting 
-    #   with Xcode 15. We choose to use this version for all MacOS builds for 
+    # - Building on MacOS requires v1.82.0 or later for C++17 support starting
+    #   with Xcode 15. We choose to use this version for all MacOS builds for
     #   simplicity."
     # - Building with Python 3.10 requires boost 1.76.0 or newer
     #   (https://github.com/boostorg/python/commit/cbd2d9)
@@ -843,8 +850,8 @@ def InstallBoost_Helper(context, force, buildArgs):
     # - Building on MacOS requires boost 1.78.0 or newer to resolve Python 3
     #   compatibility issues on Big Sur and Monterey.
     pyInfo = GetPythonInfo(context)
-    pyVer = (int(pyInfo[3].split('.')[0]), int(pyInfo[3].split('.')[1]))
-    if MacOS() or (context.buildPython and pyVer >= (3,11)):
+    pyVer = (int(pyInfo[3].split(".")[0]), int(pyInfo[3].split(".")[1]))
+    if MacOS() or (context.buildPython and pyVer >= (3, 11)):
         BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.zip"
     elif context.buildPython and pyVer >= (3, 10):
         BOOST_URL = "https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.zip"
@@ -894,9 +901,11 @@ def InstallBoost_Helper(context, force, buildArgs):
                 macOSArch = "-arch {0} -arch {1}".format(primaryArch, secondaryArch)
 
             if macOSArch:
-                bootstrapCmd += " cxxflags=\"{0} -std=c++17 -stdlib=libc++\" " \
-                                " cflags=\"{0}\" " \
-                                " linkflags=\"{0}\"".format(macOSArch)
+                bootstrapCmd += (
+                    ' cxxflags="{0} -std=c++17 -stdlib=libc++" '
+                    ' cflags="{0}" '
+                    ' linkflags="{0}"'.format(macOSArch)
+                )
             bootstrapCmd += " --with-toolset=clang"
 
         Run(bootstrapCmd)
@@ -1012,9 +1021,11 @@ def InstallBoost_Helper(context, force, buildArgs):
             # https://github.com/boostorg/container/commit/79a75f470e75f35f5f2a91e10fcc67d03b0a2160
             b2_settings.append(f"define=BOOST_UNORDERED_HAVE_PIECEWISE_CONSTRUCT=0")
             if macOSArch:
-                b2_settings.append("cxxflags=\"{0} -std=c++17 -stdlib=libc++\"".format(macOSArch))
-                b2_settings.append("cflags=\"{0}\"".format(macOSArch))
-                b2_settings.append("linkflags=\"{0}\"".format(macOSArch))
+                b2_settings.append(
+                    'cxxflags="{0} -std=c++17 -stdlib=libc++"'.format(macOSArch)
+                )
+                b2_settings.append('cflags="{0}"'.format(macOSArch))
+                b2_settings.append('linkflags="{0}"'.format(macOSArch))
 
         if context.buildDebug:
             b2_settings.append("--debug-configuration")
@@ -1563,9 +1574,7 @@ def InstallOpenColorIO(context, force, buildArgs):
             if apple_utils.IsTargetArm(context):
                 extraArgs.append("-DOCIO_USE_SSE=OFF")
             # XXX error: assigning field to itself [-Werror,-Wself-assign-field]
-            extraArgs.append(
-                '-DCMAKE_CXX_FLAGS="-Wno-error=self-assign-field "'
-            )
+            extraArgs.append('-DCMAKE_CXX_FLAGS="-Wno-error=self-assign-field "')
 
         # Add on any user-specified extra arguments.
         extraArgs += buildArgs
@@ -1588,26 +1597,26 @@ OPENSUBDIV_URL = (
 def InstallOpenSubdiv(context, force, buildArgs):
     with CurrentWorkingDirectory(DownloadURL(OPENSUBDIV_URL, context, force)):
         extraArgs = [
-            '-DNO_EXAMPLES=ON',
-            '-DNO_TUTORIALS=ON',
-            '-DNO_REGRESSION=ON',
-            '-DNO_DOC=ON',
-            '-DNO_OMP=ON',
-            '-DNO_CUDA=ON',
-            '-DNO_OPENCL=ON',
-            '-DNO_DX=ON',
-            '-DNO_TESTS=ON',
-            '-DNO_GLEW=ON',
-            '-DNO_GLFW=ON',
-            '-DNO_PTEX=ON',
-            '-DNO_TBB=ON',
+            "-DNO_EXAMPLES=ON",
+            "-DNO_TUTORIALS=ON",
+            "-DNO_REGRESSION=ON",
+            "-DNO_DOC=ON",
+            "-DNO_OMP=ON",
+            "-DNO_CUDA=ON",
+            "-DNO_OPENCL=ON",
+            "-DNO_DX=ON",
+            "-DNO_TESTS=ON",
+            "-DNO_GLEW=ON",
+            "-DNO_GLFW=ON",
+            "-DNO_PTEX=ON",
+            "-DNO_TBB=ON",
         ]
 
         # Use Metal for macOS and all Apple embedded systems.
         if MacOS():
-            extraArgs.append('-DNO_OPENGL=ON') 
-            print(f">>> HDF5_ROOT = {os.environ.get("HDF5_ROOT")}")
-            print(f">>> HDF5_DIR = {os.environ.get("HDF5_DIR")}")
+            extraArgs.append("-DNO_OPENGL=ON")
+            print(f'>>> HDF5_ROOT = {os.environ.get("HDF5_ROOT")}')
+            print(f'>>> HDF5_DIR = {os.environ.get("HDF5_DIR")}')
             # print(f">>> HDF5_INCLUDE_DIRS = {os.environ.get("HDF5_INCLUDE_DIRS")}")
             # extraArgs.append('-DHDF5_ROOT=/Users/mesh/data/tools/USD/Pixar/src/hdf5-1.14.4-3')
             # extraArgs.append('-DHDF5_DIR=/Users/mesh/data/tools/USD/Pixar/src/hdf5-1.14.4-3')
@@ -1676,6 +1685,7 @@ PYSIDE = PythonDependency(
 # if MacOS():
 HDF5_URL = "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.14/hdf5-1.14.4/src/hdf5-1.14.4-3.zip"
 
+
 def InstallHDF5(context, force, buildArgs):
     with CurrentWorkingDirectory(DownloadURL(HDF5_URL, context, force)):
         extraArgs = [
@@ -1683,6 +1693,7 @@ def InstallHDF5(context, force, buildArgs):
             "-DHDF5_BUILD_TOOLS=OFF",
             "-DHDF5_BUILD_EXAMPLES=OFF",
         ]
+        extraArgs.append("-DHDF5_BUILD_CPP_LIB=ON")
         if MacOS():
             # PatchFile(
             #     "config/cmake_ext_mod/ConfigureChecks.cmake",
@@ -1699,11 +1710,9 @@ def InstallHDF5(context, force, buildArgs):
             #             )
             #         ],
             #     )
-            extraArgs.append("-DHDF5_BUILD_CPP_LIB=ON")
             # Wint-conversion
             extraArgs.append(
-                '-DCMAKE_CXX_FLAGS="-Wno-error=nonnull '
-                '-Wno-error=int-conversion "'
+                '-DCMAKE_CXX_FLAGS="-Wno-error=nonnull ' '-Wno-error=int-conversion "'
             )
         # Add on any user-specified extra arguments.
         extraArgs += buildArgs
@@ -1767,12 +1776,14 @@ MATERIALX_URL = "https://github.com/materialx/MaterialX/archive/v1.38.8.zip"
 # if MacOS():
 #     MATERIALX_URL = "https://github.com/materialx/MaterialX/archive/v1.38.7.zip"
 
+
 def InstallMaterialX(context, force, buildArgs):
     with CurrentWorkingDirectory(DownloadURL(MATERIALX_URL, context, force)):
-        cmakeOptions = ['-DMATERIALX_BUILD_SHARED_LIBS=ON',
-                        '-DMATERIALX_BUILD_TESTS=OFF',
-                        # XXX
-                        # '-DMATERIALX_BUILD_OIIO=ON'
+        cmakeOptions = [
+            "-DMATERIALX_BUILD_SHARED_LIBS=ON",
+            "-DMATERIALX_BUILD_TESTS=OFF",
+            # XXX
+            # '-DMATERIALX_BUILD_OIIO=ON'
         ]
         if MacOS():
             cmakeOptions.append('-DOPENIMAGEIO_ROOT_DIR="{}"'.format(context.instDir))
@@ -2010,13 +2021,19 @@ def InstallUSD(context, force, buildArgs):
                     '-DHDF5_ROOT="{instDir}"'.format(instDir=context.instDir)
                 )
                 extraArgs.append(
-                    '-DHDF5_DIR="{instDir}/config/cmake"'.format(instDir=context.instDir)
+                    '-DHDF5_DIR="{instDir}/config/cmake"'.format(
+                        instDir=context.instDir
+                    )
                 )
                 extraArgs.append(
-                    '-DHDF5_INCLUDE_DIRS="{instDir}/include"'.format(instDir=context.instDir)
+                    '-DHDF5_INCLUDE_DIRS="{instDir}/include"'.format(
+                        instDir=context.instDir
+                    )
                 )
                 extraArgs.append(
-                    '-DHDF5_CXX_INCLUDE_DIR="{instDir}/include"'.format(instDir=context.instDir)
+                    '-DHDF5_CXX_INCLUDE_DIR="{instDir}/include"'.format(
+                        instDir=context.instDir
+                    )
                 )
             else:
                 extraArgs.append("-DPXR_ENABLE_HDF5_SUPPORT=OFF")
