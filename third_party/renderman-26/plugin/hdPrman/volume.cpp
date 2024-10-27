@@ -1,25 +1,8 @@
 //
 // Copyright 2019 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
-//
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
 #include "hdPrman/volume.h"
 
@@ -47,6 +30,31 @@
 #include "RixPredefinedStrings.hpp"
 
 PXR_NAMESPACE_OPEN_SCOPE
+
+TF_DEFINE_PRIVATE_TOKENS(
+    _tokens,
+    (density)
+);
+
+TF_DEFINE_PRIVATE_TOKENS(
+    _openVDBUsdTokens,
+    ((riPrefix, "ri:attributes:"))
+    ((densityMult, "volume:densityMult"))
+    ((densityRolloff, "volume:densityRolloff"))
+    ((filterWidth, "volume:filterWidth"))
+    ((velocityScale, "volume:velocityScale"))
+    ((velocityGrid, "volume:velocityGrid"))
+);
+
+// Defined inside of impl_openvdb
+TF_DEFINE_PRIVATE_TOKENS(
+    _implOpenVDBTokens,
+    (densityMult)
+    (densityRolloff)
+    (filterWidth)
+    (velocityScale)
+    (velocityGrid)
+);
 
 HdPrman_Field::HdPrman_Field(TfToken const& typeId, SdfPath const& id)
     : HdField(id), _typeId(typeId)
@@ -121,13 +129,26 @@ namespace { // anonymous namespace
 
 HdPrman_Volume::FieldType
 _DetermineOpenVDBFieldType(HdSceneDelegate *sceneDelegate,
-                           SdfPath const& fieldId)
+                           HdVolumeFieldDescriptor const& field)
 {
+    SdfPath const& fieldId = field.fieldId;
+
     VtValue fieldDataTypeValue =
         sceneDelegate->Get(fieldId, UsdVolTokens->fieldDataType);
-    if (!fieldDataTypeValue.IsHolding<TfToken>()) {
+    if (!fieldDataTypeValue.IsHolding<TfToken>() ||
+        fieldDataTypeValue.UncheckedGet<TfToken>().IsEmpty()) {
         TF_WARN("Missing fieldDataType attribute on volume field prim %s. "
                 "Assuming float.", fieldId.GetText());
+        // Cd is specific to Solaris
+        if (field.fieldName.GetString() == "Cd" ||
+            field.fieldName.GetString().find("color")
+            != std::string::npos) {
+            return HdPrman_Volume::FieldType::ColorType;
+        } else if(field.fieldName.GetString() == "vel" ||
+                  field.fieldName.GetString() == "velocity") {
+            return HdPrman_Volume::FieldType::VectorType;
+        }
+
         return HdPrman_Volume::FieldType::FloatType;
     }
     const TfToken& fieldDataType = fieldDataTypeValue.UncheckedGet<TfToken>();
@@ -169,15 +190,39 @@ _DetermineOpenVDBFieldType(HdSceneDelegate *sceneDelegate,
             vectorDataRoleHint = roleHint.UncheckedGet<TfToken>();
         }
 
+#if PXR_VERSION <= 2302
+        if (vectorDataRoleHint == UsdVolTokens->color) {
+#else
         if (vectorDataRoleHint == UsdVolTokens->Color) {
+#endif
             return HdPrman_Volume::FieldType::ColorType;
+#if PXR_VERSION <= 2302
+        } else if (vectorDataRoleHint == UsdVolTokens->point) {
+#else
         } else if (vectorDataRoleHint == UsdVolTokens->Point) {
+#endif
             return HdPrman_Volume::FieldType::PointType;
+#if PXR_VERSION <= 2302
+        } else if (vectorDataRoleHint == UsdVolTokens->normal) {
+#else
         } else if (vectorDataRoleHint == UsdVolTokens->Normal) {
+#endif
             return HdPrman_Volume::FieldType::NormalType;
+#if PXR_VERSION <= 2302
+        } else if (vectorDataRoleHint == UsdVolTokens->vector) {
+#else
         } else if (vectorDataRoleHint == UsdVolTokens->Vector) {
+#endif
             return HdPrman_Volume::FieldType::VectorType;
+#if PXR_VERSION <= 2203
+        } else if (vectorDataRoleHint == UsdVolTokens->none) {
+#else
+#if PXR_VERSION <= 2302
+        } else if (vectorDataRoleHint == UsdVolTokens->none_) {
+#else
         } else if (vectorDataRoleHint == UsdVolTokens->None_) {
+#endif
+#endif
             // Fall through
         } else if (!vectorDataRoleHint.IsEmpty()) {
             TF_WARN("Unknown vectorDataRoleHint value '%s' on volume field prim"
@@ -220,6 +265,92 @@ _DetermineOpenVDBFieldType(HdSceneDelegate *sceneDelegate,
             fieldDataType.GetText(), fieldId.GetText());
 
     return HdPrman_Volume::FieldType::FloatType;
+}
+
+template <typename T>
+bool _GetPrimvarValue(HdSceneDelegate *sceneDelegate,
+                      const SdfPath& id,
+                      const TfToken& name,
+                      T* value,
+                      bool reportMissing = false)
+{
+    float time;
+    VtValue val;
+    bool foundPrimvar = sceneDelegate->SamplePrimvar(
+        id,
+        TfToken(_openVDBUsdTokens->riPrefix.GetString() + name.GetString()),
+        /*maxNumSamples*/ 1, &time, &val);
+    if(!foundPrimvar) {
+        sceneDelegate->SamplePrimvar(id, name,
+                                     /*maxNumSamples*/ 1, &time, &val);
+    }
+    if (foundPrimvar) {
+        if (val.IsHolding<T>()) {
+            *value = val.UncheckedGet<T>();
+            return true;
+        } else {
+            TF_WARN("OpenVDB Volume: %s primvar attribute for volume %s has "
+                    "type %s, expected type %s.",
+                    name.GetText(), id.GetText(), val.GetTypeid().name(),
+                    typeid(T).name());
+        }
+    } else if (reportMissing) {
+        TF_WARN("OpenVDB Volume: missing %s primvar attribute for volume %s.",
+                name.GetText(), id.GetText());
+    }
+
+    return false;
+}
+
+//densityRolloff, densityMult, filterWidth, and velocityScale
+
+std::string
+_GetExtraControlsAsJson(HdSceneDelegate *sceneDelegate,
+                        const SdfPath& id,
+                        const HdVolumeFieldDescriptorVector& fields)
+{
+    std::stringstream ss;
+
+    ss << "{";
+
+    float v = 1.0; // default for densityMult
+    _GetPrimvarValue<float>(sceneDelegate, id, _openVDBUsdTokens->densityMult, &v);
+    ss << "\"" << _implOpenVDBTokens->densityMult.GetText() << "\":" << v;
+
+    v = 0.0; // default for densityRolloff
+    _GetPrimvarValue<float>(sceneDelegate, id, _openVDBUsdTokens->densityRolloff, &v);
+    ss << ",\"" << _implOpenVDBTokens->densityRolloff.GetText() << "\":" << v;
+
+    v = 0.0; // default for filterWidth
+    _GetPrimvarValue<float>(sceneDelegate, id, _openVDBUsdTokens->filterWidth, &v);
+    ss << ",\"" << _implOpenVDBTokens->filterWidth.GetText() << "\":" << v;
+
+    v = 1.0; // default for velocityScale
+    _GetPrimvarValue<float>(sceneDelegate, id, _openVDBUsdTokens->velocityScale, &v);
+    ss << ",\"" << _implOpenVDBTokens->velocityScale.GetText() << "\":" << v;
+
+    bool setGridGroup = false;
+    for (HdVolumeFieldDescriptor const& field : fields) {
+        const int fieldIndex
+            = sceneDelegate->Get(field.fieldId, UsdVolTokens->fieldIndex)
+                  .GetWithDefault<int>(0);
+        if (setGridGroup) {
+            ss << ",{\"name\":\"" << field.fieldName << "\",\"indices\":["
+               << fieldIndex << "]}";
+        }
+        else {
+            setGridGroup = true;
+            ss << ",\"gridGroups\":[{\"name\":\"" << field.fieldName
+               << "\",\"indices\":[" << fieldIndex << "]}";
+        }
+    }
+    if (setGridGroup) {
+        ss << "]";
+    }
+
+    ss << "}";
+
+    return ss.str();
 }
 
 void
@@ -341,21 +472,56 @@ _EmitOpenVDBVolume(HdSceneDelegate *sceneDelegate,
 
     primvars->SetString(RixStr.k_Ri_type, blobbydsoImplOpenVDB);
 
-    const std::array<RtUString, 4> sa = {
-        RtUString(vdbSource.c_str()),
-        RtUString(fieldName.GetText()),
-        RtUString(""),
-        RtUString(jsonOpts.c_str())
-    };
-    primvars->SetStringArray(RixStr.k_blobbydso_stringargs, sa.data(), sa.size());
+    const auto it = std::find_if(fields.begin(), fields.end(),
+                                 [](const auto & field) {
+                                     return field.fieldName ==_tokens->density;
+                                 });
+    // Look for a field called density, otherwise default to the first field
+    std::string densityFieldName =
+            (it != fields.end()) ?
+        it->fieldName.GetText() : fieldName.GetText();
+
+    densityFieldName += ":fogvolume";
+
+    std::string velocityFieldName;
+    _GetPrimvarValue<std::string>(sceneDelegate, id,
+                                  _openVDBUsdTokens->velocityGrid,
+                                  &velocityFieldName);
+
 
     // The individual fields of this volume need to be declared as primvars
     for (HdVolumeFieldDescriptor const& field : fields) {
-        HdPrman_Volume::DeclareFieldPrimvar(
-            primvars,
-            RtUString(field.fieldName.GetText()),
-            _DetermineOpenVDBFieldType(sceneDelegate, field.fieldId));
+        if(velocityFieldName == field.fieldName.GetText()) {
+            HdPrman_Volume::DeclareFieldPrimvar(
+                primvars,
+                RtUString(field.fieldName.GetText()),
+                HdPrman_Volume::FieldType::VectorType);
+        } else {
+            HdPrman_Volume::DeclareFieldPrimvar(
+                primvars,
+                RtUString(field.fieldName.GetText()),
+                _DetermineOpenVDBFieldType(sceneDelegate, field));
+        }
     }
+    
+    if(!velocityFieldName.empty()) {
+        velocityFieldName += ":fogvolume";
+    }
+
+    // Extract additional controls for the impl_f3d plugin and packaged them as
+    // a JSON dictionary
+    const std::string extraControlsJson = !jsonOpts.empty() ?
+        jsonOpts :
+        _GetExtraControlsAsJson(sceneDelegate, id, fields);
+
+    const unsigned nargs = 4;
+    RtUString sa[nargs] = {
+        RtUString(vdbSource.c_str()),
+        RtUString(densityFieldName.c_str()),
+        RtUString(velocityFieldName.c_str()),
+        RtUString(extraControlsJson.c_str())
+    };
+    primvars->SetStringArray(RixStr.k_blobbydso_stringargs, sa, nargs);
 }
 
 // Returns the prim type token of a list of fields, if all the fields have the
@@ -476,43 +642,51 @@ HdPrman_Volume::_ConvertGeometry(HdPrman_RenderParam *renderParam,
                                  RtUString *primType,
                                  std::vector<HdGeomSubset> *geomSubsets)
 {
-    HdVolumeFieldDescriptorVector fields =
-        sceneDelegate->GetVolumeFieldDescriptors(id);
+    *primType = RixStr.k_Ri_Volume;
 
-    if (fields.empty()) {
-        return RtPrimVarList();
-    }
-
-    TfToken fieldPrimType = _DetermineConsistentFieldPrimType(fields);
-    if (fieldPrimType.IsEmpty()) {
-        TF_WARN("The fields on volume %s have inconsistent types and can't be "
-                "emitted as a single volume", id.GetText());
-        return RtPrimVarList();
-    }
-
-    // Based on the field type we determine the function to emit the volume to
-    // Prman
-    _VolumeEmitterMap const& volumeEmitters = _GetVolumeEmitterMap();
-    auto const iter = volumeEmitters.find(fieldPrimType);
-    if (iter == volumeEmitters.end()) {
-        TF_WARN("No volume emitter registered for field type '%s' "
-                "on prim %s", fieldPrimType.GetText(), id.GetText());
-        return RtPrimVarList();
-    }
-
+    // Dimensions
     int32_t const dims[] = { 0, 0, 0 };
     uint64_t const dim = dims[0] * dims[1] * dims[2];
-
     RtPrimVarList primvars(1, dim, dim, dim);
     primvars.SetIntegerArray(RixStr.k_Ri_dimensions, dims, 3);
 
-    *primType = RixStr.k_Ri_Volume;
+    HdPrman_ConvertPrimvars(
+        sceneDelegate, id, primvars,
+        /* numUniform = */ 1,
+        /* numVertex = */ 0,
+        /* numVarying = */ 0,
+        /* numFaceVarying = */ 0,
+        renderParam->GetShutterInterval());
 
     // Setup the volume for Prman with the appropriate DSO and its parameters
-    HdPrman_VolumeTypeEmitter emitterFunc = iter->second;
-    emitterFunc(sceneDelegate, id, fields, &primvars);
+    HdVolumeFieldDescriptorVector fields =
+        sceneDelegate->GetVolumeFieldDescriptors(id);
+    if (!fields.empty()) {
+        TfToken fieldPrimType = _DetermineConsistentFieldPrimType(fields);
+        if (fieldPrimType.IsEmpty()) {
+            TF_WARN("The fields on volume %s have inconsistent types and "
+                    "cannot be emitted as a single volume", id.GetText());
+            return RtPrimVarList();
+        }
 
-    HdPrman_ConvertPrimvars(sceneDelegate, id, primvars, 1, dim, dim, dim);
+        // Based on the field type we determine the function to emit the
+        // volume to Prman
+        _VolumeEmitterMap const& volumeEmitters = _GetVolumeEmitterMap();
+        auto const iter = volumeEmitters.find(fieldPrimType);
+        if (iter == volumeEmitters.end()) {
+            TF_WARN("No volume emitter registered for field type '%s' "
+                    "on prim %s", fieldPrimType.GetText(), id.GetText());
+            return RtPrimVarList();
+        }
+
+        HdPrman_VolumeTypeEmitter emitterFunc = iter->second;
+        emitterFunc(sceneDelegate, id, fields, &primvars);
+    } else {
+        // If no fields are found, the volume will be required to
+        // specify Ri:type (ex: "box") and Ri:Bounds.  We do not
+        // check this here because RenderMan will already issue
+        // an appropriate warning.
+    }
 
     return primvars;
 }

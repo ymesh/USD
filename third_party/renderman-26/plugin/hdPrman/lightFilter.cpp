@@ -1,35 +1,39 @@
 //
 // Copyright 2019 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
-//
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
 #include "hdPrman/lightFilter.h"
+
 #include "hdPrman/renderParam.h"
-#include "hdPrman/debugCodes.h"
 #include "hdPrman/rixStrings.h"
 #include "hdPrman/utils.h"
-#include "pxr/usd/sdf/types.h"
-#include "pxr/base/tf/staticTokens.h"
+
+#include "pxr/imaging/hd/changeTracker.h"
+#include "pxr/imaging/hd/light.h"
+#include "pxr/imaging/hd/renderDelegate.h"
 #include "pxr/imaging/hd/sceneDelegate.h"
-#include "pxr/imaging/hf/diagnostic.h"
+#include "pxr/imaging/hd/sprim.h"
+#include "pxr/imaging/hd/timeSampleArray.h"
+#include "pxr/imaging/hd/types.h"
+#include "pxr/imaging/hd/version.h"
+
+#include "pxr/usd/sdf/types.h"
+
+#include "pxr/base/gf/matrix4d.h"
+#include "pxr/base/tf/diagnostic.h"
+#include "pxr/base/tf/smallVector.h"
+
+#include "pxr/pxr.h"
+
+#include <Riley.h>
+#include <RileyIds.h>
+#include <RiTypesHelper.h>
+#include <stats/Roz.h>
+
+#include <cstddef>
+#include <mutex>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -42,7 +46,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 // currently is no HdLightFilter class.
 
 HdPrmanLightFilter::HdPrmanLightFilter(SdfPath const& id,
-                                       TfToken const& lightFilterType)
+                                       TfToken const& /*lightFilterType*/)
     : HdSprim(id)
     , _coordSysId(riley::CoordinateSystemId::InvalidId())
     , _rileyIsInSync(false)
@@ -57,8 +61,7 @@ void
 HdPrmanLightFilter::Finalize(HdRenderParam *renderParam)
 {
     std::lock_guard<std::mutex> lock(_syncToRileyMutex);
-    HdPrman_RenderParam *param =
-        static_cast<HdPrman_RenderParam*>(renderParam);
+    auto* param = static_cast<HdPrman_RenderParam*>(renderParam);
     riley::Riley *riley = param->AcquireRiley();
     if (_coordSysId != riley::CoordinateSystemId::InvalidId()) {
         riley->DeleteCoordinateSystem(_coordSysId);
@@ -66,19 +69,22 @@ HdPrmanLightFilter::Finalize(HdRenderParam *renderParam)
     }
 }
 
-/* virtual */
 void
 HdPrmanLightFilter::Sync(HdSceneDelegate *sceneDelegate,
                       HdRenderParam   *renderParam,
                       HdDirtyBits     *dirtyBits)
-{  
-    HdPrman_RenderParam *param =
-        static_cast<HdPrman_RenderParam*>(renderParam);
+{
+    auto* param = static_cast<HdPrman_RenderParam*>(renderParam);
 
+#if HD_API_VERSION >= 70
+    if (*dirtyBits & HdLight::DirtyTransform) {
+#else
     if (*dirtyBits & HdChangeTracker::DirtyTransform) {
+#endif
         std::lock_guard<std::mutex> lock(_syncToRileyMutex);
         _rileyIsInSync = false;
-        _SyncToRileyWithLock(sceneDelegate, param->AcquireRiley());
+        _SyncToRileyWithLock(
+            sceneDelegate, param, param->AcquireRiley());
     }
 
     *dirtyBits = HdChangeTracker::Clean;
@@ -87,24 +93,31 @@ HdPrmanLightFilter::Sync(HdSceneDelegate *sceneDelegate,
 void
 HdPrmanLightFilter::SyncToRiley(
     HdSceneDelegate *sceneDelegate,
+    HdPrman_RenderParam *param,
     riley::Riley *riley)
 {
     std::lock_guard<std::mutex> lock(_syncToRileyMutex);
     if (!_rileyIsInSync) {
-        _SyncToRileyWithLock(sceneDelegate, riley);
+        _SyncToRileyWithLock(sceneDelegate, param, riley);
     }
 }
 
 void
 HdPrmanLightFilter::_SyncToRileyWithLock(
     HdSceneDelegate *sceneDelegate,
+    HdPrman_RenderParam * param,
     riley::Riley *riley)
 {
     SdfPath const& id = GetId();
 
     // Sample transform
     HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES> xf;
-    sceneDelegate->SampleTransform(id, &xf);
+    sceneDelegate->SampleTransform(id,
+#if HD_API_VERSION >= 68
+                                   param->GetShutterInterval()[0],
+                                   param->GetShutterInterval()[1],
+#endif
+                                   &xf);
     TfSmallVector<RtMatrix4x4, HDPRMAN_MAX_TIME_SAMPLES>
         xf_rt_values(xf.count);
     for (size_t i=0; i < xf.count; ++i) {

@@ -1,25 +1,8 @@
 //
 // Copyright 2019 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
-//
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
 #ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_DELEGATE_H
 #define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_RENDER_DELEGATE_H
@@ -39,19 +22,29 @@ PXR_NAMESPACE_OPEN_SCOPE
     ((interactiveIntegrator,          "interactiveIntegrator"))        \
     ((interactiveIntegratorTimeout,   "interactiveIntegratorTimeout")) \
     ((dataWindowNDC,                  "dataWindowNDC"))                \
+    ((aspectRatioConformPolicy,       "aspectRatioConformPolicy"))     \
     ((pixelAspectRatio,               "pixelAspectRatio"))             \
     ((resolution,                     "resolution"))                   \
                                                                        \
     /* \deprecated Use disableMotionBlur instead */                    \
     ((instantaneousShutter,           "instantaneousShutter"))         \
     ((disableMotionBlur,              "disableMotionBlur"))            \
+    ((disableDepthOfField,            "disableDepthOfField"))            \
     ((shutterOpen,                    "shutter:open"))                 \
     ((shutterClose,                   "shutter:close"))                \
     ((experimentalRenderSpec,         "experimental:renderSpec"))      \
+    ((renderVariant,                  "renderVariant"))                \
+    ((xpuCpuConfig,                   "xpuCpuConfig"))                 \
+    ((xpuGpuConfig,                   "xpuGpuConfig"))                 \
     ((delegateRenderProducts,         "delegateRenderProducts"))       \
+    ((projection,                     "projection"))                   \
+    ((projectionName,                 "ri:projection:name"))           \
+    ((enableInteractive,              "enableInteractive"))            \
     ((batchCommandLine,               "batchCommandLine"))             \
     ((houdiniFrame,                   "houdini:frame"))                \
-    ((checkpointInterval,             "ri:checkpoint:interval"))
+    ((checkpointInterval,             "ri:checkpoint:interval"))       \
+    ((pixelFilter,                    "ri:Ri:PixelFilterName"))        \
+    ((pixelFilterWidth,               "ri:Ri:PixelFilterWidth"))
 
 TF_DECLARE_PUBLIC_TOKENS(HdPrmanRenderSettingsTokens, HDPRMAN_API,
     HDPRMAN_RENDER_SETTINGS_TOKENS);
@@ -73,7 +66,12 @@ TF_DECLARE_PUBLIC_TOKENS(HdPrmanExperimentalRenderSpecTokens, HDPRMAN_API,
 #define HDPRMAN_INTEGRATOR_TOKENS \
     (PxrPathTracer)               \
     (PbsPathTracer)               \
-    (PxrDirectLighting)
+    (PxrDirectLighting)           \
+    (PxrUnified)
+
+#define HDPRMAN_PROJECTION_TOKENS \
+    (PxrPerspective)              \
+    (PxrOrthographic)             
 
 TF_DECLARE_PUBLIC_TOKENS(HdPrmanIntegratorTokens, HDPRMAN_API,
     HDPRMAN_INTEGRATOR_TOKENS);
@@ -88,6 +86,9 @@ TF_DECLARE_PUBLIC_TOKENS(
     HdPrmanRenderProductTokens, HDPRMAN_API,
     HDPRMAN_RENDER_PRODUCT_TOKENS);
 
+TF_DECLARE_PUBLIC_TOKENS(HdPrmanProjectionTokens, HDPRMAN_API,
+    HDPRMAN_PROJECTION_TOKENS);
+
 #define HDPRMAN_AOV_SETTINGS_TOKENS \
     ((dataType,                       "dataType"))                   \
     ((sourceName,                     "sourceName"))                 \
@@ -100,6 +101,20 @@ TF_DECLARE_PUBLIC_TOKENS(
 TF_DECLARE_PUBLIC_TOKENS(
     HdPrmanAovSettingsTokens, HDPRMAN_API,
     HDPRMAN_AOV_SETTINGS_TOKENS);
+
+#if PXR_VERSION <= 2308
+/* Aspect Ratio Conform Policy Tokens used on render settings prims 
+ * Note that these mirror the conform policy tokens in UsdRenderTokens */
+#define HD_ASPECT_RATIO_CONFORM_POLICY                       \
+    (adjustApertureWidth)                                    \
+    (adjustApertureHeight)                                   \
+    (expandAperture)                                         \
+    (cropAperture)                                           \
+    (adjustPixelAspectRatio)                                 \
+
+TF_DECLARE_PUBLIC_TOKENS(HdAspectRatioConformPolicyTokens, 
+                        HD_ASPECT_RATIO_CONFORM_POLICY);
+#endif
 
 class HdPrmanRenderDelegate : public HdRenderDelegate 
 {
@@ -126,6 +141,9 @@ public:
     /// Returns a list of user-configurable render settings.
     HDPRMAN_API 
     HdRenderSettingDescriptorList GetRenderSettingDescriptors() const override;
+
+    HDPRMAN_API
+    VtDictionary GetRenderStats() const override;
 
     HDPRMAN_API 
     HdRenderPassSharedPtr CreateRenderPass(
@@ -163,13 +181,8 @@ public:
     void CommitResources(HdChangeTracker *tracker) override;
     HDPRMAN_API 
     TfToken GetMaterialBindingPurpose() const override;
-#if HD_API_VERSION < 41
-    HDPRMAN_API 
-    TfToken GetMaterialNetworkSelector() const override;
-#else
     HDPRMAN_API 
     TfTokenVector GetMaterialRenderContexts() const override;
-#endif
     HDPRMAN_API 
     TfTokenVector GetShaderSourceTypes() const override;
 
@@ -186,12 +199,10 @@ public:
     HDPRMAN_API 
     void SetRenderSetting(TfToken const &key, VtValue const &value) override;
 
-    /// NOTE: RenderMan has no notion of pausing the render threads.
-    ///       We don't return true, because otherwise start/stop causes
-    ///       the renderer to reset to increment zero, which gives a poor
-    ///       user experience and poor peformance. 
     HDPRMAN_API 
-    bool IsPauseSupported() const override { return false; }
+    bool IsPauseSupported() const override { return true; }
+    bool Pause() override;
+    bool Resume() override;
 
     /// Return true to indicate that stopping and restarting are supported.
     HDPRMAN_API 
@@ -202,7 +213,7 @@ public:
     bool IsStopped() const override;
 
     /// Stop background rendering threads.
-    HDPRMAN_API 
+    HDPRMAN_API
     bool Stop(bool blocking) override;
 
     /// Restart background rendering threads.
@@ -246,6 +257,14 @@ private:
 
     void _Initialize();
 
+    std::string _GetRenderVariant(const HdRenderSettingsMap &settingsMap);
+
+    static
+    int _GetCpuConfig(const HdRenderSettingsMap &settingsMap);
+
+    static
+    std::vector<int> _GetGpuConfig(const HdRenderSettingsMap &settingsMap);
+
 protected:
     static const TfTokenVector SUPPORTED_RPRIM_TYPES;
     static const TfTokenVector SUPPORTED_SPRIM_TYPES;
@@ -253,11 +272,8 @@ protected:
 
     std::shared_ptr<class HdPrman_RenderParam> _renderParam;
 
-#if HD_API_VERSION >= 55
-    std::unique_ptr<class HdPrman_TerminalSceneIndexObserver>
-        _terminalObserver;
-#endif
-
+    // _rileySceneIndices holds on to _renderParam, so it needs to
+    // be after _renderParam so that we destroy it before _renderParam.
     struct _RileySceneIndices;
     std::unique_ptr<_RileySceneIndices> _rileySceneIndices;
 

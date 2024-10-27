@@ -1,38 +1,25 @@
 //
 // Copyright 2019 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
-//
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
 #include "hdPrman/renderDelegate.h"
 #include "hdPrman/basisCurves.h"
 #include "hdPrman/camera.h"
+#if PXR_VERSION >= 2208
 #include "hdPrman/cone.h"
 #include "hdPrman/cylinder.h"
 #include "hdPrman/sphere.h"
+#endif
 #include "hdPrman/renderParam.h"
 #include "hdPrman/renderBuffer.h"
+#if PXR_VERSION >= 2308
 #include "hdPrman/renderSettings.h"
 #include "hdPrman/integrator.h"
 #include "hdPrman/sampleFilter.h"
 #include "hdPrman/displayFilter.h"
+#endif
 #include "hdPrman/coordSys.h"
 #include "hdPrman/instancer.h"
 #include "hdPrman/renderParam.h"
@@ -43,7 +30,6 @@
 #include "hdPrman/mesh.h"
 #include "hdPrman/points.h"
 #include "hdPrman/resourceRegistry.h"
-#include "hdPrman/terminalSceneIndexObserver.h"
 #include "hdPrman/tokens.h"
 #include "hdPrman/volume.h"
 #include "hdPrman/sceneIndexObserverApi.h"
@@ -70,17 +56,6 @@
 #include "pxr/base/tf/getenv.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
-
-#ifdef HDPRMAN_USE_SCENE_INDEX_OBSERVER
-
-TF_DEFINE_ENV_SETTING(HD_PRMAN_EXPERIMENTAL_RILEY_SCENE_INDEX_OBSERVER, false,
-                      "Enable scene index observer calling the Riley API for "
-                      "the prims in the terminal scene index. This is scene "
-                      "index observer is the first step towards a future "
-                      "Hydra 2.0 implementation. "
-                      "See HdPrmanRenderDelegate::_RileySceneIndices for more.");
-
-#endif
 
 // \class HdPrmanRenderDelegate::_RileySceneIndices.
 //
@@ -187,8 +162,11 @@ TF_DEFINE_PRIVATE_TOKENS(
     (openvdbAsset)
     (field3dAsset)
     (ri)
+    ((outputsRi, "outputs:ri"))
     ((mtlxRenderContext, "mtlx"))
     (renderCameraPath)
+    (DefaultMayaLight)
+    (__FnKat_bbox)
 );
 
 TF_DEFINE_PUBLIC_TOKENS(HdPrmanRenderSettingsTokens,
@@ -200,18 +178,27 @@ TF_DEFINE_PUBLIC_TOKENS(HdPrmanExperimentalRenderSpecTokens,
 TF_DEFINE_PUBLIC_TOKENS(HdPrmanIntegratorTokens,
     HDPRMAN_INTEGRATOR_TOKENS);
 
+TF_DEFINE_PUBLIC_TOKENS(HdPrmanProjectionTokens,
+    HDPRMAN_PROJECTION_TOKENS);
+
 TF_DEFINE_PUBLIC_TOKENS(HdPrmanRenderProductTokens,
     HDPRMAN_RENDER_PRODUCT_TOKENS);
 
 TF_DEFINE_PUBLIC_TOKENS(HdPrmanAovSettingsTokens,
     HDPRMAN_AOV_SETTINGS_TOKENS);
 
+#if PXR_VERSION <= 2308
+TF_DEFINE_PUBLIC_TOKENS(HdAspectRatioConformPolicyTokens, 
+                        HD_ASPECT_RATIO_CONFORM_POLICY);
+#endif
 
 const TfTokenVector HdPrmanRenderDelegate::SUPPORTED_RPRIM_TYPES =
 {
+#if PXR_VERSION >= 2208
     HdPrimTypeTokens->cone,
     HdPrimTypeTokens->cylinder,
     HdPrimTypeTokens->sphere,
+#endif
     HdPrimTypeTokens->mesh,
     HdPrimTypeTokens->basisCurves,
     HdPrimTypeTokens->points,
@@ -234,7 +221,7 @@ const TfTokenVector HdPrmanRenderDelegate::SUPPORTED_SPRIM_TYPES =
     HdPrimTypeTokens->diskLight,
     HdPrimTypeTokens->cylinderLight,
     HdPrimTypeTokens->sphereLight,
-#if PXR_VERSION < 2302
+#if PXR_VERSION <= 2211
     HdPrmanTokens->meshLight,
 #else
     HdPrimTypeTokens->meshLight,
@@ -242,17 +229,23 @@ const TfTokenVector HdPrmanRenderDelegate::SUPPORTED_SPRIM_TYPES =
     HdPrimTypeTokens->pluginLight,
     HdPrimTypeTokens->extComputation,
     HdPrimTypeTokens->coordSys,
+#if PXR_VERSION >= 2308
     HdPrimTypeTokens->integrator,
     HdPrimTypeTokens->sampleFilter,
     HdPrimTypeTokens->displayFilter,
+#endif
 };
 
 const TfTokenVector HdPrmanRenderDelegate::SUPPORTED_BPRIM_TYPES =
 {
     HdPrimTypeTokens->renderBuffer,
+#if PXR_VERSION >= 2308
     HdPrimTypeTokens->renderSettings,
+#endif
     _tokens->openvdbAsset,
+#ifndef HDPRMAN_DISABLE_FIELD3D
     _tokens->field3dAsset,
+#endif
 };
 
 static
@@ -293,22 +286,76 @@ _GetExtraArgs(const HdRenderSettingsMap &settingsMap)
     return TfStringTokenize(extraArgs, " ");
 }
 
+std::string
+HdPrmanRenderDelegate::_GetRenderVariant(const HdRenderSettingsMap &settingsMap)
+{
+    std::string renderVariant;
+    auto it = settingsMap.find(HdPrmanRenderSettingsTokens->renderVariant);
+    if(it != settingsMap.end()) {
+        assert(it->second.IsHolding<TfToken>());
+        renderVariant = it->second.UncheckedGet<TfToken>().GetText();
+    } else {
+        renderVariant = 
+                _ToLower(
+                    GetRenderSetting<std::string>(
+                        HdPrmanRenderSettingsTokens->rileyVariant,
+                        TfGetenv("RILEY_VARIANT")));
+    }
+    return renderVariant;
+}
+
+int
+HdPrmanRenderDelegate::_GetCpuConfig(const HdRenderSettingsMap &settingsMap)
+{
+    int xpuCpuConfig = 1;
+
+    auto it = settingsMap.find(HdPrmanRenderSettingsTokens->xpuDevices);
+    if( it != settingsMap.end()) {
+        std::string xpuDevices = it->second.UncheckedGet<std::string>();
+        xpuCpuConfig = xpuDevices.find("cpu") != std::string::npos;
+    } else {
+        auto it = settingsMap.find(HdPrmanRenderSettingsTokens->xpuCpuConfig);
+        if (it != settingsMap.end()) {
+            xpuCpuConfig = it->second.UncheckedGet<int>();
+        }
+    }
+    return xpuCpuConfig;
+}
+
+std::vector<int>
+HdPrmanRenderDelegate::_GetGpuConfig(const HdRenderSettingsMap &settingsMap)
+{
+    std::vector<int> xpuGpuConfig;
+
+    auto it = settingsMap.find(HdPrmanRenderSettingsTokens->xpuDevices);
+    if( it != settingsMap.end()) {
+        std::string xpuDevices = it->second.UncheckedGet<std::string>();
+        if (xpuDevices.find("gpu") != std::string::npos) {
+            xpuGpuConfig.push_back(0);
+        }
+    } else {
+        auto it = settingsMap.find(HdPrmanRenderSettingsTokens->xpuGpuConfig);
+        if (it != settingsMap.end()) {
+            xpuGpuConfig = it->second.UncheckedGet< std::vector<int> >();
+        }
+    }
+    return xpuGpuConfig;
+}
+
 HdPrmanRenderDelegate::HdPrmanRenderDelegate(
     HdRenderSettingsMap const& settingsMap)
   : HdRenderDelegate(settingsMap)
+  , _renderParam(
+      std::make_unique<HdPrman_RenderParam>(
+                     this,
+                     _GetRenderVariant(settingsMap),
+                     _GetCpuConfig(settingsMap),
+                     _GetGpuConfig(settingsMap),
+                     _GetExtraArgs(settingsMap)))
 {
-    std::string rileyVariant = _ToLower(
-              GetRenderSetting<std::string>(
-                  HdPrmanRenderSettingsTokens->rileyVariant,
-                  TfGetenv("RILEY_VARIANT")));
-
-    std::string xpuDevices = GetRenderSetting<std::string>(
-        HdPrmanRenderSettingsTokens->xpuDevices, std::string());
-
-    _renderParam = std::make_unique<HdPrman_RenderParam>(
-        this, rileyVariant, xpuDevices, _GetExtraArgs(settingsMap));
-
-    _Initialize();
+    if(_renderParam->IsValid()) {
+        _Initialize();
+    }
 }
 
 bool
@@ -321,18 +368,15 @@ HdPrmanRenderDelegate::IsInteractive() const
 void
 HdPrmanRenderDelegate::_Initialize()
 {
-    std::string integrator = HdPrmanIntegratorTokens->PxrPathTracer;
-    std::string integratorEnv = TfGetenv("HD_PRMAN_INTEGRATOR");
-    if (!integratorEnv.empty()) {
-        integrator = integratorEnv;
-    }
- 
-    const int maxSamples = 64; // 64 samples is RenderMan default
-    const float pixelVariance = 0.001f;
-
     // Prepare list of render settings descriptors
+    // TODO: With this approach some settings will need to be updated as the 
+    // defaults change in Renderman. Although these defaults are unlikely to 
+    // change we should either change how settings defaults are obtained or 
+    // automate using PRManOptions.args.
     _settingDescriptors.reserve(5);
 
+    const std::string integrator = TfGetenv(
+        "HD_PRMAN_INTEGRATOR", HdPrmanIntegratorTokens->PxrPathTracer);
     _settingDescriptors.push_back({
         std::string("Integrator"),
         HdPrmanRenderSettingsTokens->integratorName,
@@ -357,12 +401,24 @@ HdPrmanRenderDelegate::_Initialize()
         });
     }
 
+#if _PRMANAPI_VERSION_MAJOR_ >= 26
+    const int maxSamplesDefault = 0;
+#else
+    const int maxSamplesDefault = 64;
+#endif
+    const int maxSamples = TfGetenvInt("HD_PRMAN_MAX_SAMPLES",
+                                       maxSamplesDefault);
     _settingDescriptors.push_back({
         std::string("Max Samples"),
         HdRenderSettingsTokens->convergedSamplesPerPixel,
         VtValue(maxSamples)
     });
 
+#if _PRMANAPI_VERSION_MAJOR_ >= 26
+    const float pixelVariance = 0.015f;
+#else
+    const float pixelVariance = 0.001f;
+#endif
     _settingDescriptors.push_back({
         std::string("Variance Threshold"),
         HdRenderSettingsTokens->convergedVariance,
@@ -370,15 +426,16 @@ HdPrmanRenderDelegate::_Initialize()
     });
 
     _settingDescriptors.push_back({
-        std::string("Riley variant"),
+        std::string("Riley Variant"),
         HdPrmanRenderSettingsTokens->rileyVariant,
         VtValue(TfGetenv("RILEY_VARIANT"))
     });
 
     _settingDescriptors.push_back({
-        std::string("Disable motion blur"),
+        std::string("Disable Motion Blur"),
         HdPrmanRenderSettingsTokens->disableMotionBlur,
-        VtValue(false)});
+        VtValue(false)
+    });
 
     _PopulateDefaultSettings(_settingDescriptors);
 
@@ -388,10 +445,7 @@ HdPrmanRenderDelegate::_Initialize()
         _renderParam);
 }
 
-HdPrmanRenderDelegate::~HdPrmanRenderDelegate()
-{
-    _renderParam.reset();
-}
+HdPrmanRenderDelegate::~HdPrmanRenderDelegate() = default;
 
 HdRenderSettingsMap
 HdPrmanRenderDelegate::GetRenderSettingsMap() const
@@ -409,6 +463,14 @@ HdRenderParam*
 HdPrmanRenderDelegate::GetRenderParam() const
 {
     return _renderParam.get();
+}
+
+VtDictionary
+HdPrmanRenderDelegate::GetRenderStats() const
+{
+    VtDictionary stats;
+    _renderParam->UpdateRenderStats(stats);
+    return stats;
 }
 
 void
@@ -469,6 +531,11 @@ HdRprim *
 HdPrmanRenderDelegate::CreateRprim(TfToken const& typeId,
                                     SdfPath const& rprimId)
 {
+    // Weirdly, Katana6 produces bboxes around lights
+    // that render as meshes, so ignore them by name.
+    if(rprimId.GetName() == _tokens->__FnKat_bbox) {
+        return nullptr;
+    }
     if (typeId == HdPrmanTokens->meshLightSourceMesh) {
         return new HdPrman_Mesh(rprimId, true /* isMeshLight */);
     } else if (typeId == HdPrmanTokens->meshLightSourceVolume) {
@@ -477,12 +544,14 @@ HdPrmanRenderDelegate::CreateRprim(TfToken const& typeId,
         return new HdPrman_Mesh(rprimId, false /* isMeshLight */);
     } else if (typeId == HdPrimTypeTokens->basisCurves) {
         return new HdPrman_BasisCurves(rprimId);
+#if PXR_VERSION >= 2208
     } if (typeId == HdPrimTypeTokens->cone) {
         return new HdPrman_Cone(rprimId);
     } if (typeId == HdPrimTypeTokens->cylinder) {
         return new HdPrman_Cylinder(rprimId);
     } if (typeId == HdPrimTypeTokens->sphere) {
         return new HdPrman_Sphere(rprimId);
+#endif
     } else if (typeId == HdPrimTypeTokens->points) {
         return new HdPrman_Points(rprimId);
     } else if (typeId == HdPrimTypeTokens->volume) {
@@ -520,26 +589,35 @@ HdPrmanRenderDelegate::CreateSprim(TfToken const& typeId,
                typeId == HdPrimTypeTokens->diskLight ||
                typeId == HdPrimTypeTokens->cylinderLight ||
                typeId == HdPrimTypeTokens->sphereLight ||
-#if PXR_VERSION < 2302
+#if PXR_VERSION <= 2305
                typeId == HdPrmanTokens->meshLight ||
 #else
                typeId == HdPrimTypeTokens->meshLight ||
 #endif
                typeId == HdPrimTypeTokens->pluginLight) {
-        sprim = new HdPrmanLight(sprimId, typeId);
+        if(typeId == HdPrimTypeTokens->distantLight &&
+           (sprimId.GetString().rfind(_tokens->DefaultMayaLight) !=
+            std::string::npos)) {
+            // The default maya distant light causes bad behavior in prman;
+            // not sure why
+        } else {
+            sprim = new HdPrmanLight(sprimId, typeId);
+        }
 
         // Disregard fallback prims in count.
-        if (sprim->GetId() != SdfPath()) {
+        if (sprim && sprim->GetId() != SdfPath()) {
             _renderParam->IncreaseSceneLightCount();
         }
     } else if (typeId == HdPrimTypeTokens->extComputation) {
         sprim = new HdExtComputation(sprimId);
+#if PXR_VERSION >= 2308
     } else if (typeId == HdPrimTypeTokens->integrator) {
         sprim = new HdPrman_Integrator(sprimId);
     } else if (typeId == HdPrimTypeTokens->sampleFilter) {
         sprim = new HdPrman_SampleFilter(sprimId);
     } else if (typeId == HdPrimTypeTokens->displayFilter) {
         sprim = new HdPrman_DisplayFilter(sprimId);
+#endif
     } else {
         TF_CODING_ERROR("Unknown Sprim Type %s", typeId.GetText());
     }
@@ -567,7 +645,7 @@ HdPrmanRenderDelegate::CreateFallbackSprim(TfToken const& typeId)
                typeId == HdPrimTypeTokens->diskLight ||
                typeId == HdPrimTypeTokens->cylinderLight ||
                typeId == HdPrimTypeTokens->sphereLight ||
-#if PXR_VERSION < 2302
+#if PXR_VERSION <= 2305
                typeId == HdPrmanTokens->meshLight ||
 #else
                typeId == HdPrimTypeTokens->meshLight ||
@@ -576,12 +654,14 @@ HdPrmanRenderDelegate::CreateFallbackSprim(TfToken const& typeId)
         return new HdPrmanLight(SdfPath::EmptyPath(), typeId);
     } else if (typeId == HdPrimTypeTokens->extComputation) {
         return new HdExtComputation(SdfPath::EmptyPath());
+#if PXR_VERSION >= 2308
     } else if (typeId == HdPrimTypeTokens->integrator) {
         return new HdPrman_Integrator(SdfPath::EmptyPath());
     } else if (typeId == HdPrimTypeTokens->sampleFilter) {
         return new HdPrman_SampleFilter(SdfPath::EmptyPath());
     } else if (typeId == HdPrimTypeTokens->displayFilter) {
         return new HdPrman_DisplayFilter(SdfPath::EmptyPath());
+#endif
     } else {
         TF_CODING_ERROR("Unknown Sprim Type %s", typeId.GetText());
     }
@@ -592,9 +672,11 @@ HdPrmanRenderDelegate::CreateFallbackSprim(TfToken const& typeId)
 void
 HdPrmanRenderDelegate::DestroySprim(HdSprim *sprim)
 {
-    // Disregard fallback prims in count.
-    if (sprim->GetId() != SdfPath()) {
-        _renderParam->DecreaseSceneLightCount();
+    if(dynamic_cast<HdPrmanLight*>(sprim)) {
+        // Disregard fallback prims in count.
+        if (sprim->GetId() != SdfPath()) {
+            _renderParam->DecreaseSceneLightCount();
+        }
     }
     delete sprim;
 }
@@ -604,13 +686,18 @@ HdPrmanRenderDelegate::CreateBprim(
     TfToken const& typeId,
     SdfPath const& bprimId)
 {
-    if (typeId == _tokens->openvdbAsset ||
-        typeId == _tokens->field3dAsset) {
+    if (typeId == _tokens->openvdbAsset
+#ifndef HDPRMAN_DISABLE_FIELD3D
+        || typeId == _tokens->field3dAsset
+#endif
+        ) {
         return new HdPrman_Field(typeId, bprimId);
     } else if (typeId == HdPrimTypeTokens->renderBuffer) {
         return new HdPrmanRenderBuffer(bprimId);
+#if PXR_VERSION >= 2308
     } else if (typeId == HdPrimTypeTokens->renderSettings) {
         return new HdPrman_RenderSettings(bprimId);
+#endif
     } else {
         TF_CODING_ERROR("Unknown Bprim Type %s", typeId.GetText());
     }
@@ -620,13 +707,18 @@ HdPrmanRenderDelegate::CreateBprim(
 HdBprim *
 HdPrmanRenderDelegate::CreateFallbackBprim(TfToken const& typeId)
 {
-    if (typeId == _tokens->openvdbAsset ||
-        typeId == _tokens->field3dAsset) {
+    if (typeId == _tokens->openvdbAsset
+#ifndef HDPRMAN_DISABLE_FIELD3D
+        || typeId == _tokens->field3dAsset
+#endif
+        ) {
         return new HdPrman_Field(typeId, SdfPath::EmptyPath());
     } else if (typeId == HdPrimTypeTokens->renderBuffer) {
         return new HdPrmanRenderBuffer(SdfPath::EmptyPath());
+#if PXR_VERSION >= 2308
     } else if (typeId == HdPrimTypeTokens->renderSettings) {
         return new HdPrman_RenderSettings(SdfPath::EmptyPath());
+#endif
     } else {
         TF_CODING_ERROR("Unknown Bprim Type %s", typeId.GetText());
     }
@@ -670,13 +762,6 @@ HdPrmanRenderDelegate::GetMaterialBindingPurpose() const
     return HdTokens->full;
 }
 
-#if HD_API_VERSION < 41
-TfToken
-HdPrmanRenderDelegate::GetMaterialNetworkSelector() const
-{
-    return _tokens->ri;
-}
-#else
 TfTokenVector
 HdPrmanRenderDelegate::GetMaterialRenderContexts() const
 {
@@ -686,7 +771,6 @@ HdPrmanRenderDelegate::GetMaterialRenderContexts() const
     return {_tokens->ri};
 #endif
 }
-#endif
 
 TfTokenVector
 HdPrmanRenderDelegate::GetShaderSourceTypes() const
@@ -698,7 +782,11 @@ HdPrmanRenderDelegate::GetShaderSourceTypes() const
 TfTokenVector
 HdPrmanRenderDelegate::GetRenderSettingsNamespaces() const
 {
+#if PXR_VERSION <= 2403
+    return {_tokens->ri, _tokens->outputsRi};
+#else
     return {_tokens->ri};
+#endif
 }
 #endif
 
@@ -732,10 +820,12 @@ HdPrmanRenderDelegate::SetRenderSetting(TfToken const &key,
         _renderParam->GetCameraContext().MarkCameraInvalid(camPath);
         HdRenderIndex *renderIndex = GetRenderIndex();
         if(renderIndex) {
+            // Needed to trigger call to
+            // param->SetRileyShutterIntervalFromCameraContextCameraPath
+            // from HdPrmanCamera::Sync.
+
             renderIndex->GetChangeTracker().MarkSprimDirty(
                 camPath, HdChangeTracker::DirtyParams);
-            renderIndex->GetChangeTracker().MarkAllRprimsDirty(
-                HdChangeTracker::DirtyPoints);
         }
     }
 }
@@ -779,6 +869,28 @@ HdPrmanRenderDelegate::Restart()
     return false;
 }
 
+bool
+HdPrmanRenderDelegate::Pause()
+{
+    if (IsInteractive()) {
+        _renderParam->StopRender();
+    }
+    return true;
+}
+
+bool
+HdPrmanRenderDelegate::Resume()
+{
+    if (IsInteractive()) {
+        // Indicate that render should start
+        // at next HdxPrman_RenderPass::_Execute
+        if (!_renderParam->IsRendering()) {
+            _renderParam->sceneVersion++;
+        }
+    }
+    return true;
+}
+
 HdRenderIndex*
 HdPrmanRenderDelegate::GetRenderIndex() const
 {
@@ -800,20 +912,12 @@ void
 HdPrmanRenderDelegate::SetTerminalSceneIndex(
     const HdSceneIndexBaseRefPtr &terminalSceneIndex)
 {
-    if (!_terminalObserver) {
-        _terminalObserver =
-            std::make_unique<HdPrman_TerminalSceneIndexObserver>(
-                _renderParam, terminalSceneIndex);
-    }
-
 #ifdef HDPRMAN_USE_SCENE_INDEX_OBSERVER
     if (terminalSceneIndex) {
-        if (TfGetEnvSetting(HD_PRMAN_EXPERIMENTAL_RILEY_SCENE_INDEX_OBSERVER)) {
-            if (!_rileySceneIndices) {
-                _rileySceneIndices =
-                    std::make_unique<_RileySceneIndices>(
-                        terminalSceneIndex, _renderParam.get());
-            }
+        if (!_rileySceneIndices) {
+            _rileySceneIndices =
+                std::make_unique<_RileySceneIndices>(
+                    terminalSceneIndex, _renderParam.get());
         }
     }
 #endif
@@ -824,24 +928,9 @@ HdPrmanRenderDelegate::Update()
 {
 #ifdef HDPRMAN_USE_SCENE_INDEX_OBSERVER
     if (_rileySceneIndices) {
-        // We need to set some paths before any riley Create call can
-        // be issued - otherwise, we get a crash.
-        //
-        // TODO: There should be a designated prim in the scene index
-        // to communicate the global riley options.
-        //
-        _renderParam->SetRileyOptions();
-
         _rileySceneIndices->Update();
     }
 #endif
-
-    if (!_terminalObserver) {
-        TF_CODING_ERROR("Invalid terminal scene index observer.");
-        return;
-    }
-
-    _terminalObserver->Update();
 }
 
 #endif

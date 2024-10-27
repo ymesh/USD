@@ -1,25 +1,8 @@
 //
 // Copyright 2019 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
-//
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
 #include "hdPrman/material.h"
 #include "hdPrman/debugCodes.h"
@@ -28,6 +11,9 @@
 
 #include "pxr/base/gf/vec3f.h"
 #include "pxr/usd/sdf/types.h"
+#if PXR_VERSION >= 2311
+#include "pxr/base/tf/hash.h"
+#endif
 #include "pxr/base/tf/getenv.h"
 #include "pxr/base/tf/envSetting.h"
 #include "pxr/base/tf/scopeDescription.h"
@@ -43,7 +29,9 @@
 #include "pxr/usd/sdr/shaderNode.h"
 #include "pxr/usd/sdr/shaderProperty.h"
 #include "pxr/usd/sdr/registry.h"
+#if PXR_VERSION <= 2308
 #include <boost/functional/hash.hpp>
+#endif
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -63,20 +51,57 @@ TF_DEFINE_PRIVATE_TOKENS(
     ((materialid, "__materialid"))
     (light)
     (PrimvarPass)
+    (PxrBakeTexture)
 );
 
-TF_MAKE_STATIC_DATA(NdrTokenVec, _sourceTypes) {
-    *_sourceTypes = { 
-        TfToken("OSL"), 
-        TfToken("RmanCpp"),    
+TF_DEFINE_ENV_SETTING(PRMAN_OSL_BEFORE_RIXPLUGINS, 1,
+                      "Change priority of Rix plugins over osl");
+TF_DEFINE_ENV_SETTING(HD_PRMAN_TEX_EXTS, "tex:dds",
+                      "Colon separated list of all texture extensions"
+                      "that do not require txmake processing."
+                      "eg. tex:dds:tx");
+
+TF_MAKE_STATIC_DATA(NdrTokenVec, _sourceTypesOslFirst) {
+    *_sourceTypesOslFirst = {
+        TfToken("OSL"),
+        TfToken("RmanCpp"),
 #ifdef PXR_MATERIALX_SUPPORT_ENABLED
-        TfToken("mtlx") 
+        TfToken("mtlx")
+#endif
+    };}
+
+TF_MAKE_STATIC_DATA(NdrTokenVec, _sourceTypesCppFirst) {
+    *_sourceTypesCppFirst = {
+        TfToken("RmanCpp"),
+        TfToken("OSL"),
+#ifdef PXR_MATERIALX_SUPPORT_ENABLED
+        TfToken("mtlx")
 #endif
     };}
 
 struct _HashMaterial {
     size_t operator()(const HdMaterialNetwork2 &mat) const
     {
+#if PXR_VERSION >= 2311
+        size_t v = TfHash()(mat.primvars);
+        for (auto const& node: mat.nodes) {
+            v = TfHash::Combine(v, 
+                node.first, node.second.nodeTypeId, node.second.parameters);
+            for (auto const& input: node.second.inputConnections) {
+                v = TfHash::Combine(v, input.first);
+                for (auto const& conn: input.second) {
+                    v = TfHash::Combine(
+                        v, conn.upstreamNode, conn.upstreamOutputName);
+                }
+            }
+        }
+        for (auto const& term: mat.terminals) {
+            v = TfHash::Combine(v, 
+                term.first, 
+                term.second.upstreamNode, term.second.upstreamOutputName);
+        }
+        return v;
+#else
         size_t v=0;
         for (TfToken const& primvarName: mat.primvars) {
             boost::hash_combine(v, primvarName.Hash());
@@ -102,13 +127,41 @@ struct _HashMaterial {
             boost::hash_combine(v, term.second.upstreamOutputName.Hash());
         }
         return v;
+#endif
     }
 };
+
+TF_MAKE_STATIC_DATA(NdrTokenVec, _texExts) {
+    *_texExts = TfToTokenVector(TfStringSplit(
+        TfGetEnvSetting(HD_PRMAN_TEX_EXTS), ":"));
+    }
+
+
+static TfTokenVector const&
+_GetShaderSourceTypes()
+{
+    if(TfGetEnvSetting(PRMAN_OSL_BEFORE_RIXPLUGINS)) {
+        return *_sourceTypesOslFirst;
+    } else {
+        return *_sourceTypesCppFirst;
+    }
+}
+
+bool
+HdPrmanMaterial::IsTexExt(const std::string& ext)
+{
+    for(auto e : *_texExts) {
+        if(ext == e) {
+            return true;
+        }
+    }
+    return false;
+}
 
 TfTokenVector const&
 HdPrmanMaterial::GetShaderSourceTypes()
 {
-    return *_sourceTypes;
+    return _GetShaderSourceTypes();
 }
 
 HdMaterialNetwork2 const&
@@ -156,6 +209,9 @@ HdPrmanMaterial::Finalize(HdRenderParam *renderParam)
 void
 HdPrmanMaterial::_ResetMaterialWithLock(riley::Riley *riley)
 {
+    if(!riley) {
+        return;
+    }
     if (_materialId != riley::MaterialId::InvalidId()) {
         riley->DeleteMaterial(_materialId);
         _materialId = riley::MaterialId::InvalidId();
@@ -209,6 +265,17 @@ _GetStringAsBool(std::string value, bool defaultValue)
             value == "on"   ||
             value == "1";
     }
+}
+
+static bool
+_IsWriteAsset(const TfToken& nodeName, const RtUString& paramName)
+{
+    // At the moment the only shading node / parameter we want to avoid adding
+    // "RtxHioImage" to is the bake texture filename
+    static const RtUString us_filename("filename");
+    if (nodeName == _tokens->PxrBakeTexture && paramName == us_filename)
+        return true;
+    return false;
 }
 
 // Recursively convert a HdMaterialNode2 and its upstream dependencies
@@ -267,7 +334,8 @@ _ConvertNodes(
     // Find shader registry entry.
     SdrRegistry &sdrRegistry = SdrRegistry::GetInstance();
     SdrShaderNodeConstPtr sdrEntry =
-        sdrRegistry.GetShaderNodeByIdentifier(node.nodeTypeId, *_sourceTypes);
+            sdrRegistry.GetShaderNodeByIdentifier(node.nodeTypeId,
+                                                  _GetShaderSourceTypes());
     if (!sdrEntry) {
         TF_WARN("Unknown shader ID %s for node <%s>\n",
                 node.nodeTypeId.GetText(), nodePath.GetText());
@@ -443,6 +511,9 @@ _ConvertNodes(
             if (propType == SdrPropertyTypes->Color) {
                 sn.params.SetColor(name, RtColorRGB(v[0], v[1], v[2]));
                 ok = true;
+            } else if (propType == SdrPropertyTypes->Point) {
+                sn.params.SetPoint(name, RtPoint3(v[0], v[1], v[2]));
+                ok = true;
             }
         } else if (param.second.IsHolding<VtArray<GfVec3d>>()) {
             if (propType == SdrPropertyTypes->Color) {
@@ -453,6 +524,15 @@ _ConvertNodes(
                                       name,
                                       reinterpret_cast<const RtColorRGB*>(v.cdata()),
                                       v.size());
+                ok = true;
+            } else if (propType == SdrPropertyTypes->Point) {
+                const VtArray<GfVec3d>& vd =
+                    param.second.UncheckedGet<VtArray<GfVec3d>>();
+                VtArray<GfVec3f> v = _ConvertToVec3fArray(vd);
+                sn.params.SetPointArray(
+                    name,
+                    reinterpret_cast<const RtPoint3*>(v.cdata()),
+                    v.size());
                 ok = true;
             }
         } else if (param.second.IsHolding<float>()) {
@@ -506,6 +586,7 @@ _ConvertNodes(
                 ok = true;
             }
         } else if (param.second.IsHolding<std::string>()) {
+            static const RtUString us_filename("filename");
             std::string v = param.second.UncheckedGet<std::string>();
             // A string can represent and enum option for an Int property
             if (propType == SdrPropertyTypes->Int) {
@@ -514,6 +595,24 @@ _ConvertNodes(
                 if (ok) {
                     sn.params.SetInteger(name, value);
                 }
+            } else if(name == us_filename) {
+                SdfAssetPath path(v);
+                bool isLight = (sn.type == riley::ShadingNode::Type::k_Light &&
+                                param.first == HdLightTokens->textureFile);
+
+                RtUString ustr = HdPrman_Utils::ResolveAssetToRtUString(
+                    path,
+                    !isLight, // only flip if NOT a light
+                    _IsWriteAsset(node.nodeTypeId, name),
+                    isLight ? _tokens->light.GetText() : 
+                    _tokens->material.GetText());
+                if(!ustr.Empty()) {
+                    sn.params.SetString(name, ustr);
+                    ok = true;
+                } else {
+                    sn.params.SetString(name, RtUString(v.c_str()));
+                }
+                ok = true;
             } else {
                 sn.params.SetString(name, RtUString(v.c_str()));
                 ok = true;
@@ -528,6 +627,7 @@ _ConvertNodes(
             RtUString v = HdPrman_Utils::ResolveAssetToRtUString(
                 param.second.UncheckedGet<SdfAssetPath>(),
                 !isLight, // only flip if NOT a light
+                _IsWriteAsset(node.nodeTypeId, name),
                 isLight ? _tokens->light.GetText() : 
                           _tokens->material.GetText());
 
@@ -591,7 +691,7 @@ _ConvertNodes(
 
             SdrShaderNodeConstPtr upstreamSdrEntry =
                 sdrRegistry.GetShaderNodeByIdentifier(
-                      upstreamNode->nodeTypeId, *_sourceTypes);
+                    upstreamNode->nodeTypeId, _GetShaderSourceTypes());
             if (!upstreamSdrEntry) {
                 TF_WARN("Unknown shader for upstream node %s",
                         e.upstreamNode.GetText());
@@ -831,24 +931,8 @@ _ConvertHdMaterialNetwork2ToRman(
                     TRACE_SCOPE("riley::ModifyDisplacement");
                     riley::ShadingNetwork const displacement = {
                         static_cast<uint32_t>(nodes.size()), &nodes[0]};
-                    riley::DisplacementResult const result =
-                            riley->ModifyDisplacement(*displacementId,
-                                                      &displacement,
-                                                      nullptr);
-                    if (result == riley::DisplacementResult::k_ResendPrimVars) {
-                        // Mark prims dirty so they pick up new displacement.
-                        HdRenderIndex& index =
-                                sceneDelegate->GetRenderIndex();
-                        HdChangeTracker& changeTracker =
-                                index.GetChangeTracker();
-                        for(auto rprimid : index.GetRprimIds()) {
-                            HdRprim const *rprim = index.GetRprim(rprimid);
-                            if(rprim->GetMaterialId() == id) {
-                                changeTracker.MarkRprimDirty(
-                                    rprimid, HdChangeTracker::DirtyPrimvar);
-                            }
-                        }
-                    }
+                    riley->ModifyDisplacement(
+                        *displacementId, &displacement, nullptr);
                 }
                 if (*displacementId == riley::DisplacementId::InvalidId()) {
                     TF_WARN("Failed to create displacement %s\n",
@@ -886,7 +970,13 @@ HdPrmanMaterial::Sync(HdSceneDelegate *sceneDelegate,
         (*dirtyBits & HdMaterial::DirtyParams)) {
 
         std::lock_guard<std::mutex> lock(_syncToRileyMutex);
+#if PXR_VERSION >= 2311
         if (_rileyIsInSync) {
+#else
+        // Houdini 20 (with 2308) crashes sometimes with deferred sync
+        // so always sync here like we used to.
+        if (true) {
+#endif
             // Material was previously pushed to Riley, so sync
             // immediately, because we cannot assume there will be
             // a subsequent gprim update that would pull on this material

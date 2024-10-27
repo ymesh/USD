@@ -1,25 +1,8 @@
 //
 // Copyright 2022 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
-//
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
 #include "hdPrman/motionBlurSceneIndexPlugin.h"
 
@@ -393,9 +376,9 @@ _MotionBlurHelper::_IsBlurablePrimvar() const
     static const TfTokenSet blurables = {
         HdPrimvarsSchemaTokens->points
 #if HD_API_VERSION < 67
-        , HdInstancerTokens->translate,
-        , HdInstancerTokens->rotate,
-        , HdInstancerTokens->scale,
+        , HdInstancerTokens->translate
+        , HdInstancerTokens->rotate
+        , HdInstancerTokens->scale
         , HdInstancerTokens->instanceTransform
 #endif
 #if HD_API_VERSION >= 56
@@ -919,7 +902,7 @@ public:
 
     HdDataSourceBaseHandle Get(const TfToken &name) override;
 
-#if PXR_VERSION < 2302
+#if PXR_VERSION <= 2211
     bool Has(const TfToken &name) override
     {
         const TfTokenVector names = GetNames();
@@ -1030,7 +1013,7 @@ public:
 
     HdDataSourceBaseHandle Get(const TfToken &name) override;
 
-#if PXR_VERSION < 2302
+#if PXR_VERSION <= 2211
     bool Has(const TfToken &name) override
     {
         const TfTokenVector names = GetNames();
@@ -1113,7 +1096,7 @@ public:
 
     HdDataSourceBaseHandle Get(const TfToken& name) override;
 
-#if PXR_VERSION < 2302
+#if PXR_VERSION <= 2211
     bool Has(const TfToken &name) override
     {
         const TfTokenVector names = GetNames();
@@ -1188,7 +1171,7 @@ public:
 
     HdDataSourceBaseHandle Get(const TfToken &name) override;
 
-#if PXR_VERSION < 2302
+#if PXR_VERSION <= 2211
     bool Has(const TfToken &name) override
     {
         const TfTokenVector names = GetNames();
@@ -1225,7 +1208,7 @@ _PrimDataSource::Get(const TfToken &name)
         if (const auto xformSource = HdContainerDataSource::Cast(result)) {
             if (const auto primvarsSource = HdContainerDataSource::Cast(
                 _primSource->Get(
-#if PXR_VERSION < 2308
+#if PXR_VERSION <= 2305
                     HdPrimvarsSchemaTokens->primvars
 #else
                     HdPrimvarsSchema::GetSchemaToken()

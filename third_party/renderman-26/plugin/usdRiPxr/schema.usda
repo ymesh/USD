@@ -511,18 +511,13 @@ class "PxrDisplayChannelAPI" (
     inherits = </APISchemaBase>
 )
 {
-    token ri:displayChannel:filter = "box" (
-        allowedTokens = ["min", "max", "average", "zmin", "zmax", "sum", "gaussian", "box", "triangle", "catmull-rom", "separable-catmull-rom", "mitchell", "blackman-harris", "sinc", "bessel", "disk", "lanczos"]
+    token ri:displayChannel:filter = "filter" (
+        allowedTokens = ["filter", "min", "max", "average", "zmin", "zmax", "sum"]
         displayGroup = "Common"
-        displayName = "Filter Type"
+        displayName = "Accumulation Rule"
         doc = """
-                Reconstruction filter or rule.
+                Reconstruction rule.
             """
-    )
-    float2 ri:displayChannel:filterwidth = (1, 1) (
-        displayGroup = "Common"
-        displayName = "Filter Width"
-        doc = "<help />"
     )
     float ri:displayChannel:relativepixelvariance = 0 (
         displayGroup = "Common"
@@ -852,20 +847,6 @@ class "PxrOptionsAPI" (
                 is the square root of maxsamples.
             """
     )
-    token ri:hider:pixelfiltermode = "importance" (
-        allowedTokens = ["weighted", "importance"]
-        displayGroup = "Common"
-        displayName = "Pixel Filter Mode"
-        doc = '''
-                Specifies how pixel filtering of camera samples is performed.
-                "Importance" (the default) warps the samples in screen space around the
-                pixel center, and does not share sample results between pixels. "Importance" is
-                needed by some postprocessing algorithms such as denoisers, and is necessary to
-                get the visual benefit of blue-noise samples. It is also needed to produce
-                variance AOVs.  "Weighted" is the older method that blends together sample results
-                 from neighboring pixels.
-            '''
-    )
     string[] ri:hider:primvar = ["st"] (
         displayGroup = "Baking"
         displayName = "Baking PrimVars"
@@ -958,34 +939,6 @@ class "PxrOptionsAPI" (
         displayName = "Hider Type"
         doc = """
                 Render mode.
-            """
-    )
-    bool ri:interactive:displacementupdatedebug = 0 (
-        displayGroup = "Interactivity"
-        displayName = "Debug Displacement Updates"
-        doc = """
-                Enable debug messages related to displacement updates.
-                This option only affects XPU.
-            """
-    )
-    int ri:interactive:displacementupdatemode = 0 (
-        displayGroup = "Interactivity"
-        displayName = "Displacement Update Mode"
-        doc = '''
-                Controls the behavior of displacement updates, useful for interactive
-                workflows. The "Default" setting will run displacement whenever a geometry
-                or shader edit occurs. The "On Tessellate" setting only runs displacement
-                when at least one object in the scene gets retessellated.
-                This option only affects XPU.
-            '''
-    )
-    bool ri:lighting:incorrectParticleLightSampling = 0 (
-        displayGroup = "Shading"
-        displayName = "Use old (incorrect) PxrParticleLight sampling for backward compatibility with R24"
-        doc = """
-                Use old method of sampling particle lights. This has been fixed in R25.3. Setting this option
-                will fall back to the old, incorrect, behavior for compatibility purposes. This option will be
-                removed in R26 and the new, correct, method will be used thereafter.
             """
     )
     float ri:lighting:minimumestimate = 0.000001 (
@@ -1206,6 +1159,21 @@ class "PxrOptionsAPI" (
                 Output image aspect ratio.
             """
     )
+    token ri:Ri:PixelFilterName = "gaussian" (
+        allowedTokens = ["gaussian", "box", "triangle", "catmull-rom", "separable-catmull-rom", "mitchell", "blackman-harris", "sinc", "bessel", "disk", "lanczos"]
+        displayGroup = "Common"
+        displayName = " Pixel Filter"
+        doc = """
+                 Distribution of camera ray directions for each pixel. In other words, the filter determines how the pixel samples are warped in screen space around the pixel center.
+            """
+    )
+    float2 ri:Ri:PixelFilterWidth = (2, 2) (
+        displayGroup = "Common"
+        displayName = "Filter Width"
+        doc = """
+                Width of the distribution of camera ray directions for each pixel.
+            """
+    )
     float ri:Ri:PixelVariance = 0.015 (
         displayGroup = "Common"
         displayName = "Pixel Variance"
@@ -1373,6 +1341,15 @@ class "PxrOptionsAPI" (
                 control to 1 at first to see how much memory can be saved through compression and
                 what time overhead is generated, then dial the number back to a lower value (if
                 possible) and reach the deired balance between speed and memory usage.
+            """
+    )
+    bool ri:trace:incorrectCurveBias = 0 (
+        displayGroup = "Shading"
+        displayName = "Use old (incorrect) trace bias for reflection and shadow rays from round cubic curves"
+        doc = """
+                Use old (large) trace bias value for reflection and shadow rays from round cubic curves.
+                This has been fixed in R26. Setting this option will fall back to the old, incorrect, 
+                behavior for compatibility purposes.
             """
     )
     float3 ri:trace:worldoffset = (0, 0, 0) (
@@ -1783,13 +1760,6 @@ class "PxrPrimvarsAPI" (
                 the previous frame and ends halfway into the next frame.
             """
     )
-    bool primvars:ri:volume:temporalmethod = 0 (
-        displayGroup = "Volume"
-        displayName = "Temporal Method"
-        doc = """
-                Method of generating temporal data for volume rendering.
-            """
-    )
     bool primvars:ri:volume:velocityshuttercorrection = 0 (
         displayGroup = "Volume"
         displayName = "Velocity Shutter Correction"
@@ -1799,304 +1769,6 @@ class "PxrPrimvarsAPI" (
                 and will be corrected to match the current shutter interval.
                 If set to 0, no correction will be made.
             """
-    )
-}
-
-class PxrBlockerLightFilter "PxrBlockerLightFilter" (
-    customData = {
-        string className = "BlockerLightFilter"
-    }
-    inherits = </LightFilter>
-)
-{
-    int inputs:ri:lightFilter:colorRamp = 4 (
-        displayGroup = "Color Ramp"
-        doc = """colorRamp: This is Optional.  It sets the color gradient
-                  for the transition.
-           """
-    )
-    color3f[] inputs:ri:lightFilter:colorRamp_Colors = [(1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1)] (
-        displayGroup = "Color Ramp"
-        hidden = true
-    )
-    token inputs:ri:lightFilter:colorRamp_Interpolation = "linear" (
-        allowedTokens = ["linear", "catmull-rom", "bspline", "constant"]
-        displayGroup = "Color Ramp"
-        hidden = true
-    )
-    float[] inputs:ri:lightFilter:colorRamp_Knots = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
-        displayGroup = "Color Ramp"
-        hidden = true
-    )
-    token inputs:ri:lightFilter:combineMode = "mult" (
-        allowedTokens = ["mult", "max", "min", "screen"]
-        connectability = "interfaceOnly"
-        displayName = "Combine Mode"
-        doc = """
-\t<p>
-        combineMode: Light filters on a light are grouped by their combine mode. Light filters
-        in the same group are executed together and combined by the corresponding
-        operation:
-        </p>
-\t<ol>
-\t\t<li>max: the maximum result from all filters is used.
-              This works best for grey scale light filters.</li>
-\t\t<li>min: the minimum result from all filters is used.
-              This works best for grey scale light filters.</li>
-\t\t<li>screen: similar to the max operation, but it combines gradients
-              in a smoother way. This works best for grey scale light filters.</li>
-\t\t<li>mult (default): the results of all the filters are multiplied together
-              (Technically, they are applied one after the other.)</li>
-\t</ol>
-\t<p>
-        The groups are executed in the above order and are multiplied together,
-        which means a filter that turns things black in the mult group will zero out
-        all other filters.
-        </p>
-"""
-    )
-    float inputs:ri:lightFilter:density = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Multiplier"
-        displayName = "Density"
-        doc = "density: How much effect the filter has (0-1)."
-    )
-    float inputs:ri:lightFilter:depth = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Rod Shape"
-        displayName = "Depth"
-        doc = "depth: Depth of inner region of the rod (z axis)."
-    )
-    float inputs:ri:lightFilter:diffuse = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Multiplier"
-        displayName = "Diffuse"
-        doc = "diffuse: How much this light filter affects diffuse lighting."
-    )
-    float inputs:ri:lightFilter:edge = 0.25 (
-        connectability = "interfaceOnly"
-        displayGroup = "Rod Shape"
-        displayName = "Edge"
-        doc = "edge: Thickness of edge region."
-    )
-    int inputs:ri:lightFilter:falloff = 6 (
-        connectability = "interfaceOnly"
-        displayGroup = "Falloff"
-        doc = "falloff: Controls the transition from the core to the edge."
-    )
-    float[] inputs:ri:lightFilter:falloff_Floats = [0, 0, 0.2, 0.8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
-        displayGroup = "Falloff"
-        hidden = true
-    )
-    token inputs:ri:lightFilter:falloff_Interpolation = "bspline" (
-        allowedTokens = ["linear", "catmull-rom", "bspline", "constant"]
-        displayGroup = "Falloff"
-        hidden = true
-    )
-    float[] inputs:ri:lightFilter:falloff_Knots = [0, 0, 0.3, 0.7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
-        displayGroup = "Falloff"
-        hidden = true
-    )
-    float inputs:ri:lightFilter:height = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Rod Shape"
-        displayName = "Height"
-        doc = "height: Height of inner region of the rod (y axis)."
-    )
-    float inputs:ri:lightFilter:intensity = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Multiplier"
-        displayName = "Intensity"
-        doc = """intensity: Multiplier for both the diffuse and specular result.
-            """
-    )
-    bool inputs:ri:lightFilter:invert = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Multiplier"
-        displayName = "Invert"
-        doc = "invert: Inverts the entire effect of the filter."
-    )
-    float inputs:ri:lightFilter:radius = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Rod Shape"
-        displayName = "Radius"
-        doc = "radius: Radius of corners of inner rod box."
-    )
-    float inputs:ri:lightFilter:saturation = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Multiplier"
-        displayName = "Saturation"
-        doc = """saturation: Saturation of the light before hitting the surface
-                  (0=greyscale,1=normal,>1=boosted colors)."""
-    )
-    float inputs:ri:lightFilter:specular = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Multiplier"
-        displayName = "Specular"
-        doc = "specular: How much this light filter affects specular lighting."
-    )
-    float inputs:ri:lightFilter:width = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Rod Shape"
-        displayName = "Width"
-        doc = "width: Width of inner region of the rod (x axis)."
-    )
-    uniform token ri:lightFilter:shaderId = "PxrBlockerLightFilter" (
-        displayGroup = "Internal"
-    )
-}
-
-class PxrGoboLightFilter "PxrGoboLightFilter" (
-    customData = {
-        string className = "GoboLightFilter"
-    }
-    inherits = </LightFilter>
-)
-{
-    token inputs:ri:lightFilter:combineMode = "mult" (
-        allowedTokens = ["mult", "max", "min", "screen"]
-        connectability = "interfaceOnly"
-        displayName = "Combine Mode"
-        doc = """
-\t<p>
-        combineMode: Light filters on a light are grouped by their combine mode. Light filters
-        in the same group are executed together and combined by the corresponding
-        operation:
-        </p>
-\t<ol>
-\t\t<li>max: the maximum result from all filters is used.
-              This works best for grey scale light filters.</li>
-\t\t<li>min: the minimum result from all filters is used.
-              This works best for grey scale light filters.</li>
-\t\t<li>screen: similar to the max operation, but it combines gradients
-              in a smoother way. This works best for grey scale light filters.</li>
-\t\t<li>mult (default): the results of all the filters are multiplied together
-              (technically: they are applied one after the other)</li>
-\t</ol>
-\t<p>
-        The groups are executed in the above order and are multiplied together,
-        which means a filter that turns things black in the mult group will zero out
-        all other filters.
-        </p>
-"""
-    )
-    float inputs:ri:lightFilter:density = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Multiplier"
-        displayName = "Density"
-        doc = "density: Controls the strength of the projected effect."
-    )
-    float inputs:ri:lightFilter:diffuse = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Multiplier"
-        displayName = "Diffuse"
-        doc = "diffuse: How much this light filter affects diffuse lighting."
-    )
-    color3f inputs:ri:lightFilter:fillColor = (1, 1, 1) (
-        connectability = "interfaceOnly"
-        displayGroup = "Map"
-        displayName = "Fill Color"
-        doc = """
-                fillColor: If the texture is not repeating, this specifies the
-                color for the region outside of and behind the projected rectangle.
-            """
-    )
-    float inputs:ri:lightFilter:height = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Map"
-        displayName = "Height"
-        doc = "height: Height of the rect the light is shining through."
-    )
-    float inputs:ri:lightFilter:intensity = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Multiplier"
-        displayName = "Intensity"
-        doc = """intensity: Multiplier for both the diffuse and specular result.
-            """
-    )
-    bool inputs:ri:lightFilter:invert = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Multiplier"
-        displayName = "Invert"
-        doc = """invert: When this is on, the texture will be inverted before it is applied.
-            """
-    )
-    bool inputs:ri:lightFilter:linearize = 0 (
-        displayGroup = "Map"
-        displayName = "Linearize"
-        doc = "Linearize the texture, assuming an sRGB transfer function."
-    )
-    asset inputs:ri:lightFilter:map = @ratGrid.tex@ (
-        connectability = "interfaceOnly"
-        displayGroup = "Map"
-        displayName = "Map"
-        doc = "map: Filename of the projected texture."
-    )
-    float inputs:ri:lightFilter:offsetU = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Texture Mapping"
-        displayName = "Offset U"
-        doc = "offsetU: Offset of the texture in the U direction"
-    )
-    float inputs:ri:lightFilter:offsetV = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Texture Mapping"
-        displayName = "Offset V"
-        doc = "offsetV: Offset of the texture in the V direction"
-    )
-    bool inputs:ri:lightFilter:premultipliedAlpha = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Map"
-        displayName = "Premultiplied Alpha"
-        doc = """
-                premultipliedAlpha: Textures are usually premultiplied by their alpha. If this not
-                the case, uncheck this.
-            """
-    )
-    int inputs:ri:lightFilter:refreshMap = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Map"
-        doc = """
-                Press this button to force a refresh of the texture during
-                Live Rendering.
-            """
-    )
-    float inputs:ri:lightFilter:scaleU = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Texture Mapping"
-        displayName = "Scale U"
-        doc = "scaleU: Scale of the texture in the U direction"
-    )
-    float inputs:ri:lightFilter:scaleV = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Texture Mapping"
-        displayName = "Scale V"
-        doc = "scaleV: Scale of the texture in the V direction"
-    )
-    float inputs:ri:lightFilter:specular = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Multiplier"
-        displayName = "Specular"
-        doc = "specular: How much this light filter affects specular lighting."
-    )
-    int inputs:ri:lightFilter:tileMode = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Texture Mapping"
-        displayName = "Tile Mode"
-        doc = '''tileMode:
-                "No Repeat"   - texture does not repeat.
-                "Edge Extent" - extends the color of the edge to infinity.
-                "Tile"        - texture repeats (tileable texture).
-            '''
-    )
-    float inputs:ri:lightFilter:width = 1 (
-        connectability = "interfaceOnly"
-        displayGroup = "Map"
-        displayName = "Width"
-        doc = "width: Width of the rect the light is shining through."
-    )
-    uniform token ri:lightFilter:shaderId = "PxrGoboLightFilter" (
-        displayGroup = "Internal"
     )
 }
 
@@ -4042,7 +3714,7 @@ class PxrBarnLightFilter "PxrBarnLightFilter" (
                   for the transition.
             """
     )
-    color3f[] inputs:ri:lightFilter:colorRamp_Colors = [(1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1)] (
+    color3f[] inputs:ri:lightFilter:colorRamp_Colors = [(1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1)] (
         displayGroup = "Color Ramp"
         hidden = true
     )
@@ -4051,7 +3723,7 @@ class PxrBarnLightFilter "PxrBarnLightFilter" (
         displayGroup = "Color Ramp"
         hidden = true
     )
-    float[] inputs:ri:lightFilter:colorRamp_Knots = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
+    float[] inputs:ri:lightFilter:colorRamp_Knots = [0, 0, 1, 1] (
         displayGroup = "Color Ramp"
         hidden = true
     )
@@ -4815,7 +4487,7 @@ class PxrRampLightFilter "PxrRampLightFilter" (
         displayName = "Color Ramp"
         doc = "Color Ramp"
     )
-    color3f[] inputs:ri:lightFilter:colorRamp_Colors = [(1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1)] (
+    color3f[] inputs:ri:lightFilter:colorRamp_Colors = [(1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1)] (
         displayGroup = "Color Ramp"
         hidden = true
     )
@@ -4824,7 +4496,7 @@ class PxrRampLightFilter "PxrRampLightFilter" (
         displayGroup = "Color Ramp"
         hidden = true
     )
-    float[] inputs:ri:lightFilter:colorRamp_Knots = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
+    float[] inputs:ri:lightFilter:colorRamp_Knots = [0, 0, 1, 1] (
         displayGroup = "Color Ramp"
         hidden = true
     )
@@ -4891,7 +4563,7 @@ class PxrRampLightFilter "PxrRampLightFilter" (
         displayName = "Ramp"
         doc = "Ramp"
     )
-    float[] inputs:ri:lightFilter:ramp_Floats = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
+    float[] inputs:ri:lightFilter:ramp_Floats = [0, 0, 1, 1] (
         displayGroup = "Float Ramp"
         hidden = true
     )
@@ -4900,7 +4572,7 @@ class PxrRampLightFilter "PxrRampLightFilter" (
         displayGroup = "Float Ramp"
         hidden = true
     )
-    float[] inputs:ri:lightFilter:ramp_Knots = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
+    float[] inputs:ri:lightFilter:ramp_Knots = [0, 0, 1, 1] (
         displayGroup = "Float Ramp"
         hidden = true
     )
@@ -4969,7 +4641,7 @@ class PxrRodLightFilter "PxrRodLightFilter" (
                   for the transition.
             """
     )
-    color3f[] inputs:ri:lightFilter:colorRamp_Colors = [(1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1)] (
+    color3f[] inputs:ri:lightFilter:colorRamp_Colors = [(1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1)] (
         displayGroup = "Color Ramp"
         hidden = true
     )
@@ -4978,7 +4650,7 @@ class PxrRodLightFilter "PxrRodLightFilter" (
         displayGroup = "Color Ramp"
         hidden = true
     )
-    float[] inputs:ri:lightFilter:colorRamp_Knots = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
+    float[] inputs:ri:lightFilter:colorRamp_Knots = [0, 0, 1, 1] (
         displayGroup = "Color Ramp"
         hidden = true
     )
@@ -5038,7 +4710,7 @@ class PxrRodLightFilter "PxrRodLightFilter" (
         displayGroup = "Falloff"
         doc = "falloff: Controls the transition from the core to the edge."
     )
-    float[] inputs:ri:lightFilter:falloff_Floats = [0, 0, 0.2, 0.8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
+    float[] inputs:ri:lightFilter:falloff_Floats = [0, 0, 0.2, 0.8, 1, 1] (
         displayGroup = "Falloff"
         hidden = true
     )
@@ -5047,7 +4719,7 @@ class PxrRodLightFilter "PxrRodLightFilter" (
         displayGroup = "Falloff"
         hidden = true
     )
-    float[] inputs:ri:lightFilter:falloff_Knots = [0, 0, 0.3, 0.7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
+    float[] inputs:ri:lightFilter:falloff_Knots = [0, 0, 0.3, 0.7, 1, 1] (
         displayGroup = "Falloff"
         hidden = true
     )
@@ -5222,7 +4894,7 @@ class PxrCamera "PxrCamera" (
     asset inputs:ri:cocTexture (
         displayGroup = "DOF Distortion"
         displayName = "Circle of Confusion Texture"
-        doc = "If set, this overrides the lens's circle of confusion."
+        doc = "If set, this overrides the lens's circle of confusion. (Not implemented in XPU)"
     )
     float inputs:ri:detail = 0 (
         connectability = "interfaceOnly"
@@ -5258,7 +4930,7 @@ class PxrCamera "PxrCamera" (
     )
     float inputs:ri:dofRadiusFalloff = 1 (
         displayGroup = "DOF Distortion"
-        displayName = "RadiusFalloff"
+        displayName = "Radius Falloff"
         doc = " Sharpness of depth of field radial effect. "
     )
     float inputs:ri:dofRadiusStrength = 0 (
@@ -5294,7 +4966,7 @@ class PxrCamera "PxrCamera" (
         Exposure duration.  Zero means an ideal rolling shutter where each
         line is exposed instantaneously when read.  The default, one, is
         equivalent to a global shutter where all lines are exposed and read
-        at the same time.
+        at the same time. (Not implemented in XPU)
       """
     )
     float3 inputs:ri:enhance = (0, 0, 1) (
@@ -5447,7 +5119,7 @@ class PxrCamera "PxrCamera" (
         it is a deep image, it removes anything in the render that is
         farther away than opaque objects in the matte file, leaving behind
         transparent holes.  If it is a shallow image, it removes parts of
-        the render where the matte file is opaque.
+        the render where the matte file is opaque. (Not implemented in XPU)
       """
     )
     float inputs:ri:natural = 0 (
@@ -5579,7 +5251,7 @@ class PxrCamera "PxrCamera" (
         doc = """
         Shutter direction.  Specifies the direction that the shutter
         sweeps.  The default, down, is the most common direction for
-        rolling shutters.
+        rolling shutters. (Not implemented in XPU)
       """
     )
     float inputs:ri:tilt = 0 (
@@ -6339,6 +6011,84 @@ class PxrShadowDisplayFilter "PxrShadowDisplayFilter" (
     )
 }
 
+class PxrStylizedCanvas "PxrStylizedCanvas" (
+    customData = {
+        string className = "StylizedCanvas"
+    }
+    doc = """
+        Required AOVs: 
+  """
+    inherits = </PxrDisplayFilterPluginBase>
+)
+{
+    string inputs:ri:canvas_aov_string = "diffuse" (
+        connectability = "interfaceOnly"
+        displayName = "Canvas AOV"
+        doc = """
+      Name of a color AOV to use for this Layer. This AOV has to be setup in Maya/Katana/Houdini or this Canvas DisplayFilter will exit.
+    """
+    )
+    color3f inputs:ri:Canvas_Color = (1, 1, 0) (
+        connectability = "interfaceOnly"
+        displayName = "Canvas Color"
+        doc = """
+      Background color outside of alpha
+    """
+    )
+    asset inputs:ri:Canvas_Texture = @StylizedLooks/pxrStylized-woven/pxrStylized-woven-08.tex@ (
+        connectability = "interfaceOnly"
+        displayName = "Canvas Texture"
+        doc = "Provide BG texture for outside alpha, if blank uses BG Color"
+    )
+    token inputs:ri:Comp_Mode = "bg" (
+        allowedTokens = ["bg", "multiply", "screen"]
+        connectability = "interfaceOnly"
+        displayGroup = "Compositing"
+        displayName = "Comp Mode"
+        doc = """ Comp on Color or previous layer (BG)
+    """
+    )
+    float inputs:ri:Gamma = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Compositing"
+        displayName = "Gamma"
+        doc = """
+        Gamma (Contrast)
+    """
+    )
+    bool inputs:ri:Ignore_Alpha_Switch = 1 (
+        connectability = "interfaceOnly"
+        displayName = "Ignore Alpha"
+        doc = """
+        Put BG Color or Texture on everything under Canvas, ignoring alpha
+    """
+    )
+    token inputs:ri:Layer = "color" (
+        allowedTokens = ["texture", "color", "albedo", "NPRalbedo", "NPRtoonOut", "NPRhatchOut", "NPRlineOut", "NPRlineOutAlpha", "aov"]
+        connectability = "interfaceOnly"
+        displayName = "Layer"
+        doc = "<help />"
+    )
+    float inputs:ri:Mix = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Compositing"
+        displayName = "Mix"
+        doc = """0: disables this Canvas Node and shows previous node if daisy chained, or original beauty if no previous Stylized Looks nodes. 1: full Canvas from this node.
+  """
+    )
+    token inputs:ri:visualizer = "canvasFinal" (
+        allowedTokens = ["disable", "canvasFinal", "separator"]
+        connectability = "interfaceOnly"
+        displayName = "Result"
+        doc = """
+      Color Blend Signal: replace tex1-tex8 with RED, ORANGE, YELLOW, GREEN, BLUE, INDIGO, VIOLET, TORQOISE for previewing blending
+    """
+    )
+    uniform token ri:displayFilter:shaderId = "PxrStylizedCanvas" (
+        displayGroup = "Internal"
+    )
+}
+
 class PxrStylizedHatching "PxrStylizedHatching" (
     customData = {
         string className = "StylizedHatching"
@@ -6362,9 +6112,17 @@ class PxrStylizedHatching "PxrStylizedHatching" (
     bool inputs:ri:alpha_black_hatch_switch = 0 (
         connectability = "interfaceOnly"
         displayGroup = "Mask"
-        displayName = "Alpha Hatch Switch"
+        displayName = "Hatch Mask"
         doc = """
         When using Light Mask, black areas of hatch are transparent to previously daisy-chained or physically based layers
+    """
+    )
+    bool inputs:ri:BG_Ignore_Alpha_Switch = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Compositing:Canvas"
+        displayName = "Ignore Alpha"
+        doc = """
+        But BG Color or Texture on everything under Hatching, ignoring alpha
     """
     )
     color3f inputs:ri:BGColor = (0, 0, 0) (
@@ -6379,7 +6137,7 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         connectability = "interfaceOnly"
         displayGroup = "Compositing:Canvas"
         displayName = "Canvas Texture"
-        doc = "Provide BG texture, if blank uses BG Color"
+        doc = "Provide BG texture for outside alpha, if blank uses BG Color"
     )
     bool inputs:ri:blending_black = 0 (
         connectability = "interfaceOnly"
@@ -6396,7 +6154,7 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         doc = """ Hold texture full value
     """
     )
-    token inputs:ri:blending_mode = "mix" (
+    token inputs:ri:blending_mode = "weighted" (
         allowedTokens = ["mix", "weighted"]
         connectability = "interfaceOnly"
         displayGroup = "Blending"
@@ -6409,14 +6167,6 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         displayName = "Overlap"
         doc = """ Overlap of the Bell Curve weighting function. 0.125 is minimum and blends 2 textures, higher values blend more up to 8 textures.
 """
-    )
-    bool inputs:ri:blending_test_colors_switch = 0 (
-        connectability = "interfaceOnly"
-        displayGroup = "Blending"
-        displayName = "Color Blend Signal"
-        doc = """
-      Replace tex1-tex8 with RED, ORANGE, YELLOW, GREEN, BLUE, INDIGO, VIOLET, TORQOISE for previewing blending
-    """
     )
     bool inputs:ri:blending_white = 1 (
         connectability = "interfaceOnly"
@@ -6434,6 +6184,33 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         Mask out regular hatching (When Visualizer on Hatching On Color, Hatching Final) by Camera Range defined by Z_min and Z_max below
     """
     )
+    bool inputs:ri:Enable_Facing_Ratio_Frequency_Scale = 0 (
+        connectability = "interfaceOnly"
+        displayGroup = "Projection"
+        displayName = "Frequency Scale by PxrStylizedControl"
+        doc = """
+            Frequency Scaling by facing ratio, UV, ... controlled in PxrStylizedControl.
+            Works on Screen and Triplanar projections with 1val Frequency Mode.
+            Facing Ratio/UV scaling saved in BLUE channel of NPRdistort from PxrStylizedControl.
+        """
+    )
+    float inputs:ri:Facing_Ratio_Frequency_Scale = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Projection"
+        displayName = "Frequency Scale"
+        doc = """
+        Scale Frequency by scaling set in PxrStylizedControl.
+        NPRdistort BLUE channel has scaling data.
+    """
+    )
+    float inputs:ri:Facing_Ratio_Gamma = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Projection"
+        displayName = "Frequency Scale Gamma"
+        doc = """
+        Apply Gamma to scaling data.
+    """
+    )
     bool inputs:ri:flip_min_max = 0 (
         connectability = "interfaceOnly"
         displayGroup = "Input:Camera Range"
@@ -6448,7 +6225,7 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         displayName = "Flip"
         doc = "Flip"
     )
-    float inputs:ri:Hatch_Gamma = 0.5 (
+    float inputs:ri:Hatch_Gamma = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Compositing"
         displayName = "Gamma"
@@ -6456,7 +6233,7 @@ class PxrStylizedHatching "PxrStylizedHatching" (
         Gamma (Contrast)
     """
     )
-    token inputs:ri:Hatch_On = "color" (
+    token inputs:ri:Hatch_On = "bg" (
         allowedTokens = ["color", "bg", "multiply", "screen"]
         connectability = "interfaceOnly"
         displayGroup = "Compositing"
@@ -6496,11 +6273,14 @@ class PxrStylizedHatching "PxrStylizedHatching" (
       Name of a color AOV to use for this specific Hatching node. Default goes to GREEN channel of NPRhatchOut, use this for additional AOV support for use in compositing.
     """
     )
-    float inputs:ri:hatching_freq = 0.2 (
+    float inputs:ri:hatching_freq = 2 (
         connectability = "interfaceOnly"
         displayGroup = "Projection"
         displayName = "Frequency"
-        doc = """Higher numbers, higher frequency. For screen start at 1. For triplanar start at 0.005.
+        doc = """
+        Higher numbers = higher frequency. 
+        For screen start at 1. 
+        For triplanar start at 0.005.
     """
     )
     token inputs:ri:hatching_freq_mode = "8Values" (
@@ -6842,12 +6622,14 @@ class PxrStylizedHatching "PxrStylizedHatching" (
     '''
     )
     token inputs:ri:visualizer = "hatchingFinal" (
-        allowedTokens = ["beauty", "hatchingFinal", "separator", "hatchingBlend", "diffuseLuminance", "diffuseEnergy", "triplanarTestColors"]
+        allowedTokens = ["beauty", "hatchingFinal", "separator", "hatchingBlend", "diffuseEnergy", "triplanarTestColors", "colorBlendSignal"]
         connectability = "interfaceOnly"
         displayName = "Result"
-        doc = "<help />"
+        doc = """
+      Color Blend Signal: replace tex1-tex8 with RED, ORANGE, YELLOW, GREEN, BLUE, INDIGO, VIOLET, TORQOISE for previewing blending
+    """
     )
-    token inputs:ri:whiteShader = "signalAovAverage" (
+    token inputs:ri:whiteShader = "albedoAOV" (
         allowedTokens = ["signalAovMono", "signalAovAverage", "albedoAOV", "NPRalbedoAOV"]
         connectability = "interfaceOnly"
         displayGroup = "Input"
@@ -6920,12 +6702,26 @@ class PxrStylizedLines "PxrStylizedLines" (
     inherits = </PxrDisplayFilterPluginBase>
 )
 {
-    token inputs:ri:activation_function = "spline" (
-        allowedTokens = ["spline", "sigmoid"]
+    token inputs:ri:activation_function = "none" (
+        allowedTokens = ["none", "spline", "sigmoid", "slopeThreshold"]
         connectability = "interfaceOnly"
         displayGroup = "Line Detection"
         displayName = "Activation"
-        doc = """ During line detection weighting to get variance
+        doc = """Activation for line detection algorithm
+    """
+    )
+    float inputs:ri:Activation_Slope = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Line Detection"
+        displayName = "Slope"
+        doc = """Line Detection - Hardness of the line. Higher slope is harder line. See https://www.desmos.com/calculator/djcxrcxchc and modify t for threhold, s for slope
+    """
+    )
+    float inputs:ri:Activation_Threshold = 0.05 (
+        connectability = "interfaceOnly"
+        displayGroup = "Line Detection"
+        displayName = "Threshold"
+        doc = """Line Detection - Threshold to consider an edge. Default 0.05. See https://www.desmos.com/calculator/djcxrcxchc and modify t for threhold, s for slope
     """
     )
     string inputs:ri:aov = "NPRsections" (
@@ -7029,7 +6825,14 @@ class PxrStylizedLines "PxrStylizedLines" (
         doc = """ During dilate sort, weighting
       """
     )
-    bool inputs:ri:Distort_Negative_Remap = 0 (
+    token inputs:ri:Distort_Filtering = "2x2" (
+        allowedTokens = ["off", "2x2"]
+        connectability = "interfaceOnly"
+        displayGroup = "Line Distort"
+        displayName = "Distort Filtering"
+        doc = "<help />"
+    )
+    bool inputs:ri:Distort_Negative_Remap = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Line Distort"
         displayName = "Remap"
@@ -7050,6 +6853,14 @@ class PxrStylizedLines "PxrStylizedLines" (
         doc = """
   Scale UV Offsets from NPRdistort AOV
 """
+    )
+    vector3f inputs:ri:HSV_Albedo = (0, 1, 1) (
+        connectability = "interfaceOnly"
+        displayGroup = "Line Color"
+        displayName = "HSV Albedo"
+        doc = """
+          HSV tint on Albedo color used to color lines
+      """
     )
     vector3f inputs:ri:HSV_Dark = (0, 1, 0) (
         connectability = "interfaceOnly"
@@ -7110,6 +6921,13 @@ class PxrStylizedLines "PxrStylizedLines" (
         displayName = "Gamma"
         doc = "<help />"
     )
+    float inputs:ri:Line_Detect_Mutliplier = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Line Detection"
+        displayName = "Line Detect Multiplier"
+        doc = """ For Float Spline Ramp Activation of line detection, multiply user spline values
+    """
+    )
     float inputs:ri:line_thickness_scale = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Line Thickness:Line Thickness Remap"
@@ -7150,7 +6968,7 @@ class PxrStylizedLines "PxrStylizedLines" (
     )
     float inputs:ri:linesGamma = 1 (
         connectability = "interfaceOnly"
-        displayGroup = "Compositing"
+        displayGroup = "Line Detection"
         displayName = "Gamma"
         doc = """
     After line detection happens, runs gamma on final lines.
@@ -7195,21 +7013,21 @@ class PxrStylizedLines "PxrStylizedLines" (
     )
     int inputs:ri:ramp = 4 (
         connectability = "interfaceOnly"
-        displayGroup = "Line Detection:Activation Spline"
+        displayGroup = "Line Detection:Activation Spline Ramp"
         displayName = "Ramp"
         doc = "Ramp"
     )
-    float[] inputs:ri:ramp_Floats = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
-        displayGroup = "Line Detection:Activation Spline"
+    float[] inputs:ri:ramp_Floats = [0, 0, 1, 1] (
+        displayGroup = "Line Detection:Activation Spline Ramp"
         hidden = true
     )
     token inputs:ri:ramp_Interpolation = "linear" (
         allowedTokens = ["linear", "catmull-rom", "bspline", "constant"]
-        displayGroup = "Line Detection:Activation Spline"
+        displayGroup = "Line Detection:Activation Spline Ramp"
         hidden = true
     )
-    float[] inputs:ri:ramp_Knots = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
-        displayGroup = "Line Detection:Activation Spline"
+    float[] inputs:ri:ramp_Knots = [0, 0, 1, 1] (
+        displayGroup = "Line Detection:Activation Spline Ramp"
         hidden = true
     )
     string inputs:ri:shaderNotes = "Lines Stylization Display Filter" (
@@ -7308,7 +7126,7 @@ class PxrStylizedLines "PxrStylizedLines" (
         """
     )
     token inputs:ri:visualizer = "finalLinesBeauty" (
-        allowedTokens = ["beauty", "finalLinesBeauty", "separator", "finalLines", "finalLinesInvert", "finalLinesAlpha", "lineThicknessFromPattern", "lineThicknessFromLighting", "Luminance", "diffuseEnergy", "zCamdist"]
+        allowedTokens = ["beauty", "finalLinesBeauty", "separator", "finalLines", "finalLinesInvert", "finalLinesAlpha", "lineThicknessFromPattern", "lineThicknessFromLighting", "diffuseEnergy", "zCamdist", "distortFiltering"]
         connectability = "interfaceOnly"
         displayName = "Result"
         doc = "<help />"
@@ -7371,43 +7189,109 @@ class PxrStylizedToon "PxrStylizedToon" (
     inherits = </PxrDisplayFilterPluginBase>
 )
 {
-    float inputs:ri:albedoLift = 0 (
+    int inputs:ri:Artistic_Pattern = 0 (
         connectability = "interfaceOnly"
-        displayGroup = "Toon Blending"
-        displayName = "Albedo Lift"
+        displayGroup = "Input"
+        displayName = "Artistic From PxrStylizedControl"
+        doc = "Artistic From PxrStylizedControl"
+    )
+    vector3f inputs:ri:Artistic_Pos = (0, 1, 0) (
+        displayGroup = "Input"
+        displayName = "Rotation"
         doc = """
-            When Step Mode = Albedo or Light to Albedo, lift albedo values
-        """
+        Phsyical - reads sampled light Signal for Toon Stepping. 
+        Artistic - reads artistic ramp from PxrStylizedControl for Toon Stepping.
+    """
     )
     color3f inputs:ri:backgroundColor = (0, 0, 0) (
         connectability = "interfaceOnly"
-        displayGroup = "Toon"
+        displayGroup = "Compositing"
         displayName = "BG Color"
         doc = """
       BG Color
   """
     )
     int inputs:ri:colorRamp = 4 (
+        displayGroup = "Stepping"
         displayName = "Color Spline Ramp"
         doc = "Color Spline Ramp"
     )
-    color3f[] inputs:ri:colorRamp_Colors = [(1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1)] (
+    color3f[] inputs:ri:colorRamp_Colors = [(1, 1, 1), (1, 1, 1), (1, 1, 1), (1, 1, 1)] (
+        displayGroup = "Stepping"
         hidden = true
     )
     token inputs:ri:colorRamp_Interpolation = "catmull-rom" (
-        allowedTokens = ["catmull-rom", "linear", "constant"]
+        allowedTokens = ["catmull-rom", "linear"]
+        displayGroup = "Stepping"
         hidden = true
     )
-    float[] inputs:ri:colorRamp_Knots = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
+    float[] inputs:ri:colorRamp_Knots = [0, 0, 1, 1] (
+        displayGroup = "Stepping"
         hidden = true
+    )
+    token inputs:ri:daisy_chain_comp = "over" (
+        allowedTokens = ["over", "plus", "multiply", "screen"]
+        connectability = "interfaceOnly"
+        displayGroup = "Compositing"
+        displayName = "Mode"
+        doc = """ Comp mode over previous result (if have previous daisy-chained Stylized nodes, or beauty)
+    """
     )
     color3f inputs:ri:darks = (0, 0, 0) (
         connectability = "interfaceOnly"
-        displayGroup = "Toon Blending"
+        displayGroup = "Stepping"
         displayName = "Darks Color"
         doc = """
-          Color to step to
-      """
+      Color to step to
+    """
+    )
+    float inputs:ri:HSV_Albedo_Darks_Hue = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Stepping"
+        displayName = "Darks Hue"
+        doc = """
+            Tint Albedo Darks to match a shadow color
+        """
+    )
+    float inputs:ri:HSV_Albedo_Darks_Sat = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Stepping"
+        displayName = "Darks Sat"
+        doc = """
+            Tint Albedo Darks to match a shadow color
+        """
+    )
+    float inputs:ri:HSV_Albedo_Darks_Val = 0.5 (
+        connectability = "interfaceOnly"
+        displayGroup = "Stepping"
+        displayName = "Darks Val"
+        doc = """
+            Tint Albedo Darks to match a shadow color
+        """
+    )
+    float inputs:ri:HSV_Albedo_Lights_Hue = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Stepping"
+        displayName = "Lights Hue"
+        doc = """
+            Tint Albedo Lights to match a shadow color
+        """
+    )
+    float inputs:ri:HSV_Albedo_Lights_Sat = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Stepping"
+        displayName = "Lights Sat"
+        doc = """
+            Tint Albedo Lights to match a shadow color
+        """
+    )
+    float inputs:ri:HSV_Albedo_Lights_Val = 1.5 (
+        connectability = "interfaceOnly"
+        displayGroup = "Stepping"
+        displayName = "Lights Val"
+        doc = """
+            Tint Albedo Lights to match a shadow color
+        """
     )
     int inputs:ri:light_mask_switch = 0 (
         connectability = "interfaceOnly"
@@ -7420,10 +7304,10 @@ class PxrStylizedToon "PxrStylizedToon" (
     int inputs:ri:ramp = 4 (
         connectability = "interfaceOnly"
         displayGroup = "Input Remap"
-        displayName = "Float Spline Ramp"
-        doc = "Float Spline Ramp"
+        displayName = "Float Ramp"
+        doc = "Float Ramp"
     )
-    float[] inputs:ri:ramp_Floats = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
+    float[] inputs:ri:ramp_Floats = [0, 0, 1, 1] (
         displayGroup = "Input Remap"
         hidden = true
     )
@@ -7432,12 +7316,12 @@ class PxrStylizedToon "PxrStylizedToon" (
         displayGroup = "Input Remap"
         hidden = true
     )
-    float[] inputs:ri:ramp_Knots = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] (
+    float[] inputs:ri:ramp_Knots = [0, 0, 1, 1] (
         displayGroup = "Input Remap"
         hidden = true
     )
     token inputs:ri:Signal = "diffuse" (
-        allowedTokens = ["diffuse", "occlusionIntegrator", "beauty", "aov"]
+        allowedTokens = ["artistic", "diffuse", "occlusionIntegrator", "beauty", "aov"]
         connectability = "interfaceOnly"
         displayGroup = "Input"
         displayName = "Signal"
@@ -7468,6 +7352,20 @@ class PxrStylizedToon "PxrStylizedToon" (
         doc = """ 0 is off, values greater than 0 ignore small differences between Signal Energy and Albedo Color
     """
     )
+    float inputs:ri:Signal_Max = 1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Input Remap"
+        displayName = "Signal Max"
+        doc = """ Remap signal (lighting, artistic angle, ...) for steps
+    """
+    )
+    float inputs:ri:Signal_Min = 0 (
+        connectability = "interfaceOnly"
+        displayGroup = "Input Remap"
+        displayName = "Signal Min"
+        doc = """ Remap signal (lighting, artistic angle, ...) for steps
+    """
+    )
     float inputs:ri:Signal_Pre_Gain = 1 (
         connectability = "interfaceOnly"
         displayGroup = "Input Remap"
@@ -7482,19 +7380,25 @@ class PxrStylizedToon "PxrStylizedToon" (
         doc = """ Gamma on incoming signal
         """
     )
+    float inputs:ri:Smooth = 0.1 (
+        connectability = "interfaceOnly"
+        displayGroup = "Stepping"
+        displayName = "Smooth"
+        doc = """ Antialiasing between steps. Use on Physical or Artistic. Ignored on Artistic from PxrStylizedControl option (not needed).
+    """
+    )
     int inputs:ri:Spline_Ramp_Switch = 0 (
         connectability = "interfaceOnly"
         displayGroup = "Input Remap"
-        displayName = "Spline Ramp Switch"
-        doc = "Spline Ramp Switch"
+        displayName = "Enable Float Ramp"
+        doc = "Enable Float Ramp"
     )
-    token inputs:ri:stepMode = "darks" (
-        allowedTokens = ["colorSplineRamp", "albedo", "lightToAlbedo", "darks"]
+    token inputs:ri:Step_Mode = "albedo" (
+        allowedTokens = ["albedo", "lightToAlbedo", "darks", "stepModeColorRamp", "stepModeColorRampAlbedo"]
         connectability = "interfaceOnly"
-        displayGroup = "Toon Blending"
-        displayName = "Mode"
-        doc = """Albedo: steps to object albedo from albedo AOV. Light To Albedo: steps from white or light color to albedo color of object (use albedoLift to see more if dark albedo or textures). Darks Color: step to chosen color instead of default black.
-      """
+        displayGroup = "Stepping"
+        displayName = "Step Mode"
+        doc = "<help />"
     )
     bool inputs:ri:Toon_Mask_Switch = 0 (
         connectability = "interfaceOnly"
@@ -7505,19 +7409,19 @@ class PxrStylizedToon "PxrStylizedToon" (
     )
     int inputs:ri:Toon_Steps = 4 (
         connectability = "interfaceOnly"
-        displayGroup = "Toon"
+        displayGroup = "Stepping"
         displayName = "Steps"
         doc = """
-      Number of steps to quantize lighting
-  """
+        Number of steps to quantize signal (lighting or artistic angle)
+    """
     )
     token inputs:ri:visualizer = "toonDiffuseFinal" (
-        allowedTokens = ["beauty", "toonDiffRamp", "toonDiffuseFinal", "separator", "diffuseEnergy", "diffuseLuminance", "albedo"]
+        allowedTokens = ["beauty", "toonDiffuseFinal", "separator", "toonRamp", "diffuseEnergy", "albedo"]
         connectability = "interfaceOnly"
         displayName = "Result"
         doc = "<help />"
     )
-    token inputs:ri:whiteShader = "signalAovAverage" (
+    token inputs:ri:whiteShader = "albedoAOV" (
         allowedTokens = ["signalAovAverage", "albedoAOV", "NPRalbedoAOV"]
         connectability = "interfaceOnly"
         displayGroup = "Input"
@@ -7730,7 +7634,7 @@ class PxrPathTracer "PxrPathTracer" (
         doc = """
         Controls whether or not the path tracer
         will keep track of accumulated opacity
-        along the path. The default is off.
+        along the path. The default is off. (Not implemented in XPU.)
         """
     )
     bool inputs:ri:allowCaustics = 0 (
@@ -7756,7 +7660,7 @@ class PxrPathTracer "PxrPathTracer" (
             clampLuminance will ensure that the luminance of each ray's
             contribution is no more than 4 for all indirect illumination,
             without affecting or clamping the direct illumination. The
-            default is 2.
+            default is 2. (Not implemented in XPU.)
             """
     )
     float inputs:ri:clampLuminance = 10 (
@@ -7776,7 +7680,7 @@ class PxrPathTracer "PxrPathTracer" (
             dimmer due to clamping; this may be an acceptable trade-off in
             certain cases. Setting this parameter to a very large number
             (such as 1e30) will effectively disable all clamping. The
-            default is 10.0.
+            default is 10.0. (Not implemented in XPU.)
             """
     )
     bool inputs:ri:jointSampling = 0 (
@@ -7786,7 +7690,7 @@ class PxrPathTracer "PxrPathTracer" (
         doc = """
                 Enables joint importance sampling of visibility and light sources.
                 This should be enabled for scenes with light sources near volumes and for scenes with non-thick volumes (alpha < 0.99).
-                For thick volumes (alpha near 1) lit only by distant light sources, there is a performance benefit to disabling joint sampling.
+                For thick volumes (alpha near 1) lit only by distant light sources, there is a performance benefit to disabling joint sampling. (Not implemented in XPU.)
             """
     )
     float inputs:ri:jointScatteringBias = 0.5 (
@@ -7794,7 +7698,7 @@ class PxrPathTracer "PxrPathTracer" (
         displayGroup = "Aggregate Volumes"
         displayName = "Joint Scattering Bias"
         doc = """
-                By default, the joint sampling method will choose to scatter light proportionally to the opacity of each ray. This probability can be increased by raising the bias value (which does not bias the render itself), at the cost of undersampling objects behind the volume. For renders containing only volumes, this can be set to 1.0 to force a scatter event on all rays, even for thin volumes.
+                By default, the joint sampling method will choose to scatter light proportionally to the opacity of each ray. This probability can be increased by raising the bias value (which does not bias the render itself), at the cost of undersampling objects behind the volume. For renders containing only volumes, this can be set to 1.0 to force a scatter event on all rays, even for thin volumes. (Not implemented in XPU.)
             """
     )
     int inputs:ri:maxContinuationLength = -1 (
@@ -7811,7 +7715,7 @@ class PxrPathTracer "PxrPathTracer" (
     are many such zero density subsections overlapping then it is
     possible to quickly hit the maximum continuation depth quickly,
     resulting in black regions within your render.
-    The default is -1.
+    The default is -1. (Not implemented in XPU.)
         """
     )
     int inputs:ri:maxIndirectBounces = 8 (
@@ -7836,7 +7740,7 @@ class PxrPathTracer "PxrPathTracer" (
     the opacity computation will switch to a stochastic
     "presence" style of opacity, which may introduce
     noise.
-    The default is 0.
+    The default is 0. (Not implemented in XPU.)
         '''
     )
     int inputs:ri:numBxdfSamples = 1 (
@@ -7845,7 +7749,7 @@ class PxrPathTracer "PxrPathTracer" (
         doc = """
     Controls the number of Bxdf samples for direct
     illumination per camera hit point.
-    The default is 1.
+    The default is 1. (Not implemented in XPU.)
         """
     )
     int inputs:ri:numDiffuseSamples = 1 (
@@ -7856,7 +7760,7 @@ class PxrPathTracer "PxrPathTracer" (
     number of indirect diffuse reflection rays to
     spawn per camera hit point. Ignored when
     sampleMode is set to Bxdf.
-    The default is 1.
+    The default is 1. (Not implemented in XPU.)
         """
     )
     int inputs:ri:numIndirectSamples = 1 (
@@ -7868,7 +7772,7 @@ class PxrPathTracer "PxrPathTracer" (
     spawn per camera hit point. When sampleMode is
     set to manual the value of this parameter is
     ignored.
-    The default is 1.
+    The default is 1. (Not implemented in XPU.)
         """
     )
     int inputs:ri:numLightSamples = 1 (
@@ -7888,7 +7792,7 @@ class PxrPathTracer "PxrPathTracer" (
     the number of refraction/transmission rays
     to spawn per camera hit point. Ignored when
     sampleMode is set to Bxdf.
-    The default is 1.
+    The default is 1. (Not implemented in XPU.)
         """
     )
     int inputs:ri:numSpecularSamples = 1 (
@@ -7900,7 +7804,7 @@ class PxrPathTracer "PxrPathTracer" (
     reflection rays to spawn per camera hit
     point. Ignored when sampleMode is set to
     Bxdf.
-    The default is 1.
+    The default is 1. (Not implemented in XPU.)
         """
     )
     int inputs:ri:numSubsurfaceSamples = 1 (
@@ -7911,7 +7815,7 @@ class PxrPathTracer "PxrPathTracer" (
     the number of subsurface rays to spawn per
     camera hit point. Ignored when sampleMode
     is set to Bxdf.
-    The default is 1.
+    The default is 1. (Not implemented in XPU.)
         """
     )
     int inputs:ri:numVolumeAggregateSamples = 1 (
@@ -7920,17 +7824,17 @@ class PxrPathTracer "PxrPathTracer" (
         doc = """
     Controls the number of volume aggregate samples for direct
     illumination taken on the first ray segment.
-    The default is 1.
+    The default is 1. (Not implemented in XPU.)
         """
     )
     bool inputs:ri:risPathGuiding = 0 (
         connectability = "interfaceOnly"
         displayName = "RIS path guiding"
         doc = """
-        Uses learnt results to guide directions
+        Uses learned results to guide directions
         for indirect path sampling. Can only be
         used if light selection learning is also on
-        The default is off.
+        The default is off. (Not implemented in XPU.)
         """
     )
     int inputs:ri:rouletteDepth = 4 (
@@ -7975,7 +7879,7 @@ class PxrPathTracer "PxrPathTracer" (
     the number of indirect rays to spawn per Bxdf lobe at each camera
     hit point via the numDiffuseSamples, numSpecularSamples,
     numSubsurfaceSamples, and numRefractionSamples parameters.
-    The default is "bxdf".
+    The default is "bxdf". (Not implemented in XPU.)
         '''
     )
     string inputs:ri:volumeAggregate = "globalVolumeAggregate" (
@@ -8232,7 +8136,8 @@ class PxrVisualizer "PxrVisualizer" (
         displayName = "MatCap Texture"
         doc = '''
         Material capture environment map used when style is "matcap".
-        The surface normal is used to look up a color in this texture.
+        The surface normal is used to look up a color in this texture. 
+        (Not implemented in XPU.)
         '''
     )
     bool inputs:ri:normalCheck = 0 (
@@ -8251,7 +8156,7 @@ class PxrVisualizer "PxrVisualizer" (
         connectability = "interfaceOnly"
         displayName = "Shaded PrimVar"
         doc = '''
-        Tint color for "shaded" style.
+        Tint color for "shaded" style. (Not implemented in XPU.)
         '''
     )
     token inputs:ri:style = "shaded" (
@@ -8259,14 +8164,16 @@ class PxrVisualizer "PxrVisualizer" (
         connectability = "interfaceOnly"
         doc = """
         bxdf: renders the scene as if the scene was lit with a single light at
-        the camera's position.
+          the camera's position.
         shaded: Simple N dot V shading. Normals are flipped if inverted.
+          (In RIS it is shadedColor * |VdotN| + 0.025 with default shadedColor = 0.7.
+           In XPU it is simply |VdotN|.)
         flat: Uses a random flat color based on the object's id.
         normals: displays normals in camera space.
         objectnormals: displays normals in object space.
         st: normalized st coordinates. Handy to visualize UDIM tiles.
         matcap: material capture. Uses the surface normal to look up color in
-        an environment map.
+          an environment map.
         """
     )
     bool inputs:ri:wireframe = 1 (
@@ -8913,17 +8820,17 @@ class "PxrDspyOpenExrAPI" (
     int ri:displayDriver:asrgba = 1 (
         displayName = "As RGBA"
         doc = '''
-            If turned on, this flag causes the driver to try to rename a subset of the channels to RGBAZ. Try using this if your image viewer or compositing software swaps around channels (such as red or blue) incorrectly. By default, the driver will rename any input channel named "Ci" to "RGB", any input channel named "a" to "A", and any input channel named "z" to "Z". If no such input channels exist with those names, the first four channels will be renamed to "RGBA". The choice of input channels to be renamed can be set by setting the "asrgbacolorchannel" and "asrgbaalphachannel" parameters.
+            If turned on, this flag causes the driver to try to rename a subset of the channels to RGBAZ. Try using this if your image viewer or compositing software swaps around channels (such as red or blue) incorrectly. The driver will rename any input channel named "Ci" to "RGB", any input channel named "a" to "A", and any input channel named "z" to "Z". If no such input channels exist with those names, the first four channels will be renamed to "RGBA". Use the "asgrbacolorchannel" and "asrgbaaplhachannel" parameters to choose which input channels get renamed.
         '''
     )
     string ri:displayDriver:asrgbaalphachannel = "" (
-        displayName = "Float channel to rename to A"
+        displayName = '"A" float channel'
         doc = '''
             If set, this parameter causes the driver to rename the input channel of that name to "A". Setting this value will also cause "asrgba" to be assumed to be on.
         '''
     )
     string ri:displayDriver:asrgbacolorchannel = "" (
-        displayName = "Color channel to rename to RGB"
+        displayName = '"RGB" color channel'
         doc = '''
             If set, this parameter causes the driver to rename the input channel of that name to "RGB". Setting this value will also cause "asrgba" to be assumed to be on.
         '''

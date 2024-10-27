@@ -1,28 +1,13 @@
 //
 // Copyright 2021 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
-//
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
 #include "hdPrman/renderViewContext.h"
 #include "hdPrman/renderDelegate.h"
+#include "hdPrman/debugCodes.h"
+#include "hdPrman/debugUtil.h"
 
 #include "hdPrman/rixStrings.h"
 
@@ -31,9 +16,15 @@ PXR_NAMESPACE_OPEN_SCOPE
 HdPrman_RenderViewDesc::RenderOutputDesc::RenderOutputDesc()
   : type(riley::RenderOutputType::k_Color)
   , rule(RixStr.k_filter)
+#if _PRMANAPI_VERSION_MAJOR_ >= 26
+  , filter(RixStr.k_gaussian)
+  , filterWidth(2.f, 2.f)
+  , relativePixelVariance(0.0f)
+#else
   , filter(RixStr.k_box)
   , filterWidth(1.0f, 1.0f)
   , relativePixelVariance(1.0f)
+#endif
 { }
 
 HdPrman_RenderViewContext::HdPrman_RenderViewContext() = default;
@@ -43,14 +34,33 @@ HdPrman_RenderViewContext::CreateRenderView(
     const HdPrman_RenderViewDesc &desc,
     riley::Riley * const riley)
 {
+    if(desc.renderOutputDescs.empty()) {
+        TF_WARN("No outputs were found.");
+        return;
+    }
+
     DeleteRenderView(riley);
 
     using RenderOutputDesc = HdPrman_RenderViewDesc::RenderOutputDesc;
 
+    TF_DEBUG(HDPRMAN_RENDER_OUTPUTS).Msg("Logging Render Outputs: \n");
+
     for (const RenderOutputDesc &outputDesc : desc.renderOutputDescs) {
+        TF_DEBUG(HDPRMAN_RENDER_OUTPUTS)
+            .Msg(
+                "Render Output: %s {\n"
+                "\tType: %s\n\tSource: %s\n\tRule: %s\n\tFilter: %s\n"
+                "\tFilterWidth: (%f, %f)\n\tRelativePixelVariance: %f\n}\n",
+                outputDesc.name.CStr(),
+                HdPrmanDebugUtil::RileyOutputTypeToString(outputDesc.type).c_str(),
+                outputDesc.sourceName.CStr(), outputDesc.rule.CStr(),
+                outputDesc.filter.CStr(), outputDesc.filterWidth[0],
+                outputDesc.filterWidth[1], outputDesc.relativePixelVariance
+            );
+
         const riley::FilterSize filterWidth = { outputDesc.filterWidth[0],
                                                 outputDesc.filterWidth[1] };
-        
+
         _renderOutputIds.push_back(
             riley->CreateRenderOutput(
                 riley::UserId(stats::AddDataLocation(outputDesc.name.CStr()).GetValue()),
@@ -68,8 +78,12 @@ HdPrman_RenderViewContext::CreateRenderView(
         static_cast<uint32_t>(desc.resolution[0]),
         static_cast<uint32_t>(desc.resolution[1]),
         1 };
-    
+
+#if _PRMANAPI_VERSION_MAJOR_ >= 26
+    static const RtUString rtImportance("importance");
+#else
     static const RtUString rtWeighted("weighted");
+#endif
 
     _renderTargetId =
         riley->CreateRenderTarget(
@@ -77,8 +91,13 @@ HdPrman_RenderViewContext::CreateRenderView(
             { static_cast<uint32_t>(_renderOutputIds.size()),
               _renderOutputIds.data() },
             rtResolution,
+#if _PRMANAPI_VERSION_MAJOR_ >= 26
+            rtImportance,
+            0.015f, // TODO: Varaince should probably only be set by an option in Riley.
+#else
             rtWeighted,
             1.0f,
+#endif
             RtParamList());
 
     using DisplayDesc = HdPrman_RenderViewDesc::DisplayDesc;

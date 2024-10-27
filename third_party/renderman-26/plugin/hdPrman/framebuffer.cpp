@@ -1,25 +1,8 @@
 //
 // Copyright 2019 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
-//
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
 
 #include "framebuffer.h"
@@ -44,9 +27,10 @@ static RixDspy* s_dspy = nullptr;
 
 ////////////////////////////////////////////////////////////////////////
 // PRMan Display Driver API entrypoints
-//////////////////////////////////otify//////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
 
-static PtDspyError HydraDspyImageOpen(
+extern "C" DISPLAYEXPORT
+PtDspyError DspyImageOpen(
     PtDspyImageHandle* handle_p,
     const char* drivername,
     const char* filename,
@@ -97,7 +81,8 @@ static PtDspyError HydraDspyImageOpen(
     return PkDspyErrorNone;
 }
 
-static PtDspyError HydraDspyImageActiveRegion(
+extern "C" DISPLAYEXPORT
+PtDspyError DspyImageActiveRegion(
     PtDspyImageHandle handle,
     int xmin,
     int xmax_plus_one,
@@ -122,7 +107,8 @@ static float _ConvertAovDepth(const GfMatrix4d &m, const float depth) {
     }
 }
 
-static PtDspyError HydraDspyImageData(
+extern "C" DISPLAYEXPORT
+PtDspyError DspyImageData(
     PtDspyImageHandle handle,
     int xmin,
     int xmax_plusone,
@@ -142,8 +128,12 @@ static PtDspyError HydraDspyImageData(
     }
 
     if (buf->pendingClear) {
-        buf->pendingClear = false;
-        buf->Clear();
+        // Lock threads while we clear the buffer.
+        std::lock_guard<std::mutex> lock(buf->mutex);
+        if (buf->pendingClear) {
+            buf->Clear();
+            buf->pendingClear = false;
+        }
     }
 
     int xmin_plusorigin = xmin + buf->cropOrigin[0];
@@ -224,8 +214,7 @@ static PtDspyError HydraDspyImageData(
                     float* aovData = reinterpret_cast<float*>(
                         &aovBuffer.pixels[offset * cc]);
                     for (int x = xmin_plusorigin; x < xmax_plusorigin; x++) {
-                        *aovData = _ConvertAovDepth(
-                            buf->proj, *data_f32);
+                        *aovData = _ConvertAovDepth(buf->proj, *data_f32);
                         aovData += cc;
                         data_f32 += nComponents;
                     }
@@ -291,14 +280,16 @@ static PtDspyError HydraDspyImageData(
     return PkDspyErrorNone;
 }
 
-static PtDspyError HydraDspyImageClose (
+extern "C" DISPLAYEXPORT
+PtDspyError DspyImageClose (
      PtDspyImageHandle handle)
 {
     TF_UNUSED(handle);
     return PkDspyErrorNone;
 }
 
-static PtDspyError HydraDspyImageQuery (
+extern "C" DISPLAYEXPORT
+PtDspyError DspyImageQuery (
     PtDspyImageHandle handle,
     PtDspyQueryType querytype,
     int datalen,
@@ -507,11 +498,11 @@ HdPrmanFramebuffer::Register(RixContext* ctx)
     assert(s_dspy);
     PtDspyDriverFunctionTable dt;
     dt.Version = k_PtDriverCurrentVersion;
-    dt.pOpen = HydraDspyImageOpen;
-    dt.pWrite = HydraDspyImageData;
-    dt.pClose = HydraDspyImageClose;
-    dt.pQuery = HydraDspyImageQuery;
-    dt.pActiveRegion = HydraDspyImageActiveRegion;
+    dt.pOpen = DspyImageOpen;
+    dt.pWrite = DspyImageData;
+    dt.pClose = DspyImageClose;
+    dt.pQuery = DspyImageQuery;
+    dt.pActiveRegion = DspyImageActiveRegion;
     dt.pMetadata = nullptr;
     if (s_dspy->RegisterDriverTable("hydra", &dt))
     {
@@ -567,7 +558,9 @@ public:
         m_height(0),
         m_surface(nullptr),
         m_alphaOffset(k_invalidOffset),
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
         m_weightsOffset(k_invalidOffset),
+#endif
         m_buf(nullptr)
     {
         int bufferID = 0;
@@ -578,25 +571,31 @@ public:
     ~DisplayHydra() override = default;
 
     // Display interface
-    bool Rebind(const uint32_t width, const uint32_t height,
-                const char* /*srfaddrhandle*/, const void* srfaddr,
-                const size_t /*srfsizebytes*/, const size_t weightsoffset,
-                const size_t* offsets, const display::RenderOutput* outputs,
+    bool Rebind(const uint32_t width, const uint32_t height, const char* /*srfaddrhandle*/,
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
+                const void* srfaddr, const size_t /*srfsizebytes*/, const size_t weightsoffset,
+                const size_t* srfoffsets, const display::RenderOutput* outputs,
+#else
+                const void* srfaddr, const size_t /*srfsizebytes*/, const size_t* srfoffsets,
+                const size_t* /*sampleoffsets*/, const display::RenderOutput* outputs,
+#endif
                 const size_t noutputs) override
     {
         m_surface = static_cast<const uint8_t*>(srfaddr);
         m_width = width;
         m_height = height;
 
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
         m_weightsOffset = weightsoffset;
+#endif
         m_offsets.clear();
         m_offsets.reserve(noutputs);
         for (size_t i = 0; i < noutputs; i++)
         {
-            m_offsets.push_back(offsets[i]);
+            m_offsets.push_back(srfoffsets[i]);
             if(outputs[i].name == RixStr.k_a)
             {
-                m_alphaOffset = offsets[i];
+                m_alphaOffset = srfoffsets[i];
             }
         }
 
@@ -642,10 +641,11 @@ public:
             const HdPrmanFramebuffer::AovDesc &aovDesc =
                 aovBuffer.desc;
 
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
             const float* const srcWeights = m_weightsOffset != k_invalidOffset ? 
                 reinterpret_cast<const float*>(m_surface+m_weightsOffset) : nullptr;
+#endif
             const bool shouldNormalize = aovDesc.ShouldNormalizeBySampleCount();
-
             const int cc = HdGetComponentCount(aovDesc.format);
             const size_t srcOffset = m_offsets[offsetIdx];
             if (aovDesc.format == HdFormatInt32) {
@@ -779,12 +779,17 @@ public:
                 }
                 else if( cc == 4 ) {
                     WorkParallelForN(m_height,
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                                      [this, &aovBuffer, &srcWeights, &srcOffset, shouldNormalize]
+#else
+                                     [this, &aovBuffer, &srcOffset, shouldNormalize]
+#endif
                                      (size_t begin, size_t end) {
 
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                         const float* weights = srcWeights ?
                             srcWeights + begin * m_width : nullptr;
- 
+#endif
                         const float* srcColorR =
                             reinterpret_cast<const float*>(
                                 m_surface + srcOffset)
@@ -806,9 +811,10 @@ public:
 
                             for (uint32_t x = 0; x < m_width; x++) {
                                 float isc = 1.f;
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                                 if(weights && shouldNormalize && *weights > 0.f)
                                     isc = 1.f / *weights;
-
+#endif
                                 const float* const srcColorG =
                                     srcColorR + (m_height * m_width);
                                 const float* const srcColorB =
@@ -828,7 +834,9 @@ public:
                                 aovData += 4;
                                 srcColorR++;
                                 srcColorA++;
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                                 if (weights) weights++;
+#endif
                             }
                         }
                     });
@@ -840,12 +848,17 @@ public:
                 }
                 else if (cc == 1) {
                     WorkParallelForN(m_height,
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                                      [this, &aovBuffer, &srcWeights, &srcOffset, shouldNormalize]
+#else
+                                     [this, &aovBuffer, &srcOffset, shouldNormalize]
+#endif
                                      (size_t begin, size_t end) {
 
-
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                         const float* weights = srcWeights ?
                             srcWeights + begin * m_width : nullptr;
+#endif
                         const float* srcColorR =
                             reinterpret_cast<const float*>(
                                 m_surface + srcOffset)
@@ -861,14 +874,18 @@ public:
                             for (uint32_t x = 0; x < m_width; x++)
                             {
                                 float isc = 1.f;
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                                 if(weights && shouldNormalize && *weights > 0.f)
                                     isc = 1.f / *weights;
+#endif
 
                                 *aovData = *srcColorR * isc;
 
                                 aovData++;
                                 srcColorR++;
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                                 if (weights) weights++;
+#endif
                             }
                         }
                     });
@@ -876,11 +893,17 @@ public:
                 else {
                     assert(cc == 3);
                     WorkParallelForN(m_height,
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                                      [this, &aovBuffer, &srcWeights, &srcOffset, shouldNormalize]
+#else
+                                     [this, &aovBuffer, &srcOffset, shouldNormalize]
+#endif
                                      (size_t begin, size_t end) {
 
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                         const float* weights = srcWeights ?
                             srcWeights + begin * m_width : nullptr;
+#endif
                         const float* srcColorR =
                             reinterpret_cast<const float*>(
                                 m_surface + srcOffset)
@@ -894,8 +917,10 @@ public:
 
                             for (uint32_t x = 0; x < m_width; x++) {
                                 float isc = 1.f;
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                                 if(weights && shouldNormalize && *weights > 0.f)
                                     isc = 1.f / *weights;
+#endif
 
                                 const float* const srcColorG =
                                     srcColorR + (m_height * m_width);
@@ -908,7 +933,9 @@ public:
 
                                 aovData += 3;
                                 srcColorR++;
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
                                 if (weights) weights++;
+#endif
                             }
                         }
                     });
@@ -917,18 +944,32 @@ public:
         }
     }
 
+#if DISPLAY_INTERFACE_VERSION >= 2
+    uint64_t GetRequirements() const override
+    {
+        return display::Display::k_reqFrameBuffer;
+    }
+#endif
 private:
     uint32_t m_width;
     uint32_t m_height;
     const uint8_t* m_surface;
     size_t m_alphaOffset;
     std::vector<size_t> m_offsets;
+#if !defined(DISPLAY_INTERFACE_VERSION) || DISPLAY_INTERFACE_VERSION < 2
     size_t m_weightsOffset;
+#endif
 
     HdPrmanFramebuffer* m_buf;
 };
 
 }
+
+// Export the current version of the Display API, necessary for binary compatibility with the
+// renderer
+#if DISPLAY_INTERFACE_VERSION >= 1
+DISPLAYEXPORTVERSION
+#endif
 
 extern "C" DISPLAYEXPORT
 display::Display* CreateDisplay(const pxrcore::UString& name,
@@ -945,4 +986,3 @@ void DestroyDisplay(const display::Display* p)
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE
-

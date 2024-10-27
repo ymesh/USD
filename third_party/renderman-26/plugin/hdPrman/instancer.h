@@ -1,30 +1,11 @@
 //
 // Copyright 2023 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
-//
-#ifndef EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_INSTANCER_H
-#define EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_INSTANCER_H
-
-#include "pxr/pxr.h"
+#ifndef EXT_RMANPKG_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_INSTANCER_H
+#define EXT_RMANPKG_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_INSTANCER_H
 
 #include "hdPrman/renderParam.h"
 #include "hdPrman/rixStrings.h"
@@ -32,13 +13,35 @@
 #include "pxr/imaging/hd/instancer.h"
 #include "pxr/imaging/hd/sceneDelegate.h"
 #include "pxr/imaging/hd/timeSampleArray.h"
+#include "pxr/imaging/hd/types.h"
+
+#include "pxr/usd/sdf/path.h"
+
+#include "pxr/base/gf/matrix4d.h"
 #include "pxr/base/tf/hashmap.h"
 #include "pxr/base/tf/token.h"
 #include "pxr/base/vt/types.h"
 #include "pxr/base/vt/value.h"
 
-#include "tbb/concurrent_unordered_map.h"
-#include "tbb/spin_rw_mutex.h"
+#include "pxr/pxr.h"
+
+#include <Riley.h>
+#include <RileyIds.h>
+#include <RiTypesHelper.h>
+
+#include <tbb/concurrent_unordered_map.h>
+#include <tbb/spin_rw_mutex.h>
+
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <tuple>
+#include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -79,7 +82,7 @@ public:
      *        prototype is an analytic light, in which case it must contain
      *        exactly one invalid geometry prototype id.
      * @param coordSysList The coordinate system list for the hydra prototype.
-     * @param protoParams The riley instance params derived from the hydra
+     * @param prototypeParams The riley instance params derived from the hydra
      *        prototype. These will be applied to every riley instance except
      *        where they are overridden by riley instance params derived from
      *        the instancer. This collection may include visibility params, but
@@ -88,8 +91,8 @@ public:
      *        using hydraPrototypeId (or the appropriate prototypePrimPath, see
      *        below), and will be ignored and overwritten if they are present
      *        here. For a full list, see _GetLightLinkParams
-     * @param protoXform The transform of the hydra prototype prim relative to
-     *        the parent of the prototype root. This will be applied to the
+     * @param prototypeXform The transform of the hydra prototype prim relative
+     *        to the parent of the prototype root. This will be applied to the
      *        riley instances first, before the transform derived from the
      *        instancer's instancing mechanism or the instancer's own transform.
      * @param rileyMaterialIds The riley material ids to be assigned to the
@@ -113,8 +116,9 @@ public:
         const SdfPath& hydraPrototypeId,
         const std::vector<riley::GeometryPrototypeId>& rileyPrototypeIds,
         const riley::CoordinateSystemList& coordSysList,
-        const RtParamList protoParams,
-        const HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES> protoXform,
+        const RtParamList& prototypeParams,
+        const HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES>&
+            prototypeXform,
         const std::vector<riley::MaterialId>& rileyMaterialIds,
         const SdfPathVector& prototypePaths,
         const riley::LightShaderId& lightShaderId = riley::LightShaderId::InvalidId());
@@ -183,7 +187,7 @@ private:
         // have been authored on a given (native) instance.
         RtParamList params;
 
-        _FlattenData() { }
+        _FlattenData() = default;
         _FlattenData(const VtTokenArray& cats) 
             : categories(cats.begin(), cats.end()) { }
         _FlattenData(const VtTokenArray& cats, bool vis)
@@ -318,12 +322,8 @@ private:
         RtParamList params;
         _GfMatrixSA transform;
 
-        _InstanceData() { }
-        _InstanceData(
-            const VtTokenArray& cats, 
-            bool vis, 
-            const RtParamList& p, 
-            _GfMatrixSA& xform)
+        _InstanceData() = default;
+        _InstanceData(const RtParamList& p, const _GfMatrixSA& xform)
             : transform(xform)
         {
             params.Inherit(p);
@@ -484,16 +484,16 @@ private:
     // **********************************************    
 
     // Sync helper; caches instance-rate primvars
-    void _SyncPrimvars(HdDirtyBits* dirtyBits);
+    void _SyncPrimvars(const HdDirtyBits* dirtyBits);
 
     // Sync helper; caches the instancer and instance transforms
-    void _SyncTransforms(HdDirtyBits* dirtyBits);
+    void _SyncTransforms(const HdDirtyBits* dirtyBits, HdPrman_RenderParam *);
 
     // Sync helper; caches instance or instancer categories as appropriate
-    void _SyncCategories(HdDirtyBits* dirtyBits);
+    void _SyncCategories(const HdDirtyBits* dirtyBits);
 
     // Sync helper; caches instancer visibility
-    void _SyncVisibility(HdDirtyBits* dirtyBits);
+    void _SyncVisibility(const HdDirtyBits* dirtyBits);
 
     // Generates InstanceData structures for this instancer's instances;
     // will multiply those by any supplied subInstances
@@ -506,7 +506,7 @@ private:
     // incompatible params and moving them from the RtParamList to the
     // FlattenData. Called by _ComposeInstances().
     void _ComposeInstanceFlattenData(
-        const size_t instanceId,
+        size_t instanceId,
         RtParamList& instanceParams,
         _FlattenData& fd,
         const _FlattenData& fromBelow = _FlattenData());
@@ -519,12 +519,13 @@ private:
     void _ComposePrototypeData(
         const SdfPath& protoPath,
         const RtParamList& globalProtoParams,
-        const bool isLight,
+        bool isLight,
         const std::vector<riley::GeometryPrototypeId>& protoIds,
         const SdfPathVector& subProtoPaths,
         const std::vector<_FlattenData>& subProtoFlats,
         std::vector<RtParamList>& protoParams,
-        std::vector<_FlattenData>& protoFlats);
+        std::vector<_FlattenData>& protoFlats,
+        std::vector<TfToken>& protoRenderTags);
 
     // Deletes riley instances owned by this instancer that are of riley
     // geometry prototypes that are no longer associated with the given
@@ -552,8 +553,9 @@ private:
         const SdfPath& prototypePrimPath,
         const std::vector<riley::GeometryPrototypeId>& rileyPrototypeIds,
         const riley::CoordinateSystemList& coordSysList,
-        const RtParamList protoParams,
-        const HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES> protoXform,
+        const RtParamList& prototypeParams,
+        const HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES>&
+            prototypeXform,
         const std::vector<riley::MaterialId>& rileyMaterialIds,
         const SdfPathVector& prototypePaths,
         const riley::LightShaderId& lightShaderId,
@@ -572,8 +574,9 @@ private:
         const SdfPath& prototypePrimPath,
         const std::vector<riley::GeometryPrototypeId>& rileyPrototypeIds,
         const riley::CoordinateSystemList& coordSysList,
-        const RtParamList protoParams,
-        const HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES> protoXform,
+        const RtParamList& prototypeParams,
+        const HdTimeSampleArray<GfMatrix4d, HDPRMAN_MAX_TIME_SAMPLES>&
+            prototypeXform,
         const std::vector<riley::MaterialId>& rileyMaterialIds,
         const SdfPathVector& prototypePaths,
         const riley::LightShaderId& lightShaderId,
@@ -590,7 +593,7 @@ private:
         riley::Riley* riley,
         const SdfPath& prototypePrimPath, 
         const std::vector<riley::GeometryPrototypeId>& rileyPrototypeIds, 
-        const size_t newSize);
+        size_t newSize);
 
     // Deletes any riley geometry prototype groups that are no longer needed.
     // Returns true if any groups were deleted.
@@ -607,7 +610,7 @@ private:
     // Retrieves instance-rate params for the given instance index from
     // the instancer's cache.
     void _GetInstanceParams(
-        const size_t instanceIndex,
+        size_t instanceIndex,
         RtParamList& params);
 
     // Gets constant and uniform params for the prototype
@@ -619,7 +622,7 @@ private:
     // Retrieves the instance transform for the given index from the
     // instancer's cache.
     void _GetInstanceTransform(
-        const size_t instanceIndex,
+        size_t instanceIndex,
         _GfMatrixSA& xform,
         const _GfMatrixSA& left = _GfMatrixSA());
 
@@ -688,4 +691,4 @@ private:
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
-#endif  // EXT_RMANPKG_25_0_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_INSTANCER_H
+#endif  // EXT_RMANPKG_PLUGIN_RENDERMAN_PLUGIN_HD_PRMAN_INSTANCER_H

@@ -68,6 +68,7 @@ pxr_library(hd
         extComputation
         extComputationContext
         extComputationContextInternal
+        extComputationCpuCallback
         extComputationInputComputationSchema
         extComputationOutputSchema
         extComputationPrimvarSchema
@@ -88,7 +89,6 @@ pxr_library(hd
         flatNormals
         geomSubset
         geomSubsetSchema
-        geomSubsetsSchema
         imageShader
         imageShaderSchema
         instanceCategoriesSchema
@@ -101,6 +101,7 @@ pxr_library(hd
         integratorSchema
         lazyContainerDataSource
         legacyDisplayStyleSchema
+        legacyGeomSubsetSceneIndex
         legacyPrimSceneIndex
         lensDistortionSchema
         light
@@ -116,6 +117,7 @@ pxr_library(hd
         materialNetwork2Interface
         materialNodeSchema
         materialNodeParameterSchema
+        materialOverrideSchema
         materialSchema
         mergingSceneIndex
         mesh
@@ -129,6 +131,7 @@ pxr_library(hd
         nurbsPatchTrimCurveSchema
         overlayContainerDataSource
         perfLog
+        planeSchema
         pluginRenderDelegateUniqueHandle
         points
         prefixingSceneIndex
@@ -148,6 +151,7 @@ pxr_library(hd
         rendererPluginRegistry
         renderIndex
         renderPass
+        renderPassSchema
         renderPassState
         renderProductSchema
         renderSettings
@@ -170,6 +174,7 @@ pxr_library(hd
         sceneIndexPlugin
         sceneIndexPluginRegistry
         sceneIndexPrimView
+        sceneIndexUtil
         schema
         selection
         selectionSchema
@@ -346,6 +351,17 @@ pxr_build_test(testHdSortedIds
 
    CPPFILES
        testenv/testHdSortedIds.cpp
+)
+
+pxr_build_test(testHdSortedIdsPerf
+   LIBRARIES
+       hd
+       sdf
+       tf
+       arch
+
+   CPPFILES
+       testenv/testHdSortedIdsPerf.cpp
 )
 
 pxr_build_test(testHdTimeSampleArray

@@ -1,29 +1,13 @@
 //
 // Copyright 2022 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
-//
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
 #include "hdPrman/matfiltSceneIndexPlugins.h"
 #include "hdPrman/material.h"
 #include "hdPrman/matfiltConvertPreviewMaterial.h"
+#include "hdPrman/tokens.h"
 
 #ifdef PXR_MATERIALX_SUPPORT_ENABLED
 #include "hdPrman/matfiltMaterialX.h"
@@ -67,7 +51,6 @@ enum _MatfiltOrder
 // Plugin registrations
 ////////////////////////////////////////////////////////////////////////////////
 
-static const char * const _rendererDisplayName = "Prman";
 // XXX: Hardcoded for now to match the legacy matfilt logic.
 static const bool _resolveVstructsWithConditionals = true;
 
@@ -85,32 +68,34 @@ TF_REGISTRY_FUNCTION(TfType)
 
 TF_REGISTRY_FUNCTION(HdSceneIndexPlugin)
 {
-    HdSceneIndexPluginRegistry::GetInstance().RegisterSceneIndexForRenderer(
-        _rendererDisplayName,
-        _tokens->previewMatPluginName,
-        nullptr, // no argument data necessary
-        _MatfiltOrder::NodeTranslation,
-        HdSceneIndexPluginRegistry::InsertionOrderAtStart);
-    
-    HdSceneIndexPluginRegistry::GetInstance().RegisterSceneIndexForRenderer(
-        _rendererDisplayName,
-        _tokens->materialXPluginName,
-        nullptr, // no argument data necessary
-        _MatfiltOrder::NodeTranslation,
-        HdSceneIndexPluginRegistry::InsertionOrderAtStart);
-    
-    HdContainerDataSourceHandle const inputArgs =
-        HdRetainedContainerDataSource::New(
-            _tokens->applyConditionals,
-            HdRetainedTypedSampledDataSource<bool>::New(
-                _resolveVstructsWithConditionals));
+    for( auto const& rendererDisplayName : HdPrman_GetPluginDisplayNames() ) {
+        HdSceneIndexPluginRegistry::GetInstance().RegisterSceneIndexForRenderer(
+            rendererDisplayName,
+            _tokens->previewMatPluginName,
+            nullptr, // no argument data necessary
+            _MatfiltOrder::NodeTranslation,
+            HdSceneIndexPluginRegistry::InsertionOrderAtStart);
 
-    HdSceneIndexPluginRegistry::GetInstance().RegisterSceneIndexForRenderer(
-        _rendererDisplayName,
-        _tokens->vstructPluginName,
-        inputArgs,                        
-        _MatfiltOrder::ConnectionResolve,
-        HdSceneIndexPluginRegistry::InsertionOrderAtStart);
+        HdSceneIndexPluginRegistry::GetInstance().RegisterSceneIndexForRenderer(
+            rendererDisplayName,
+            _tokens->materialXPluginName,
+            nullptr, // no argument data necessary
+            _MatfiltOrder::NodeTranslation,
+            HdSceneIndexPluginRegistry::InsertionOrderAtStart);
+
+        HdContainerDataSourceHandle const inputArgs =
+            HdRetainedContainerDataSource::New(
+                _tokens->applyConditionals,
+                HdRetainedTypedSampledDataSource<bool>::New(
+                    _resolveVstructsWithConditionals));
+
+        HdSceneIndexPluginRegistry::GetInstance().RegisterSceneIndexForRenderer(
+            rendererDisplayName,
+            _tokens->vstructPluginName,
+            inputArgs,
+            _MatfiltOrder::ConnectionResolve,
+            HdSceneIndexPluginRegistry::InsertionOrderAtStart);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

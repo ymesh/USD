@@ -1,25 +1,8 @@
 //
 // Copyright 2021 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
-//
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
 #include "hdPrman/cameraContext.h"
 
@@ -30,6 +13,7 @@
 #include "Riley.h"
 #include "RixShadingUtils.h"
 
+#include "pxr/imaging/hd/camera.h"
 #include "pxr/base/gf/math.h"
 #include "pxr/base/tf/envSetting.h"
 
@@ -225,10 +209,20 @@ _ToVec4f(const GfRange2d &window)
 // Get respective projection shader name for projection.
 static
 const RtUString&
-_ComputeProjectionShader(const HdCamera::Projection projection)
+_ComputeProjectionShader(const HdCamera::Projection projection,
+                         const RtUString& projectionOverride)
 {
     static const RtUString us_PxrCamera("PxrCamera");
     static const RtUString us_PxrOrthographic("PxrOrthographic");
+
+    // Use projection override if it is not default perspective,
+    // otherwise defer to camera to decide on orthographic vs perspective.
+    // PxrPerspective here matches default of _projection in HdPrman_RenderPass,
+    // which matches default in Solaris render settings.
+    static const RtUString us_PxrPerspective("PxrPerspective");
+    if(!projectionOverride.Empty() && projectionOverride != us_PxrPerspective) {
+        return projectionOverride;
+    }
 
     switch (projection) {
     case HdCamera::Perspective:
@@ -300,6 +294,8 @@ _ComputePerspectiveNodeParams(
     static const RtUString us_lensAsymmetryY("lensAsymmetryY");
     static const RtUString us_lensScale("lensScale");
 
+    static const RtUString us_dofMult("dofMult");
+
     result.SetFloat(
         us_radial1,
         camera->GetLensDistortionK1());
@@ -322,6 +318,10 @@ _ComputePerspectiveNodeParams(
     result.SetFloat(
         us_lensScale,
         camera->GetLensDistortionScale());
+
+    result.SetFloat(
+        us_dofMult,
+        camera->GetDofMult());
 
     return result;
 }
@@ -389,13 +389,21 @@ HdPrman_CameraContext::_ComputeCameraParams(
         dynamic_cast<const HdPrmanCamera * const>(camera);
     const HdPrmanCamera::ShutterCurve &shutterCurve
         = hdPrmanCamera->GetShutterCurve();
-        
-    result.SetFloat(RixStr.k_shutterOpenTime, shutterCurve.shutterOpenTime);
-    result.SetFloat(RixStr.k_shutterCloseTime, shutterCurve.shutterCloseTime);
-    result.SetFloatArray(
-        RixStr.k_shutteropening,
-        shutterCurve.shutteropening.data(),
-        shutterCurve.shutteropening.size());
+
+    if (shutterCurve.shutterOpenTime) {
+        result.SetFloat(
+            RixStr.k_shutterOpenTime, *shutterCurve.shutterOpenTime);
+    }
+    if (shutterCurve.shutterCloseTime) {
+        result.SetFloat(
+            RixStr.k_shutterCloseTime, *shutterCurve.shutterCloseTime);
+    }
+    if (shutterCurve.shutteropening) {
+        result.SetFloatArray(
+            RixStr.k_shutteropening,
+            shutterCurve.shutteropening->data(),
+            shutterCurve.shutteropening->size());
+    }
 
     result.SetFloat(RixStr.k_apertureAngle,
                     hdPrmanCamera->GetApertureAngle());
@@ -515,14 +523,37 @@ HdPrman_CameraContext::_UpdateRileyCamera(
         return;
     }
 
-    const riley::ShadingNode node = riley::ShadingNode {
+    riley::ShadingNode node = riley::ShadingNode {
         riley::ShadingNode::Type::k_Projection,
-        _ComputeProjectionShader(camera->GetProjection()),
+        _ComputeProjectionShader(camera->GetProjection(),
+                                 _projectionNameOverride),
         s_projectionNodeName,
         _ComputeNodeParams(camera, _disableDepthOfField)
     };
 
-    const RtParamList params = _ComputeCameraParams(screenWindow, camera);
+    RtParamList params = _ComputeCameraParams(screenWindow, camera);
+
+    // This method does backward compatibility for older USD versions
+    // as well as support for some camera settings not supported by
+    // the studio hdprman.
+    // The camera params are split into groups indicating how they're inherited:
+    //  customParams: defer to those computed above via _ComputeCameraParams
+    //                This allows the newer way of specifying them to win.
+    //  customParamsOverride: certain params are available with custom names
+    //                in Solaris, and we want those to override any hardcoded
+    //                values from _ComputeCameraParams (eg. shutteropening)
+    RtParamList customParams;
+    RtParamList customParamsOverride;
+    RtParamList customNodeParams;
+    camera->SetRileyCameraParams(customParams,
+                                 customParamsOverride,
+                                 customNodeParams);
+    // If any duplicates, the ones in params win
+    params.Inherit(customParams);
+    // If any duplicates, the ones in customParamsOverride win
+    params.Update(customParamsOverride);
+    node.params.Inherit(customNodeParams);
+    node.params.Update(_projectionParamsOverride);
 
     // Coordinate system notes.
     //
@@ -676,7 +707,7 @@ _DivRoundDown(const float a, const int b)
     // set the floating point rounding mode but: how to do this in a
     // portable way - and on x86 switching the rounding is slow).
 
-    return GfClamp((a - 0.0078125f) / b, 0.0f, 1.0f);
+    return (a - 0.0078125f) / b;
 }
 
 // Compute how the dataWindow sets in a window with upper left corner
@@ -707,11 +738,22 @@ HdPrman_CameraContext::GetResolutionFromDisplayWindow() const
     return GfVec2i(std::ceil(size[0]), std::ceil(size[1]));
 }
 
+// This can be removed once XPU handles under/overscan correctly.
+GfVec2i
+HdPrman_CameraContext::GetResolutionFromDataWindow() const
+{
+    return _framing.dataWindow.GetSize();
+}
+
 void
 HdPrman_CameraContext::SetRileyOptions(
     RtParamList * const options) const
 {
     const GfVec2i res = GetResolutionFromDisplayWindow();
+
+    options->SetIntegerArray(
+        RixStr.k_Ri_FormatResolution,
+        res.data(), 2);
 
     // Compute how the data window sits in the display window.
     const GfVec4f cropWindow =
@@ -724,14 +766,10 @@ HdPrman_CameraContext::SetRileyOptions(
         RixStr.k_Ri_CropWindow,
         cropWindow.data(), 4);
 
-    options->SetIntegerArray(
-        RixStr.k_Ri_FormatResolution,
-        res.data(), 2);
-
     options->SetFloat(
         RixStr.k_Ri_FormatPixelAspectRatio,
         _framing.pixelAspectRatio);
-}    
+}
 
 void
 HdPrman_CameraContext::SetRileyOptionsInteractive(
@@ -750,10 +788,22 @@ HdPrman_CameraContext::SetRileyOptionsInteractive(
     options->SetFloatArray(
         RixStr.k_Ri_CropWindow,
         cropWindow.data(), 4);
-    
+
+    options->SetIntegerArray(
+        RixStr.k_Ri_FormatResolution,
+        renderBufferSize.data(), 2);
+
     options->SetFloat(
         RixStr.k_Ri_FormatPixelAspectRatio,
         _framing.pixelAspectRatio);
+}
+
+void
+HdPrman_CameraContext::SetProjectionOverride(const RtUString& projection,
+                                            const RtParamList& projectionParams)
+{
+    _projectionNameOverride = projection;
+    _projectionParamsOverride = projectionParams;
 }
 
 void
@@ -767,6 +817,8 @@ HdPrman_CameraContext::CreateRileyCamera(
     riley::Riley * const riley,
     const RtUString &cameraName)
 {
+    const static RtUString us_PxrPerspective("PxrPerspective");
+
     _cameraName = cameraName;
 
     RtParamList nodeParams;
@@ -775,7 +827,7 @@ HdPrman_CameraContext::CreateRileyCamera(
     // Projection
     const riley::ShadingNode node = riley::ShadingNode {
         riley::ShadingNode::Type::k_Projection,
-        _ComputeProjectionShader(HdCamera::Perspective),
+        _ComputeProjectionShader(HdCamera::Perspective, us_PxrPerspective),
         s_projectionNodeName,
         nodeParams
     };

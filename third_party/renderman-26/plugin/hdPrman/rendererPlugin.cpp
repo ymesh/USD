@@ -1,36 +1,57 @@
 //
 // Copyright 2019 Pixar
 //
-// Licensed under the Apache License, Version 2.0 (the "Apache License")
-// with the following modification; you may not use this file except in
-// compliance with the Apache License and the following modification to it:
-// Section 6. Trademarks. is deleted and replaced with:
+// Licensed under the terms set forth in the LICENSE.txt file available at
+// https://openusd.org/license.
 //
-// 6. Trademarks. This License does not grant permission to use the trade
-//    names, trademarks, service marks, or product names of the Licensor
-//    and its affiliates, except as required to comply with Section 4(c) of
-//    the License and to reproduce the content of the NOTICE file.
-//
-// You may obtain a copy of the Apache License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the Apache License with the above modification is
-// distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied. See the Apache License for the specific
-// language governing permissions and limitations under the Apache License.
-//
+#include "hdPrman/renderParam.h"
 #include "hdPrman/renderDelegate.h"
 #include "pxr/imaging/plugin/hdPrmanLoader/rendererPlugin.h"
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
+static HdRenderDelegate* s_curDelegate = nullptr;
+
+TF_DEFINE_PRIVATE_TOKENS(
+    _tokens,
+    ((houdini_renderer, "houdini:renderer"))
+    (husk)
+);
+
 // Macro defined in hdPrmanLoader/rendererPlugin.h to export
 // a symbol here that can be picked up by HdPrmanLoader::Load.
 HDPRMAN_LOADER_CREATE_DELEGATE
 {
-    return new HdPrmanRenderDelegate(settingsMap);
+    if(s_curDelegate) {
+        // Prman only supports one riley at a time, so when a new one
+        // is requested while one already exists, shut down the existing one.
+        // This is necessary for some DCCs where switching delegates
+        // will create the new before cleaning up the old.
+        // Note, can't delete the whole delegate early because that
+        // leads to a crash outside our code.
+        static_cast<HdPrman_RenderParam*>(s_curDelegate->GetRenderParam())->End();
+    }
+
+    HdRenderDelegate* renderDelegate = new HdPrmanRenderDelegate(settingsMap);
+    HdPrman_RenderParam* renderParam =
+        static_cast<HdPrman_RenderParam*>(renderDelegate->GetRenderParam());
+    if(!renderParam->IsValid()) {
+        // If Riley wasn't created successfully it's important to return nullptr
+        // or crashes will ensue
+        TF_WARN("Failed to create the HdPrman render delegate");
+        delete renderDelegate;
+        auto hr = settingsMap.find(_tokens->houdini_renderer);
+        if(hr != settingsMap.end() && hr->second == _tokens->husk) {
+            // Solaris background renders will crash or hang if we
+            // return nullptr here, so call FatalError method which
+            // will throw an exception.
+            renderParam->
+                    FatalError("Failed to create the HdPrman render delegate");
+        }
+        return nullptr;
+    }
+    s_curDelegate = renderDelegate;
+    return renderDelegate;
 }
 
 HDPRMAN_LOADER_DELETE_DELEGATE
@@ -38,5 +59,8 @@ HDPRMAN_LOADER_DELETE_DELEGATE
     // The HdPrman_RenderParam is owned by delegate and
     // will be automatically destroyed by ref-counting, shutting
     // down the attached PRMan instance.
+     if(renderDelegate == s_curDelegate) {
+        s_curDelegate = nullptr;
+    }
     delete renderDelegate;
 }

@@ -18,6 +18,11 @@ set(PXR_PACKAGE hdPrman)
 # This is only temporary and will be removed shortly
 add_definitions(-DPRMANBUILDINGAPI)
 
+# Needed to prevent YY files trying to include unistd.h
+if (WIN32)
+    add_compile_definitions("YY_NO_UNISTD_H")
+endif()
+
 # TODO The pxr cmake macros don't provide a good way to link prman with link_directories
 # on Linux/OSX without resorting to absolute rpath. For now, simply avoid linking
 # libprman on Linux/OSX.
@@ -96,6 +101,7 @@ pxr_plugin(${PXR_PACKAGE}
         coordSysPrimSceneIndexPlugin
         cylinder
         debugCodes
+        dependencySceneIndexPlugin
         dependencyForwardingSceneIndexPlugin
         displayFilter
         gprim
@@ -122,6 +128,8 @@ pxr_plugin(${PXR_PACKAGE}
         rileyFallbackMaterialSceneIndexPlugin
         rileyGeometryInstanceSchema
         rileyGeometryPrototypeSchema
+        rileyGlobalsSceneIndexPlugin
+        rileyGlobalsSchema
         rileyIntegratorSchema
         rileyLightInstanceSchema
         rileyLightShaderSchema
@@ -154,12 +162,16 @@ pxr_plugin(${PXR_PACKAGE}
         matfiltSceneIndexPlugins
         motionBlurSceneIndexPlugin
         pinnedCurveExpandingSceneIndexPlugin
+        projectionParams
         renderBuffer
         renderParam
         renderPass
+        renderPassSceneIndex
+        renderPassSceneIndexPlugin
         renderSettingsFilteringSceneIndexPlugin
         renderViewContext
         resourceRegistry
+        retesselationSceneIndexPlugin
         rileyCameraPrim
         rileyCoordinateSystemPrim
         rileyClippingPlanePrim
@@ -168,6 +180,8 @@ pxr_plugin(${PXR_PACKAGE}
         rileyDisplayPrim
         rileyGeometryInstancePrim
         rileyGeometryPrototypePrim
+        rileyGlobalsSceneIndex
+        rileyGlobalsPrim
         rileyIntegratorPrim
         rileyLightInstancePrim
         rileyLightShaderPrim
@@ -179,7 +193,7 @@ pxr_plugin(${PXR_PACKAGE}
         rileyRenderViewPrim
         rileySampleFilterPrim
         rileyTypes
-        terminalSceneIndexObserver
+        sceneIndexObserverApi
         updateObjectSettingsSceneIndex
         updateObjectSettingsSceneIndexPlugin
         utils
@@ -194,10 +208,10 @@ pxr_plugin(${PXR_PACKAGE}
         pxr/base/vt/typeHeaders.h # polyfill until USD 22.08
         pxr/base/vt/visitValue.h  # polyfill until USD 22.11
         rileyIds.h
-        sceneIndexObserverApi.h
         virtualStructConditionalGrammar.tab.h
 
     CPPFILES
+        lightLinkingSceneIndexPlugin.cpp
         rendererPlugin.cpp
         virtualStructConditionalGrammar.lex.cpp
         virtualStructConditionalGrammar.tab.cpp
