@@ -1539,8 +1539,19 @@ def InstallOpenImageIO(context, force, buildArgs):
                 context.instDir,
                 "include/boost-{}".format("1_78" if pyVer >= (3, 10) else "1_76"),
             ).replace("\\", "/")
-            print(f">>> {boostInclude = }")
+            print(f">>> windows {boostInclude = }")
             extraArgs.append('-DBoost_INCLUDE_DIR="{}"'.format(boostInclude))
+            extraArgs.append('-DBoost_ROOT="{}"'.format(context.instDir))
+        elif Linux():
+            pyInfo = GetPythonInfo(context)
+            pyVer = (int(pyInfo[3].split(".")[0]), int(pyInfo[3].split(".")[1]))
+            boostInclude = os.path.join(
+                context.instDir,
+                "include/boost",
+            ).replace("\\", "/")
+            print(f">>> linux {boostInclude = }")
+            print(f">>> linux Boost_ROOT = {context.instDir}")
+            extraArgs.append('Boost_INCLUDE_DIR="{}"'.format(boostInclude))
             extraArgs.append('-DBoost_ROOT="{}"'.format(context.instDir))
         # XXX: OFF
         extraArgs.append("-DBoost_NO_BOOST_CMAKE=On")
@@ -1579,11 +1590,18 @@ def InstallOpenColorIO(context, force, buildArgs):
 
     print(f">>> InstallOpenColorIO { buildArgs = }")
     pyInfo = GetPythonInfo(context)
+    pprint(pyInfo)
     pyVerStr = pyInfo[3].split(".")[0] + "." + pyInfo[3].split(".")[1]
     print(f">>> OCIO_PYTHON_VERSION = {pyVerStr}")
+    # print(f">>> Python_EXECUTABLE = {pyInfo[0]}")
     if Windows():
         pyRoot = "C:/Python" + pyInfo[3].split(".")[0] + pyInfo[3].split(".")[1]
         pyExe = os.path.join(pyRoot, "python.exe").replace("\\", "/")
+        print(f">>> Python_ROOT_DIR = {pyRoot}")
+        print(f">>> Python_EXECUTABLE = {pyExe}")
+    elif Linux():
+        pyExe = pyInfo[0]
+        pyRoot = os.path.dirname(pyExe)
         print(f">>> Python_ROOT_DIR = {pyRoot}")
         print(f">>> Python_EXECUTABLE = {pyExe}")
     # XXX: OFF
@@ -1601,6 +1619,21 @@ def InstallOpenColorIO(context, force, buildArgs):
             # XXX: OFF
         ]
         if Linux():
+            # patch for v2.1.3
+            # print(">>> patch src/OpenColorIO/FileRules.cpp")
+            # # /mnt/STORE0/data/tools/USD/pixar/src/OpenColorIO-2.1.3/src/OpenColorIO/FileRules.cpp:18:1: note: ‘strlen’ is defined in header ‘<cstring>’; this is probably fixable by adding ‘#include <cstring>’
+            # # 17 | #include "utils/StringUtils.h"
+            # # +++ |+#include <cstring>
+
+            # PatchFile(
+            #     "src/OpenColorIO/FileRules.cpp",
+            #     [
+            #         (
+            #             '#include "utils/StringUtils.h"',
+            #             '#include "utils/StringUtils.h"\n' + "#include <cstring>",
+            #         ),
+            #     ],
+            # )
             print(f"{context.useCXX11ABI = }")
             if context.useCXX11ABI is not None:
                 # extraArgs.append("-DOCIO_INSTALL_EXT_PACKAGES=ALL")
@@ -1625,7 +1658,7 @@ def InstallOpenColorIO(context, force, buildArgs):
                 '-Wno-error=cast-function-type -fPIC"'
             )
         # XXX: ON
-        if Windows():
+        if Windows() or Linux():
             extraArgs.append("-DPython_ROOT_DIR={}".format(pyRoot))
             extraArgs.append("-DPython_EXECUTABLE={}".format(pyExe))
         # XXX: OFF
@@ -2076,6 +2109,8 @@ def InstallUSD(context, force, buildArgs):
                         )
                     )
                 extraArgs.append("-DPXR_BUILD_PRMAN_PLUGIN=ON")
+                extraArgs.append("-DPXR_STRICT_BUILD_MODE=OFF")
+                extraArgs.append("-DCMAKE_CXX_FLAGS=-fpermissive")
             else:
                 extraArgs.append("-DPXR_BUILD_PRMAN_PLUGIN=OFF")
 
@@ -2144,7 +2179,7 @@ def InstallUSD(context, force, buildArgs):
         if context.buildMaterialX:
             extraArgs.append("-DPXR_ENABLE_MATERIALX_SUPPORT=ON")
             # XXX: ON
-            extraArgs.append("-DMaterialX_VERSION=1.38.8")
+            extraArgs.append("-DMaterialX_VERSION=1.38.10")
             # XXX: OFF
         else:
             extraArgs.append("-DPXR_ENABLE_MATERIALX_SUPPORT=OFF")
@@ -2262,6 +2297,17 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     allow_abbrev=False,
     description=programDescription,
+)
+
+parser.add_argument(
+    "install_dir", type=str, help="Directory where USD will be installed"
+)
+parser.add_argument(
+    "-n",
+    "--dry_run",
+    dest="dry_run",
+    action="store_true",
+    help="Only summarize what would happen",
 )
 
 group = parser.add_mutually_exclusive_group()
@@ -3042,7 +3088,7 @@ if extraPythonPaths:
 if context.buildOneTBB:
     TBB = ONETBB
 
-requiredDependencies = [ZLIB, TBB]
+requiredDependencies = [ZLIB, TBB, BOOST]
 
 if context.buildBoostPython:
     requiredDependencies += [BOOST]
@@ -3055,6 +3101,8 @@ if context.buildAlembic:
 if context.buildDraco:
     requiredDependencies += [DRACO]
 
+if context.buildMaterialX:
+    requiredDependencies += [OPENIMAGEIO, MATERIALX]
 if context.buildImaging:
     if context.enablePtex:
         requiredDependencies += [PTEX]
@@ -3067,10 +3115,12 @@ if context.buildImaging:
     if context.buildOIIO:
         print("**** context.buildOIIO")
         # XXX
+        # ImportError: /lib64/libgdal.so.34: undefined symbol: jpeg12_read_scanlines, version LIBJPEG_6.2
+        # Fedora 40: prevent libgdal.so.34 to use libjpeg.so from USD lib64
         if Linux():
             print("**** context.buildOIIO -> Linux()")
-            requiredDependencies += [BOOST, OPENEXR, OPENIMAGEIO]
-        else:
+            requiredDependencies += [BOOST, TIFF, PNG, OPENEXR, OPENIMAGEIO]
+            # else:
             requiredDependencies += [BOOST, JPEG, TIFF, PNG, OPENEXR, OPENIMAGEIO]
 
     if context.buildOCIO:
@@ -3078,9 +3128,6 @@ if context.buildImaging:
 
     if context.buildEmbree:
         requiredDependencies += [TBB, EMBREE]
-
-if context.buildMaterialX:
-    requiredDependencies += [OPENIMAGEIO, MATERIALX]
 
 if context.buildUsdview:
     requiredDependencies += [PYOPENGL, PYSIDE]
