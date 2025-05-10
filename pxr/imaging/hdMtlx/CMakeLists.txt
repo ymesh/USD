@@ -26,6 +26,7 @@ pxr_library(hdMtlx
 
     PUBLIC_CLASSES
         hdMtlx
+        debugCodes
 
     PUBLIC_HEADERS
         api.h
