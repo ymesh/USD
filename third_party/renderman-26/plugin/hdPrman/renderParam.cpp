@@ -3280,6 +3280,7 @@ HdPrman_RenderParam::SetRileyOptions()
             "SetOptions called on the composed param list:\n  %s\n",
             HdPrmanDebugUtil::RtParamListToString(
                 prunedOptions, /*indent = */2).c_str());
+
         // If we've updated the riley shutter interval in SetOptions above,
         // make sure to update the cached value.
         _UpdateShutterInterval(prunedOptions);

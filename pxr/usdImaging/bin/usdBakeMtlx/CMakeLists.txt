@@ -18,10 +18,9 @@ pxr_library(usdBakeMtlx
         hd
         hdMtlx
         usdImaging
-        # MaterialXCore
-        # MaterialXFormat
-        # MaterialXRenderGlsl
-        ${MATERIALX_LIBRARIES}
+        MaterialXCore
+        MaterialXFormat
+        MaterialXRenderGlsl
 
     PUBLIC_CLASSES
         bakeMaterialX

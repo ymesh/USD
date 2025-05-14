@@ -62,6 +62,7 @@ PtDspyError DspyImageOpen(
     if (!buf) {
         return PkDspyErrorBadParams;
     }
+
     int count = 2;
     int origin[2];
     int originalSize[2];

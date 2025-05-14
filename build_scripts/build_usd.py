@@ -1286,6 +1286,8 @@ def InstallTBB_MacOS(context, force, buildArgs):
 
 def InstallTBB_Linux(context, force, buildArgs):
     with CurrentWorkingDirectory(DownloadURL(TBB_URL, context, force)):
+        # XXX
+        print(f">>> Installing TBB from {TBB_URL}")
         # Append extra argument controlling libstdc++ ABI if specified.
         AppendCXX11ABIArg("CXXFLAGS", context, buildArgs)
 
@@ -1601,7 +1603,7 @@ def InstallOpenImageIO(context, force, buildArgs):
             ).replace("\\", "/")
             print(f">>> linux {boostInclude = }")
             print(f">>> linux Boost_ROOT = {context.instDir}")
-            extraArgs.append('Boost_INCLUDE_DIR="{}"'.format(boostInclude))
+            extraArgs.append('-DBoost_INCLUDE_DIR="{}"'.format(boostInclude))
             extraArgs.append('-DBoost_ROOT="{}"'.format(context.instDir))
         # XXX: OFF
         # extraArgs.append("-DBoost_NO_BOOST_CMAKE=On")
@@ -1615,6 +1617,31 @@ def InstallOpenImageIO(context, force, buildArgs):
         # finding the library under this name, so as an interim workaround
         # we reset it back to its old value.
         extraArgs.append('-DCMAKE_DEBUG_POSTFIX=""')
+
+        # CMP0144
+        # -------
+        # The ``OLD`` behavior for this policy is to ignore ``<PACKAGENAME>_ROOT``
+        # variables if the original ``<PackageName>`` has lower-case characters.
+        # The ``NEW`` behavior for this policy is to use ``<PACKAGENAME>_ROOT``
+        # variables.
+        # This policy was introduced in CMake version 3.27.
+        extraArgs.append(f"-DCMAKE_POLICY_DEFAULT_CMP0144=NEW")
+
+        instDir = context.instDir
+        extraArgs.append(f"-DTBB_ROOT_DIR={instDir}")
+        extraArgs.append(f"-DTBB_ROOT={instDir}")
+        extraArgs.append(f"-DZLIB_ROOT={instDir}")
+        extraArgs.append(f"-DTIFF_ROOT={instDir}")
+        extraArgs.append(f"-DJPEG_ROOT={instDir}")
+        extraArgs.append(f"-DPtex_ROOT={instDir}")
+
+        extraArgs.append("-DUSE_PTEX=ON")
+
+        extraArgs.append("-DUSE_DCMTK=OFF")
+        extraArgs.append("-DUSE_OPENCV=OFF")
+        extraArgs.append("-DUSE_FREETYPE=OFF")
+        extraArgs.append("-DUSE_DICOM=OFF")
+        extraArgs.append("-DUSE_OPENVDB=OFF")
 
         # Add on any user-specified extra arguments.
         extraArgs += buildArgs
@@ -3204,8 +3231,6 @@ if context.buildAlembic:
 if context.buildDraco:
     requiredDependencies += [DRACO]
 
-if context.buildMaterialX:
-    requiredDependencies += [OPENIMAGEIO, MATERIALX]
 if context.buildImaging:
     if context.enablePtex:
         requiredDependencies += [ZLIB, PTEX]
@@ -3216,13 +3241,25 @@ if context.buildImaging:
         requiredDependencies += [BLOSC, BOOST, OPENEXR, OPENVDB, TBB]
 
     if context.buildOIIO:
-        requiredDependencies += [ZLIB, BOOST, JPEG, TIFF, PNG, OPENEXR, OPENIMAGEIO]
+        requiredDependencies += [
+            ZLIB,
+            BOOST,
+            JPEG,
+            TIFF,
+            PNG,
+            OPENEXR,
+            OPENCOLORIO,
+            OPENIMAGEIO,
+        ]
 
     if context.buildOCIO:
         requiredDependencies += [ZLIB, OPENCOLORIO]
 
     if context.buildEmbree:
         requiredDependencies += [TBB, EMBREE]
+
+if context.buildMaterialX:
+    requiredDependencies += [OPENCOLORIO, OPENIMAGEIO, MATERIALX]
 
 if context.buildUsdview:
     requiredDependencies += [PYOPENGL, PYSIDE]

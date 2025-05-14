@@ -13,6 +13,7 @@
 #include "pxr/imaging/hgiVulkan/diagnostic.h"
 
 #include <float.h>
+#include <algorithm> // XXX: Add this include for std::min_element
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -56,11 +57,23 @@ HgiVulkanSampler::HgiVulkanSampler(
         HgiVulkanCapabilities const& caps = device->GetDeviceCapabilities();
         sampler.anisotropyEnable =
             caps.vkDeviceFeatures2.features.samplerAnisotropy;
-        sampler.maxAnisotropy = sampler.anisotropyEnable ?
-            std::min<float>({
+        // sampler.maxAnisotropy = sampler.anisotropyEnable ?
+        //     std::min<float>({
+        //         caps.vkDeviceProperties2.properties.limits.maxSamplerAnisotropy,
+        //         static_cast<float>(desc.maxAnisotropy),
+        //         static_cast<float>(TfGetEnvSetting(HGI_MAX_ANISOTROPY))}) : 1.0f;
+
+        // XXX: use std::min_element instead of std::min<float>
+        if (sampler.anisotropyEnable) {
+            std::initializer_list<float> anisotropyValues = {
                 caps.vkDeviceProperties2.properties.limits.maxSamplerAnisotropy,
                 static_cast<float>(desc.maxAnisotropy),
-                static_cast<float>(TfGetEnvSetting(HGI_MAX_ANISOTROPY))}) : 1.0f;
+                static_cast<float>(TfGetEnvSetting(HGI_MAX_ANISOTROPY))
+            };
+            sampler.maxAnisotropy = *std::min_element(anisotropyValues.begin(), anisotropyValues.end());
+        } else {
+            sampler.maxAnisotropy = 1.0f;
+        }
     }
 
     HGIVULKAN_VERIFY_VK_RESULT(

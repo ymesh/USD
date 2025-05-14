@@ -449,6 +449,7 @@ HdPrman_RenderSettings::UpdateAndRender(
             renderIndex,
             product.cameraPath,
             &cameraContext);
+
         const GfVec2f shutter =
             _ResolveShutterInterval(product, cameraContext, renderIndex);
 

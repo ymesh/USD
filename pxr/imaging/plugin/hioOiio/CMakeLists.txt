@@ -15,9 +15,6 @@ else()
     set(__OIIO_IMATH_LIBS ${OPENEXR_LIBRARIES})
 endif()
 
-message ("*** OIIO_LIBRARIES = ${OIIO_LIBRARIES}")
-message ("*** __OIIO_IMATH_LIBS = ${__OIIO_IMATH_LIBS}")
-
 pxr_plugin(hioOiio
     LIBRARIES
         ar

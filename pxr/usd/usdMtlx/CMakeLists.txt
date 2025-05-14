@@ -5,15 +5,6 @@ if (MATERIALX_STDLIB_DIR)
     add_definitions(-DPXR_MATERIALX_STDLIB_DIR="${MATERIALX_STDLIB_DIR}")
 endif()
 
-include_directories(${MATERIALX_INCLUDE_DIRS})
-link_directories(${MATERIALX_LIB_DIRS}) 
-# list(APPEND optionalLibs ${MATERIALX_LIBRARIES})
-message("--> pxr/usd/usdMtlx/CMakeLists.txt")
-message("*** MATERIALX_INCLUDE_DIRS = ${MATERIALX_INCLUDE_DIRS}")
-message("*** MATERIALX_LIBRARIES = ${MATERIALX_LIBRARIES}")
-message("*** MATERIALX_LIB_DIRS = ${MATERIALX_LIB_DIRS}")
-message("*** optionalLibs = ${optionalLibs}")
-
 pxr_library(usdMtlx
     INCLUDE_SCHEMA_FILES
 

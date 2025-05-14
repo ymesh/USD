@@ -113,16 +113,25 @@ endif()
 
 
 # --TBB
-find_package(TBB CONFIG)
-if(TBB_DIR)
-    # Found in CONFIG mode.
-    set(TBB_tbb_LIBRARY TBB::tbb)
-    set(PXR_FIND_TBB_IN_CONFIG ON)
-else()
-    find_package(TBB REQUIRED COMPONENTS tbb)
-    set(PXR_FIND_TBB_IN_CONFIG OFF)
-endif()
+# XXX
+# find_package(TBB CONFIG)
+# Use find_package(TBB) without the CONFIG keyword to force CMake to look for FindTBB.cmake:
+message("*** Looking for TBB..")
+message("*** TBB_ROOT_DIR = ${TBB_ROOT_DIR}")
+message("*** TBBROOT = $ENV{TBBROOT}")
+find_package(TBB REQUIRED COMPONENTS tbb)
+set(PXR_FIND_TBB_IN_CONFIG OFF)
+message(">>> TBB_DIR = ${TBB_DIR}")
+# if(TBB_DIR)
+#     # Found in CONFIG mode.
+#     set(TBB_tbb_LIBRARY TBB::tbb)
+#     set(PXR_FIND_TBB_IN_CONFIG ON)
+# else()
+#     find_package(TBB REQUIRED COMPONENTS tbb)
+#     set(PXR_FIND_TBB_IN_CONFIG OFF)
+# endif()
 add_definitions(${TBB_DEFINITIONS})
+message("*** TBB_DEFINITIONS = ${TBB_DEFINITIONS}")
 
 # --math
 if(WIN32)
