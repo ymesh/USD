@@ -124,6 +124,7 @@ if(NOT TBB_FOUND)
   
   # Define search paths based on user input and environment variables
   set(TBB_SEARCH_DIR ${TBB_ROOT_DIR} $ENV{TBB_INSTALL_DIR} $ENV{TBBROOT})
+  message("*** TBB_SEARCH_DIR = ${TBB_SEARCH_DIR}")
   
   # Define the search directories based on the current platform
   if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -332,3 +333,9 @@ if(NOT TBB_FOUND)
   unset(TBB_DEFAULT_SEARCH_DIR)
 
 endif()
+
+message("*** TBB_ROOT_DIR = ${TBB_ROOT_DIR}")
+message("*** TBBROOT = $ENV{TBBROOT}")
+message("*** TBB_LIBRARIES = ${TBB_LIBRARIES}")
+message("*** TBB_INCLUDE_DIRS = ${TBB_INCLUDE_DIRS}")
+

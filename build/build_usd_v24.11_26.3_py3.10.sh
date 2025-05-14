@@ -2,7 +2,7 @@
 # Config USD linux Renderman
 #
 USD_VER="24.11"
-RMAN_VER="26.2"
+RMAN_VER="26.3"
 PY_VER="3.10"
 
 PRMAN_LOCATION="/opt/pixar/RenderManProServer-${RMAN_VER}"
@@ -18,6 +18,9 @@ src_dir="${deploy_root}/USD/pixar/src"
 # CMAKE_LOCATION=/usr/local/cmake-3.28.3
 # export CMAKE_ROOT=/usr/local/cmake-3.28.3/share/cmake-3.28
 # export PATH=${CMAKE_LOCATION}/bin:${PATH}
+
+export TBBROOT=${deploy_dir}
+export LD_LIBRARY_PATH=${deploy_dir}/lib:${LD_LIBRARY_PATH}
 
 pushd ../build_scripts
 # --dry_run \
