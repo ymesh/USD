@@ -63,6 +63,7 @@ PtDspyError DspyImageOpen(
         return PkDspyErrorBadParams;
     }
     std::lock_guard<std::mutex> lock(buf->mutex);
+
     int count = 2;
     int origin[2];
     int originalSize[2];

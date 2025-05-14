@@ -477,6 +477,7 @@ MatfiltConvertPreviewMaterial(
 
     for (TfToken const &nodeName : nodeNames) {
         const TfToken nodeType = netInterface->GetNodeType(nodeName);
+
         if (nodeType == _tokens->UsdPreviewSurface) {
             if (foundPreviewSurface) {
                 outputErrorMessages->push_back(TfStringPrintf(

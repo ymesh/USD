@@ -48,6 +48,3 @@ pxr_library(hioOpenVDB
     RESOURCE_FILES
         plugInfo.json
 )
-
-message("**** OPENVDB_INCLUDE_DIR = ${OPENVDB_INCLUDE_DIR}")
-message("**** OPENEXR_INCLUDE_DIR = ${OPENEXR_INCLUDE_DIR}")

@@ -44,7 +44,6 @@ pxr_library(hgiInterop
         hgi
         vt
         ${optionalLibraries}
-        ${VULKAN_LIBS}
 
     PUBLIC_HEADERS
         api.h

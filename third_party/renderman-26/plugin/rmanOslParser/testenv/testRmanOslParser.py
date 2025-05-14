@@ -9,22 +9,21 @@ import unittest
 
 from pxr import Sdr
 
-
 class TestRmanOslParser(unittest.TestCase):
     def test_Basic(self):
         r = Sdr.Registry()
 
-        uvTextureNode = r.GetNodeByName("UsdUVTexture", ["OSL"])
+        uvTextureNode = r.GetNodeByName('UsdUVTexture', ['OSL'])
         self.assertTrue(uvTextureNode)
         self.assertEqual(
             uvTextureNode.GetInputNames(),
-            ["file", "st", "wrapS", "wrapT", "fallback", "scale", "bias"],
-        )
+            ['file', 'st', 'wrapS', 'wrapT', 'fallback', 'scale', 'bias'])
 
-        primvarReaderNode = r.GetNodeByName("UsdPrimvarReader_float", ["OSL"])
+        primvarReaderNode = r.GetNodeByName('UsdPrimvarReader_float', ['OSL'])
         self.assertTrue(primvarReaderNode)
-        self.assertEqual(primvarReaderNode.GetInputNames(), ["varname", "fallback"])
+        self.assertEqual(
+            primvarReaderNode.GetInputNames(),
+            ['varname', 'fallback'])
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

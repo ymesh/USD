@@ -48,10 +48,11 @@ python ./build_usd.py \
 --prman \
 --prman-location ${PRMAN_LOCATION} \
 --openimageio \
---opencolorio \
+--no-opencolorio \
 --alembic \
 --hdf5 \
---materialx ${deploy_dir}
+--materialx \
+${deploy_dir}
 
 popd
 
