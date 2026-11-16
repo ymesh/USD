@@ -811,3 +811,10 @@ if (NOT EMSCRIPTEN)
             PXR_USDC_EMIT_DEPRECATION_WARNINGS=1
     )
 endif()
+
+# Fork: Clang 21 mis-handles PEGTL's sor<...>::match instantiations in the text
+# file parser (undefined references from libusd_sdf.so at -O3, duplicate
+# symbols at -O0). -O1 for this one file avoids it.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set_source_files_properties(textFileFormatParser.cpp PROPERTIES COMPILE_OPTIONS "-O1")
+endif()
