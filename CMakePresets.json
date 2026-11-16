@@ -1,0 +1,95 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 26, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "description": "Driven by build_scripts/vcpkg/build.sh, which sets the USD_* environment variables.",
+      "generator": "Ninja",
+      "binaryDir": "$env{USD_BUILD_DIR}/USD",
+      "installDir": "$env{USD_PREFIX}",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "environment": {
+        "VCPKG_KEEP_ENV_VARS": "RMANTREE"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+
+        "VCPKG_MANIFEST_DIR": "${sourceDir}/build_scripts/vcpkg",
+        "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/build_scripts/vcpkg/triplets",
+        "VCPKG_INSTALLED_DIR": "$env{USD_BUILD_DIR}/vcpkg_installed",
+        "VCPKG_MANIFEST_INSTALL": "ON",
+        "VCPKG_INSTALL_OPTIONS": "--clean-buildtrees-after-build;--clean-packages-after-build",
+
+        "BUILD_SHARED_LIBS": "ON",
+        "PXR_PREFER_SAFETY_OVER_SPEED": "ON",
+        "PXR_STRICT_BUILD_MODE": "OFF",
+        "PXR_BUILD_MONOLITHIC": "OFF",
+
+        "PXR_ENABLE_PYTHON_SUPPORT": "ON",
+        "PXR_USE_DEBUG_PYTHON": "OFF",
+        "PXR_PY_UNDEFINED_DYNAMIC_LOOKUP": "OFF",
+        "Python3_EXECUTABLE": "$env{USD_PYTHON_EXE}",
+        "Python3_LIBRARY": "$env{USD_PYTHON_LIB}",
+        "Python3_INCLUDE_DIR": "$env{USD_PYTHON_INCLUDE}",
+        "PXR_PYTHON_SHEBANG": "$env{USD_PYTHON_EXE}",
+
+        "PXR_BUILD_DOCUMENTATION": "OFF",
+        "PXR_BUILD_HTML_DOCUMENTATION": "OFF",
+        "PXR_BUILD_PYTHON_DOCUMENTATION": "OFF",
+        "PXR_BUILD_TESTS": "OFF",
+        "PXR_BUILD_EXAMPLES": "ON",
+        "PXR_BUILD_TUTORIALS": "ON",
+        "PXR_BUILD_USD_TOOLS": "ON",
+        "PXR_BUILD_USD_VALIDATION": "ON",
+        "PXR_BUILD_EXEC": "ON",
+
+        "PXR_BUILD_IMAGING": "ON",
+        "PXR_BUILD_USD_IMAGING": "ON",
+        "PXR_BUILD_USDVIEW": "ON",
+        "PXR_ENABLE_GL_SUPPORT": "ON",
+        "PXR_ENABLE_VULKAN_SUPPORT": "ON",
+        "PXR_ENABLE_PTEX_SUPPORT": "ON",
+        "PXR_ENABLE_OPENVDB_SUPPORT": "ON",
+        "PXR_ENABLE_MATERIALX_SUPPORT": "ON",
+        "PXR_ENABLE_OSL_SUPPORT": "OFF",
+        "PXR_BUILD_OPENIMAGEIO_PLUGIN": "ON",
+        "PXR_BUILD_OPENCOLORIO_PLUGIN": "ON",
+        "PXR_BUILD_EMBREE_PLUGIN": "ON",
+        "PXR_BUILD_PRMAN_PLUGIN": "ON",
+        "RENDERMAN_LOCATION": "$env{RMANTREE}",
+
+        "PXR_BUILD_ALEMBIC_PLUGIN": "ON",
+        "PXR_ENABLE_HDF5_SUPPORT": "ON",
+        "PXR_BUILD_DRACO_PLUGIN": "ON",
+        "PXR_BUILD_MAYAPY_TESTS": "OFF",
+        "PXR_BUILD_ANIMX_TESTS": "OFF"
+      }
+    },
+    {
+      "name": "linux-gcc",
+      "displayName": "Linux, system GCC",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-linux-usd"
+      }
+    },
+    {
+      "name": "linux-clang",
+      "displayName": "Linux, Clang (USD and every vcpkg port)",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-linux-usd-clang",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/build_scripts/vcpkg/toolchains/linux-clang.cmake"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "linux-gcc", "configurePreset": "linux-gcc" },
+    { "name": "linux-clang", "configurePreset": "linux-clang" }
+  ]
+}

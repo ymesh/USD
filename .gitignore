@@ -2,3 +2,8 @@
 .DS_Store
 .AppleDouble
 
+.vscode/
+
+build/
+
+*.log

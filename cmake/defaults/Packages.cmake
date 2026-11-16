@@ -235,7 +235,34 @@ if (PXR_BUILD_IMAGING)
 
             add_definitions(-DPXR_VULKAN_SUPPORT_ENABLED)
         else()
-            message(FATAL_ERROR "VULKAN_SDK not valid")
+            # No Vulkan SDK: take Vulkan headers/loader and shaderc from the
+            # package manager (vcpkg's vulkan-headers + unofficial-shaderc,
+            # see build_scripts/vcpkg). USD's bundled vk_mem_alloc is kept.
+            find_package(unofficial-shaderc CONFIG QUIET)
+            if (NOT unofficial-shaderc_FOUND)
+                message(FATAL_ERROR "VULKAN_SDK not valid and shaderc "
+                        "package (unofficial-shaderc) not found")
+            endif()
+            find_package(Vulkan REQUIRED)
+            list(APPEND VULKAN_LIBS Vulkan::Vulkan
+                                    unofficial::shaderc::shaderc)
+            # hgiVulkan includes <vma/vk_mem_alloc.h> (Vulkan SDK layout);
+            # the vulkan-memory-allocator package has it without vma/.
+            find_path(PXR_VMA_INCLUDE_DIR vk_mem_alloc.h
+                      PATHS ${CMAKE_PREFIX_PATH} PATH_SUFFIXES include
+                      NO_DEFAULT_PATH)
+            if (NOT PXR_VMA_INCLUDE_DIR)
+                message(FATAL_ERROR "vk_mem_alloc.h (vulkan-memory-allocator) not found")
+            endif()
+            set(_pxrVmaShim "${CMAKE_BINARY_DIR}/vma_shim")
+            file(WRITE "${_pxrVmaShim}/vma/vk_mem_alloc.h"
+                 "#include \"${PXR_VMA_INCLUDE_DIR}/vk_mem_alloc.h\"\n")
+            include_directories(SYSTEM "${_pxrVmaShim}")
+            if (UNIX AND NOT APPLE)
+                find_package(X11 REQUIRED)
+                list(APPEND VULKAN_LIBS ${X11_LIBRARIES})
+            endif()
+            add_definitions(-DPXR_VULKAN_SUPPORT_ENABLED)
         endif()
     endif()
     # --Opensubdiv
@@ -302,11 +329,21 @@ if (PXR_BUILD_ALEMBIC_PLUGIN)
     find_package(Alembic REQUIRED)
     set(REQUIRES_Imath TRUE)
     if (PXR_ENABLE_HDF5_SUPPORT)
-        find_package(HDF5 REQUIRED
-            COMPONENTS
-                HL
-            REQUIRED
-        )
+        # HDF5's own config package first (vcpkg ships HDF5 2.x, which
+        # CMake's FindHDF5 module can't detect), then the module.
+        find_package(hdf5 CONFIG QUIET)
+        if (TARGET hdf5::hdf5-shared AND TARGET hdf5::hdf5_hl-shared)
+            set(HDF5_LIBRARIES hdf5::hdf5-shared)
+            set(HDF5_HL_LIBRARIES hdf5::hdf5_hl-shared)
+            set(HDF5_INCLUDE_DIRS "")
+            message(STATUS "Found HDF5 (config): ${hdf5_DIR}")
+        else()
+            find_package(HDF5 REQUIRED
+                COMPONENTS
+                    HL
+                REQUIRED
+            )
+        endif()
     endif()
 endif()
 

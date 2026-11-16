@@ -1,0 +1,39 @@
+{
+  "name": "usd-deps",
+  "version-string": "0",
+  "description": "Third-party dependencies of this OpenUSD fork, built by vcpkg (see build_scripts/vcpkg/README.md).",
+  "dependencies": [
+    "zlib",
+    "tbb",
+    {
+      "name": "opensubdiv",
+      "default-features": false,
+      "features": [ "opengl", "tbb" ]
+    },
+    "imath",
+    "openexr",
+    "openimageio",
+    "opencolorio",
+    "ptex",
+    "openvdb",
+    {
+      "name": "alembic",
+      "features": [ "hdf5" ]
+    },
+    {
+      "name": "hdf5",
+      "features": [ "hl" ]
+    },
+    {
+      "name": "materialx",
+      "features": [ "glsl-generator", "osl-generator", "render" ]
+    },
+    "embree",
+    "draco",
+    "shaderc",
+    "vulkan-headers",
+    "vulkan-memory-allocator",
+    "vulkan-utility-libraries"
+  ],
+  "builtin-baseline": "6f6324d69cc4d5229804bee9f72737fe2ef08087"
+}
