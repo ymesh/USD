@@ -407,9 +407,11 @@ HdxColorCorrectionTask::_CreateOpenColorIOResourcesImpl(
 
         shaderDesc->getTextureValues(i, lutValues);
 
+        // Fork fix: OCIO RGB LUTs have 3 channels (was 4, which made
+        // _RGBtoRGBA bail out or over-read OCIO's buffer).
         int channelPerPix =
             channel == OCIO::GpuShaderCreator::TextureType::TEXTURE_RED_CHANNEL
-                ? 1 : 4;
+                ? 1 : 3;
         int valueCount = channelPerPix*width*height;
         HgiFormat fmt =
             channelPerPix == 1 ? HgiFormatFloat32 : HgiFormatFloat32Vec3;
@@ -421,6 +423,11 @@ HdxColorCorrectionTask::_CreateOpenColorIOResourcesImpl(
             fmt = HgiFormatFloat32Vec4;
             channelPerPix = 4;
             lutValues = float4AdaptedLutValues.data();
+        } else if (lutValues) {
+            // Fork fix: single-channel LUTs must be kept too; the texture is
+            // uploaded later from this vector, and leaving it empty made
+            // every lookup return 0 (black image with ACES configs).
+            float4AdaptedLutValues.assign(lutValues, lutValues + valueCount);
         }
 
         // Texture description
@@ -444,6 +451,10 @@ HdxColorCorrectionTask::_CreateOpenColorIOResourcesImpl(
 
         // Sampler description
         HgiSamplerDesc sampDesc;
+        // Needed by _CreateOpenColorIOShaderCode to rename OCIO's sampler
+        // (fork fix: was only set for 3D LUTs, so 1D/2D LUT configs such as
+        // ACES failed its TF_VERIFY).
+        sampDesc.debugName = samplerName;
         sampDesc.magFilter =
             interpolation == OCIO::Interpolation::INTERP_NEAREST ?
                 HgiSamplerFilterNearest : HgiSamplerFilterLinear;
